@@ -21,7 +21,6 @@ import type { Player, TournamentMode, TournamentFormat, Sportstaette, HallConfig
 import { parseHallConfig, hallConfigTotalCourts, playerDisplayName } from "../lib/types";
 import { formFixedDoubleTeams, formFixedMixedTeams, recommendedSwissRounds } from "../lib/draw";
 import { SCORING_MODES, getScoringModeId, type ScoringModeId } from "../lib/scoring";
-import { loadSettings } from "./Settings";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
@@ -74,20 +73,11 @@ export default function TournamentCreate() {
   const pointsPerSet = scoringPreset.points_per_set;
   const cap = scoringPreset.cap;
   const [setsToWin, setSetsToWin] = useState<number>(2); // 1 = Best of 1, 2 = Best of 3, 3 = Best of 5
-  // courts is derived from selected halls
-  const [hallConfig, setHallConfig] = useState<HallConfig[]>(() => {
-    const s = loadSettings();
-    return s.defaultHalls && s.defaultHalls.length > 0
-      ? s.defaultHalls
-      : [{ name: "Halle 1", courts: (s as any).defaultCourts || 2 }];
-  });
-  const [selectedHallIndices, setSelectedHallIndices] = useState<Set<number>>(() => {
-    const s = loadSettings();
-    const halls = s.defaultHalls && s.defaultHalls.length > 0
-      ? s.defaultHalls
-      : [{ name: "Halle 1", courts: (s as any).defaultCourts || 2 }];
-    return new Set(halls.map((_, i) => i));
-  });
+  // courts is derived from selected halls. Halls now always come from the
+  // picked venue (since v2.8.2 venue is mandatory) — start empty and fill
+  // when the user picks a venue or when an existing tournament loads.
+  const [hallConfig, setHallConfig] = useState<HallConfig[]>([]);
+  const [selectedHallIndices, setSelectedHallIndices] = useState<Set<number>>(new Set());
   const selectedHalls = useMemo(() => hallConfig.filter((_, i) => selectedHallIndices.has(i)), [hallConfig, selectedHallIndices]);
   const courts = useMemo(() => Math.max(hallConfigTotalCourts(selectedHalls), 1), [selectedHalls]);
   const [sportstaetten, setSportstaetten] = useState<Sportstaette[]>([]);
@@ -772,24 +762,42 @@ export default function TournamentCreate() {
                             setSelectedHallIndices(new Set(halls.map((_, i) => i)));
                           }
                         } else {
-                          // Reset to settings default
-                          const s = loadSettings();
-                          const defaultHalls = s.defaultHalls && s.defaultHalls.length > 0
-                            ? s.defaultHalls
-                            : [{ name: "Halle 1", courts: 2 }];
-                          setHallConfig(defaultHalls);
-                          setSelectedHallIndices(new Set(defaultHalls.map((_, i) => i)));
+                          // Venue cleared — wipe halls. Save will be blocked
+                          // until a venue is picked again (mandatory).
+                          setHallConfig([]);
+                          setSelectedHallIndices(new Set());
                         }
                       }}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      required
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${selectedVenueId === "" ? "border-rose-300" : theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
-                      <option value="">{t.tournament_venue_none}</option>
+                      <option value="">{t.tournament_venue_pick_placeholder}</option>
                       {sportstaetten.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name} ({s.courts} {s.courts === 1 ? t.common_field : t.common_fields})
                         </option>
                       ))}
                     </select>
+                    {selectedVenueId === "" && (
+                      <p className="text-xs text-rose-600 mt-1 font-medium">
+                        ⚠ {t.tournament_venue_required}
+                      </p>
+                    )}
+                    {sportstaetten.length === 0 && (
+                      <div className={`mt-2 ${theme.cardBg} border border-amber-200 rounded-xl px-3 py-2 text-xs ${theme.textSecondary}`}>
+                        <p className="font-medium text-amber-700 mb-1">
+                          ⚠ {t.tournament_venue_no_venues_title}
+                        </p>
+                        <p>{t.tournament_venue_no_venues_message}</p>
+                        <button
+                          type="button"
+                          onClick={() => navigate("/sportstaetten")}
+                          className={`mt-2 ${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-lg text-xs font-semibold transition-all`}
+                        >
+                          {t.tournament_venue_create_first} →
+                        </button>
+                      </div>
+                    )}
                   </div>
                   {/* Session picker — only when sessions exist. Filters by venue
                       match (or no venue) so the dropdown stays focused. */}
@@ -1055,7 +1063,9 @@ export default function TournamentCreate() {
             {nextStep && (
               <button
                 onClick={() => setCreateStep(nextStep)}
-                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-2`}
+                disabled={selectedVenueId === ""}
+                title={selectedVenueId === "" ? t.tournament_venue_required : undefined}
+                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-2 disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {t.tournament_continue_to.replace("{icon}", steps.find((s) => s.key === nextStep)?.icon || "").replace("{label}", steps.find((s) => s.key === nextStep)?.label || "")} →
               </button>
@@ -1337,7 +1347,8 @@ export default function TournamentCreate() {
             {/* Create button */}
             <button
               onClick={handleCreate}
-              disabled={creating || selectedPlayerIds.size < minPlayers || (needsTeamPairing && poolPlayers.length >= 2)}
+              disabled={creating || selectedVenueId === "" || selectedPlayerIds.size < minPlayers || (needsTeamPairing && poolPlayers.length >= 2)}
+              title={selectedVenueId === "" ? t.tournament_venue_required : undefined}
               className={`w-full ${theme.primaryBg} text-white px-5 py-3.5 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-lg transition-all disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none font-semibold text-base`}
             >
               {creating
@@ -1345,12 +1356,17 @@ export default function TournamentCreate() {
                 : isEditMode
                 ? `💾 ${t.tournament_save_changes}`
                 : `🏆 ${t.tournament_create_button}`}
-              {!creating && selectedPlayerIds.size < minPlayers && (
+              {!creating && selectedVenueId === "" && (
+                <span className="text-sm font-normal ml-2 opacity-70">
+                  ({t.tournament_venue_required})
+                </span>
+              )}
+              {!creating && selectedVenueId !== "" && selectedPlayerIds.size < minPlayers && (
                 <span className="text-sm font-normal ml-2 opacity-70">
                   {t.tournament_min_players.replace("{count}", String(minPlayers))}
                 </span>
               )}
-              {!creating && needsTeamPairing && poolPlayers.length >= 2 && (
+              {!creating && selectedVenueId !== "" && needsTeamPairing && poolPlayers.length >= 2 && (
                 <span className="text-sm font-normal ml-2 opacity-70">
                   ({t.tournament_teams_open.replace("{count}", String(poolPlayers.length))})
                 </span>

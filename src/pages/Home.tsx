@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getTournaments, getPlayers, createTournament } from "../lib/db";
+import { getTournaments, getPlayers, createTournament, getSportstaetten } from "../lib/db";
 import type { Tournament, Player } from "../lib/types";
 import { STATUS_LABELS, MODE_LABELS, FORMAT_LABELS } from "../lib/types";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
+import { useToast } from "../lib/ToastContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 export default function Home() {
@@ -12,6 +13,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const { t } = useT();
+  const { showError } = useToast();
   useDocumentTitle(t.nav_home);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -106,6 +108,14 @@ export default function Home() {
             if (creating) return;
             setCreating(true);
             try {
+              // Hard guard: venue is mandatory since v2.8.2.
+              const venues = await getSportstaetten();
+              if (venues.length === 0) {
+                showError(t.tournament_venue_no_venues_message);
+                navigate("/sportstaetten");
+                setCreating(false);
+                return;
+              }
               const now = new Date();
               const d = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
               // enableThirdPlace=true so the bronze-toggle is pre-checked once the

@@ -7,7 +7,7 @@ import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { useAsyncAction } from "../lib/useAsyncAction";
 import type { Lang } from "../lib/I18nContext";
 import { THEMES, type ThemeId, FONT_SIZES, type FontSizeId, FONT_FAMILIES, type FontFamilyId } from "../lib/theme";
-import type { HallConfig, LivePublishConfig } from "../lib/types";
+import type { LivePublishConfig } from "../lib/types";
 import {
   LIVE_PUBLISH_SETTING_KEY,
   testConnection,
@@ -22,13 +22,11 @@ type ConfirmTarget = "players" | "tournaments" | "wipe" | null;
 const SETTINGS_KEY = "turnierplaner_settings";
 
 interface AppSettings {
-  defaultHalls: HallConfig[];
   timerWarningMin: number;  // yellow threshold in minutes
   timerDangerMin: number;   // red threshold in minutes
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
-  defaultHalls: [{ name: "Halle 1", courts: 2 }],
   timerWarningMin: 20,
   timerDangerMin: 30,
 };
@@ -38,11 +36,10 @@ export function loadSettings(): AppSettings {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Backward compat: convert old defaultCourts to defaultHalls
-      if (parsed.defaultCourts && !parsed.defaultHalls) {
-        parsed.defaultHalls = [{ name: "Halle 1", courts: parsed.defaultCourts }];
-        delete parsed.defaultCourts;
-      }
+      // Drop legacy defaultCourts/defaultHalls — venues are now mandatory
+      // and halls are defined per-venue in /sportstaetten.
+      if ("defaultCourts" in parsed) delete parsed.defaultCourts;
+      if ("defaultHalls" in parsed) delete parsed.defaultHalls;
       return { ...DEFAULT_SETTINGS, ...parsed };
     }
   } catch (err) {
@@ -293,73 +290,10 @@ export default function Settings() {
       {/* ===== Voreinstellungen ===== */}
       <Section title={t.settings_defaults} icon="🎯" defaultOpen={false}>
         <div className="space-y-4">
+          {/* Timer Thresholds — only remaining default since v2.8.2.
+              The pre-v2.8 "default halls" picker was removed: every
+              tournament now requires a venue, and halls come from there. */}
           <div>
-            <label className={`block text-xs font-medium ${theme.textSecondary} mb-1.5 uppercase tracking-wide`}>
-              {t.settings_default_halls}
-            </label>
-            <div className="space-y-2">
-              {settings.defaultHalls.map((hall, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={hall.name}
-                    onChange={(e) => {
-                      const next = settings.defaultHalls.map((h, i) => i === idx ? { ...h, name: e.target.value } : h);
-                      updateSetting("defaultHalls", next);
-                    }}
-                    className={`flex-1 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-3 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
-                    placeholder={t.settings_hall_name_placeholder}
-                  />
-                  <input
-                    type="number"
-                    value={hall.courts}
-                    min={1}
-                    max={8}
-                    onChange={(e) => {
-                      const next = settings.defaultHalls.map((h, i) => i === idx ? { ...h, courts: Number(e.target.value) || 1 } : h);
-                      updateSetting("defaultHalls", next);
-                    }}
-                    className={`w-20 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-3 py-2 text-sm text-center ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
-                  />
-                  <span className={`text-xs ${theme.textMuted} w-12`}>{t.common_fields}</span>
-                  {settings.defaultHalls.length > 1 && (
-                    <button
-                      onClick={() => {
-                        const next = settings.defaultHalls.filter((_, i) => i !== idx);
-                        updateSetting("defaultHalls", next);
-                      }}
-                      className={`${theme.textMuted} hover:text-rose-500 text-sm transition-colors px-1`}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    const next = [...settings.defaultHalls, { name: `Halle ${settings.defaultHalls.length + 1}`, courts: 2 }];
-                    updateSetting("defaultHalls", next);
-                  }}
-                  className={`text-xs font-medium ${theme.activeBadgeText} hover:opacity-80 transition-colors`}
-                >
-                  {t.settings_add_hall}
-                </button>
-                <span className={`text-xs ${theme.textMuted}`}>
-                  {t.settings_total_courts_in_halls
-                    .replace("{courts}", String(settings.defaultHalls.reduce((s, h) => s + h.courts, 0)))
-                    .replace("{halls}", String(settings.defaultHalls.length))
-                    .replace("{hallLabel}", settings.defaultHalls.length === 1 ? t.venues_hall_singular : t.venues_hall_plural)}
-                </span>
-              </div>
-            </div>
-            <span className="text-xs text-gray-400 mt-1 block">
-              {t.settings_default_hint}
-            </span>
-          </div>
-
-          {/* Timer Thresholds */}
-          <div className={`pt-4 border-t ${theme.cardBorder}`}>
             <label className={`block text-xs font-medium ${theme.textSecondary} mb-3 uppercase tracking-wide`}>
               ⏱ {t.settings_timer_thresholds}
             </label>

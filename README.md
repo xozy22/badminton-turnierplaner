@@ -79,6 +79,13 @@
 - **Save Confirmation**: Green toast notification confirms all changes (settings, players, teams, halls) were saved after editing a tournament draft
 - **Unified Toast Notifications**: A global toast context (`useToast`) replaces native browser alerts for save confirmations, import summaries, and error reporting across the app — non-blocking, stackable, auto-dismissing
 
+### Mandatory Venue + Settings Cleanup (v2.8.2)
+- **Sportstaette ist jetzt Pflichtfeld**: Multi-Tournament-Sessions setzen einen festen Veranstaltungsort voraus, daher ist die Sportstaette beim Turnier-Erstellen jetzt zwingend erforderlich. Die "Keine"-Option im Venue-Dropdown ist entfernt; das Feld zeigt eine "Sportstaette auswaehlen"-Aufforderung mit roter Markierung. Wizard-Buttons "Weiter" / "Turnier erstellen" sind disabled solange keine Sportstaette ausgewaehlt ist
+- **Hard-Block bei keiner Sportstaette**: Klick auf "Neues Turnier" (Home + Tournaments) prueft erst ob eine Sportstaette existiert. Wenn nicht, redirect zu `/sportstaetten` mit einer Toast-Erklaerung "Bitte zuerst eine Sportstaette anlegen". Der Wizard zeigt zusaetzlich ein gelbes Hinweis-Panel mit "Sportstaette anlegen"-Shortcut
+- **Settings -> Voreinstellungen entschlackt**: Die "Standard-Hallen"-Einstellung (defaultHalls + defaultCourts Backward-Compat) ist entfernt — Hallen werden ausschliesslich pro Sportstaette in `/sportstaetten` definiert. Nur die Spielzeit-Timer-Schwellenwerte bleiben in den Voreinstellungen. Legacy `defaultHalls` / `defaultCourts` Settings werden beim Lesen ignoriert und beim naechsten Speichern entfernt — keine separate Migration noetig
+- **TournamentCreate**: kein loadSettings-Import mehr noetig, hallConfig wird ausschliesslich aus der ausgewaehlten Sportstaette abgeleitet (parseHallConfig(venue.halls))
+- **i18n**: 5 neue Keys fuer die Validierungs- und Empty-State-Texte; 5 obsolete Settings-Keys entfernt
+
 ### Hotfix: TournamentView White Screen (v2.8.1)
 - **Tournament oeffnen fuehrte zu weissem Screen**: Regression aus v2.8.0. Der `useMemo` fuer `sessionSiblings` sass nach dem `if (!tournament) return <div>Loading</div>`-Early-Return. Beim ersten Render (tournament=null) wurden weniger Hooks aufgerufen als beim zweiten (tournament geladen) → React-Hooks-Order-Violation, sichtbar als weisser Screen. Hook ist jetzt vor dem Early-Return platziert. Daten sind nicht betroffen
 

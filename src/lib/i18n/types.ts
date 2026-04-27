@@ -135,6 +135,12 @@ export interface Translations {
   ko_modal_start_button: string;
   tournament_venue: string;
   tournament_venue_none: string;
+  // Venue is mandatory — these cover the empty-state and validation paths
+  tournament_venue_required: string;
+  tournament_venue_pick_placeholder: string;
+  tournament_venue_no_venues_title: string;
+  tournament_venue_no_venues_message: string;
+  tournament_venue_create_first: string;
   tournament_halls_courts: string;
   tournament_courts_selected: string;
   tournament_num_groups: string;
@@ -637,11 +643,6 @@ export interface Translations {
   settings_logo_crop_save: string;
   settings_logo_too_large: string;
   settings_logo_cropped_too_large: string;
-  settings_default_halls: string;
-  settings_add_hall: string;
-  settings_hall_name_placeholder: string;
-  settings_total_courts_in_halls: string;
-  settings_default_hint: string;
   settings_timer_thresholds: string;
   settings_timer_warning: string;
   settings_timer_critical: string;

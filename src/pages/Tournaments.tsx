@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getTournaments, deleteTournament, updateTournamentStatus, createTournament, createPlayer, getPlayers, addPlayerToTournament, updateTeamConfig, updateHallConfig, isTauri } from "../lib/db";
+import { getTournaments, deleteTournament, updateTournamentStatus, createTournament, createPlayer, getPlayers, addPlayerToTournament, updateTeamConfig, updateHallConfig, isTauri, getSportstaetten } from "../lib/db";
 import type { Tournament, Gender } from "../lib/types";
 import { getScoringModeId } from "../lib/scoring";
 import { useTheme } from "../lib/ThemeContext";
@@ -22,6 +22,16 @@ export default function Tournaments() {
     if (creating) return;
     setCreating(true);
     try {
+      // Hard guard: a venue is mandatory since v2.8.2. Without one the
+      // wizard's halls/courts step is undefined and sessions can't function.
+      // Send the user straight to the venue manager with an explanatory toast.
+      const venues = await getSportstaetten();
+      if (venues.length === 0) {
+        showError(t.tournament_venue_no_venues_message);
+        navigate("/sportstaetten");
+        setCreating(false);
+        return;
+      }
       const now = new Date();
       const d = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
       const defaultName = `${d} - ${t.mode_doubles} - ${t.format_random_doubles}`;
