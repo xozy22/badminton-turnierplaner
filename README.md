@@ -79,6 +79,9 @@
 - **Save Confirmation**: Green toast notification confirms all changes (settings, players, teams, halls) were saved after editing a tournament draft
 - **Unified Toast Notifications**: A global toast context (`useToast`) replaces native browser alerts for save confirmations, import summaries, and error reporting across the app — non-blocking, stackable, auto-dismissing
 
+### Hotfix: TournamentView White Screen (v2.8.1)
+- **Tournament oeffnen fuehrte zu weissem Screen**: Regression aus v2.8.0. Der `useMemo` fuer `sessionSiblings` sass nach dem `if (!tournament) return <div>Loading</div>`-Early-Return. Beim ersten Render (tournament=null) wurden weniger Hooks aufgerufen als beim zweiten (tournament geladen) → React-Hooks-Order-Violation, sichtbar als weisser Screen. Hook ist jetzt vor dem Early-Return platziert. Daten sind nicht betroffen
+
 ### Multi-Tournament Sessions (v2.8.0)
 - **Sessions** as an opt-in bundle of tournaments running in parallel at the same venue. Tournaments without a `session_id` keep all pre-v2.8 single-tournament behavior — sessions are purely additive
 - **Sessions list** (`/sessions`) with Active / Ended / Archived filter pills, status transitions (end → reactivate → archive → unarchive), inline create form (name + venue + optional auto-attach of running tournaments at that venue)

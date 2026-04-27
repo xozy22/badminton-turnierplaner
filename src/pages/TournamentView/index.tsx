@@ -1868,6 +1868,14 @@ export default function TournamentView() {
     return false;
   })();
 
+  // Session pill + switcher data — must be computed before any early
+  // return so the hook count stays stable between the loading-state render
+  // and the loaded render (otherwise: hooks-order violation → white screen).
+  const sessionSiblings = useMemo(() => {
+    if (!tournament?.session_id) return [];
+    return sessionCtx.tournaments.filter((tt) => tt.id !== tournament.id);
+  }, [sessionCtx.tournaments, tournament?.session_id, tournament?.id]);
+
   if (!tournament) return <div>{t.common_loading}</div>;
 
   const handleArchive = async () => {
@@ -1982,12 +1990,6 @@ export default function TournamentView() {
       : tournament.status === "archived"
       ? "bg-violet-100 text-violet-600"
       : "bg-amber-100 text-amber-700";
-
-  // ---- Session pill + switcher (only when tournament.session_id is set) ----
-  const sessionSiblings = useMemo(() => {
-    if (!tournament?.session_id) return [];
-    return sessionCtx.tournaments.filter((tt) => tt.id !== tournament.id);
-  }, [sessionCtx.tournaments, tournament?.session_id, tournament?.id]);
 
   return (
     <div>
