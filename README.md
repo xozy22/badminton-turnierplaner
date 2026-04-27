@@ -79,6 +79,18 @@
 - **Save Confirmation**: Green toast notification confirms all changes (settings, players, teams, halls) were saved after editing a tournament draft
 - **Unified Toast Notifications**: A global toast context (`useToast`) replaces native browser alerts for save confirmations, import summaries, and error reporting across the app — non-blocking, stackable, auto-dismissing
 
+### Multi-Tournament Sessions (v2.8.0)
+- **Sessions** as an opt-in bundle of tournaments running in parallel at the same venue. Tournaments without a `session_id` keep all pre-v2.8 single-tournament behavior — sessions are purely additive
+- **Sessions list** (`/sessions`) with Active / Ended / Archived filter pills, status transitions (end → reactivate → archive → unarchive), inline create form (name + venue + optional auto-attach of running tournaments at that venue)
+- **Session detail page** (`/sessions/:id`) for renaming, attaching/detaching tournaments, and quick-jumping into the dashboard or a specific tournament
+- **Venue/Session Dashboard** (`/sessions/:id/live`) — fullscreen bird's-eye view rendering: courts grid grouped by hall (live cross-tournament occupancy with timers), per-tournament queue with filter pills, last 10 results across the session. 5s polling cadence (consistent with TV mode and Live-Push)
+- **Cross-tournament conflict detection**: when assigning a court to a match in a sessioned tournament, the dropdown disables courts already in use by sibling tournaments and the player-conflict modal triggers when a player is on a court in another tournament of the same session. The hard guard now spans the whole session, not just the current tournament
+- **Session pill + tournament switcher in TournamentView**: sessioned tournaments get a header strip with the session name, a count of attached tournaments, a one-click switcher to any sibling, and a `📺 Open Dashboard` shortcut
+- **Hall-config unification for sessioned tournaments**: when a session has a venue, that venue's `halls` is the source of truth — the tournament's local `hall_config` copy is bypassed so all sibling tournaments see the same physical court grid
+- **Sportstaetten "Active Sessions" panel**: links each active session to its live dashboard for quick navigation
+- **Schema**: migrations v12 (sessions table) + v13 (`tournaments.session_id` FK, `ON DELETE SET NULL`). `ensureExpectedSchema` extended to defensively self-heal both. LocalStorage fallback parity for browser debugging
+- **Sidebar nav**: new 🔗 Sessions entry between Tournaments and Statistics
+
 ### Score-Entry Polish &amp; TournamentView Refactor (v2.7.5)
 - **Score entry — typing "12" no longer settles to "2"**: rapid keystrokes used to occasionally lose digits because the controlled input value got clobbered by a re-render storm. `handleScoreChange` now optimistically updates the local sets-state per keystroke and skips the per-keystroke `loadAll()` (still runs on blur), so the input value reflects what you just typed even during async DB round-trips
 - **Auto-select-on-focus only on real focus events**: a ref-based guard prevents `e.target.select()` from re-firing during React re-renders that restore focus mid-typing. The new pattern preserves the convenient "Tab into a field, immediately type to overwrite" behavior without clobbering in-progress entries

@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { getSportstaetten, createSportstaette, updateSportstaette, deleteSportstaette, isTauri } from "../lib/db";
-import type { Sportstaette, HallConfig } from "../lib/types";
+import { getSessions } from "../lib/sessions";
+import type { Sportstaette, HallConfig, Session } from "../lib/types";
 import { parseHallConfig, hallConfigTotalCourts } from "../lib/types";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
@@ -96,7 +98,16 @@ export default function Sportstaetten() {
   // Delete
   const [deleteTarget, setDeleteTarget] = useState<{ ids: number[]; names: string[] } | null>(null);
 
-  const load = () => getSportstaetten().then((s) => setSportstaetten(s));
+  // Active sessions across all venues — used by the "Active Sessions"
+  // panel that links each venue card to the live dashboard.
+  const [activeSessions, setActiveSessions] = useState<Session[]>([]);
+
+  const load = async () => {
+    const s = await getSportstaetten();
+    setSportstaetten(s);
+    const ss = await getSessions();
+    setActiveSessions(ss.filter((sess) => sess.status === "active"));
+  };
 
   useEffect(() => { load(); }, []);
 
@@ -252,6 +263,50 @@ export default function Sportstaetten() {
           </label>
         </div>
       </div>
+
+      {/* Active Sessions panel — links to live dashboards for any session
+          tied to one of these venues, plus the "Start session" shortcut. */}
+      {activeSessions.length > 0 && (
+        <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 mb-6`}>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h2 className={`font-semibold ${theme.textPrimary}`}>
+              🔗 {t.sportstaetten_active_sessions}
+            </h2>
+            <Link
+              to="/sessions"
+              className={`text-xs font-medium ${theme.activeBadgeText} hover:opacity-80`}
+            >
+              {t.sessions_title} →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {activeSessions.map((sess) => {
+              const venue = sportstaetten.find((v) => v.id === sess.venue_id);
+              return (
+                <div
+                  key={sess.id}
+                  className={`flex items-center justify-between gap-2 px-3 py-2 border ${theme.inputBorder} rounded-xl ${theme.cardHoverBorder} transition-all`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className={`font-medium ${theme.textPrimary} truncate text-sm`}>
+                      {sess.name}
+                    </div>
+                    <div className={`text-xs ${theme.textMuted} truncate`}>
+                      🏟️ {venue?.name ?? "—"}
+                    </div>
+                  </div>
+                  <Link
+                    to={`/sessions/${sess.id}/live`}
+                    className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all`}
+                  >
+                    📺
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Add Sportstaette */}
       <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 mb-6`}>

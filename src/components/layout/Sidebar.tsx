@@ -40,6 +40,7 @@ export default function Sidebar() {
     { to: "/sportstaetten", label: t.nav_venues, icon: "🏟️" },
     { to: "/players", label: t.nav_players, icon: "👥" },
     { to: "/tournaments", label: t.nav_tournaments, icon: "🏆" },
+    { to: "/sessions", label: t.nav_sessions, icon: "🔗" },
     { to: "/statistics", label: t.nav_statistics, icon: "📊" },
   ];
 

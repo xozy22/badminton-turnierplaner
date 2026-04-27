@@ -10,6 +10,9 @@ import TvMode from "./pages/TvMode";
 import Settings from "./pages/Settings";
 import Sportstaetten from "./pages/Sportstaetten";
 import Statistics from "./pages/Statistics";
+import Sessions from "./pages/Sessions";
+import SessionDetail from "./pages/SessionDetail";
+import SessionDashboard from "./pages/SessionDashboard";
 import { useTheme } from "./lib/ThemeContext";
 import { useT } from "./lib/I18nContext";
 import LivePublisherHost from "./lib/useLivePublisher";
@@ -67,6 +70,8 @@ export default function App() {
       <Routes>
         {/* TV-Modus: Fullscreen ohne Sidebar */}
         <Route path="/tv/:id" element={<TvMode />} />
+        {/* Session-Live-Dashboard: Fullscreen ohne Sidebar */}
+        <Route path="/sessions/:id/live" element={<SessionDashboard />} />
         {/* Normales Layout */}
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
@@ -76,6 +81,8 @@ export default function App() {
           <Route path="/tournaments/new" element={<TournamentCreate />} />
           <Route path="/tournaments/:id/edit" element={<TournamentCreate />} />
           <Route path="/tournaments/:id" element={<TournamentView />} />
+          <Route path="/sessions" element={<Sessions />} />
+          <Route path="/sessions/:id" element={<SessionDetail />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/settings" element={<Settings />} />
         </Route>

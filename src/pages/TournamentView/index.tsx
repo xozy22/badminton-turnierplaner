@@ -106,7 +106,7 @@ import {
   setTournamentPaused,
 } from "../../lib/livePublish";
 import { triggerImmediatePush, usePushStatus } from "../../lib/useLivePublisher";
-import { getAppSetting } from "../../lib/db";
+import { getAppSetting, getSportstaetten } from "../../lib/db";
 import { useT } from "../../lib/I18nContext";
 import { useToast } from "../../lib/ToastContext";
 import { useDocumentTitle } from "../../lib/useDocumentTitle";
@@ -120,6 +120,9 @@ import ReopenConfirmModal from "./components/modals/ReopenConfirmModal";
 import UndoRoundModal from "./components/modals/UndoRoundModal";
 import { getEffectiveScoring } from "./lib/effectiveScoring";
 import { getUndoTarget } from "./lib/undoTarget";
+import { useSessionContext } from "../../lib/sessionContext";
+import { getSession } from "../../lib/sessions";
+import type { Session } from "../../lib/types";
 
 
 export default function TournamentView() {
@@ -186,6 +189,35 @@ export default function TournamentView() {
   activeRoundRef.current = activeRound;
 
   const tournamentId = Number(id);
+
+  // ---- Multi-tournament-workspace integration ----
+  // When tournament.session_id is set, we participate in a session with
+  // shared court pool + cross-tournament conflict detection. The hook
+  // returns EMPTY for null session_id, so we can wire it unconditionally.
+  const sessionCtx = useSessionContext(tournament?.session_id ?? null);
+  const [sessionMeta, setSessionMeta] = useState<Session | null>(null);
+  // Lazy-loaded venue hall_config for the session's venue. Used to override
+  // the tournament's local hall_config when participating in a session, so
+  // every sibling sees the same physical court grid.
+  const [sessionVenueHalls, setSessionVenueHalls] = useState<string | null>(null);
+  useEffect(() => {
+    if (tournament?.session_id == null) { setSessionMeta(null); setSessionVenueHalls(null); return; }
+    let cancelled = false;
+    (async () => {
+      const s = await getSession(tournament.session_id!);
+      if (cancelled) return;
+      setSessionMeta(s);
+      if (s?.venue_id != null) {
+        const venues = await getSportstaetten();
+        if (cancelled) return;
+        const v = venues.find((vv) => vv.id === s.venue_id);
+        setSessionVenueHalls(v?.halls ?? null);
+      } else {
+        setSessionVenueHalls(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tournament?.session_id]);
 
   // Phase-aware scoring: derive effective scoring based on the active round's phase
   const activeRoundPhase = rounds.find((r) => r.id === activeRound)?.phase ?? null;
@@ -1546,7 +1578,10 @@ export default function TournamentView() {
     return matches.some((m) => m.status === "completed");
   };
 
-  // Global occupied courts: across ALL rounds, not just active round
+  // Global occupied courts: across ALL rounds, not just active round.
+  // For sessioned tournaments, we additionally include courts occupied by
+  // OTHER tournaments in the same session, so the dropdown can disable them
+  // and the queue can flag cross-tournament collisions.
   const globalOccupiedCourts = React.useMemo(() => {
     const occupied = new Set<number>();
     for (const [, matches] of matchesByRound) {
@@ -1556,16 +1591,36 @@ export default function TournamentView() {
         }
       }
     }
+    // Cross-tournament: add courts from sibling tournaments. courtOccupancy
+    // includes the current tournament's matches too — but those are already
+    // in the local set above, so the union is idempotent.
+    if (tournament?.session_id != null) {
+      for (const courtNum of sessionCtx.courtOccupancy.keys()) {
+        occupied.add(courtNum);
+      }
+    }
     return occupied;
-  }, [matchesByRound]);
+  }, [matchesByRound, sessionCtx.courtOccupancy, tournament?.session_id]);
 
   // Player-court conflict map. Built from allMatches so it spans every round
   // currently in memory — important once early-drawn future rounds are also
-  // visible in the queue.
-  const runningPlayerCourts = useMemo(
-    () => getRunningPlayerCourts(allMatches),
-    [allMatches],
-  );
+  // visible in the queue. For sessioned tournaments, we extend with players
+  // currently on courts in OTHER tournaments — physically a player can't be
+  // in two places at once.
+  const runningPlayerCourts = useMemo(() => {
+    const map = getRunningPlayerCourts(allMatches);
+    if (tournament?.session_id != null) {
+      // Merge in cross-tournament players. First-seen wins (which means the
+      // tournament-local entry is preserved over a sibling's claim, since
+      // it was inserted first) — defensive against ghost entries.
+      for (const [pid, loc] of sessionCtx.playerCourts) {
+        if (loc.tournamentId === tournament.id) continue; // already counted
+        if (map.has(pid)) continue;
+        map.set(pid, { court: loc.court, matchId: loc.matchId });
+      }
+    }
+    return map;
+  }, [allMatches, sessionCtx.playerCourts, tournament?.session_id, tournament?.id]);
 
   // Per-waiting-match list of player conflicts. Empty => match is safe to
   // assign. Used by the queue render (visual marker) and the MatchCard
@@ -1928,8 +1983,54 @@ export default function TournamentView() {
       ? "bg-violet-100 text-violet-600"
       : "bg-amber-100 text-amber-700";
 
+  // ---- Session pill + switcher (only when tournament.session_id is set) ----
+  const sessionSiblings = useMemo(() => {
+    if (!tournament?.session_id) return [];
+    return sessionCtx.tournaments.filter((tt) => tt.id !== tournament.id);
+  }, [sessionCtx.tournaments, tournament?.session_id, tournament?.id]);
+
   return (
     <div>
+      {/* Session bar — only when this tournament is part of a session */}
+      {tournament.session_id != null && sessionMeta && (
+        <div className={`mb-3 ${theme.cardBg} border ${theme.cardBorder} rounded-2xl px-4 py-2 flex items-center justify-between flex-wrap gap-2 shadow-sm`}>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-xs font-bold uppercase tracking-wide bg-violet-100 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full">
+              🔗 {t.session_pill_label}
+            </span>
+            <span className={`text-sm font-semibold ${theme.textPrimary}`}>
+              {sessionMeta.name}
+            </span>
+            <span className={`text-xs ${theme.textMuted}`}>
+              · {sessionCtx.tournaments.length} 🏆
+            </span>
+            {sessionSiblings.length > 0 && (
+              <div className="flex items-center gap-1 flex-wrap ml-2">
+                <span className={`text-[10px] uppercase tracking-wide ${theme.textMuted} mr-1`}>
+                  {t.session_switcher_label}:
+                </span>
+                {sessionSiblings.map((sib) => (
+                  <button
+                    key={sib.id}
+                    onClick={() => navigate(`/tournaments/${sib.id}`)}
+                    className={`text-xs font-medium border ${theme.inputBorder} ${theme.cardHoverBorder} ${theme.textSecondary} px-2 py-0.5 rounded-full transition-all`}
+                    title={sib.name}
+                  >
+                    {sib.name.length > 18 ? sib.name.slice(0, 18) + "…" : sib.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => navigate(`/sessions/${tournament.session_id}/live`)}
+            className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} text-xs font-semibold px-3 py-1.5 rounded-lg transition-all`}
+          >
+            📺 {t.session_pill_open_dashboard} →
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div>
@@ -2667,7 +2768,15 @@ export default function TournamentView() {
                 : activeRound ? matchesByRound.get(activeRound) : undefined}
               futureRoundQueues={futureRoundQueues}
               playerName={playerName}
-              hallConfig={tournament.hall_config ? parseHallConfig(tournament.hall_config) : undefined}
+              hallConfig={
+                // For sessioned tournaments at a venue, the venue's hall_config
+                // is the canonical source of truth. The tournament's local
+                // hall_config (which may be a stale copy) is bypassed so all
+                // sibling tournaments share one consistent court grid.
+                (tournament.session_id != null && sessionVenueHalls)
+                  ? parseHallConfig(sessionVenueHalls)
+                  : (tournament.hall_config ? parseHallConfig(tournament.hall_config) : undefined)
+              }
               minRestMinutes={tournament.min_rest_minutes}
               tournamentStatus={tournament.status}
               conflictedMatches={conflictedMatches}
