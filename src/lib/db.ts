@@ -73,6 +73,7 @@ async function ensureExpectedSchema(db: any): Promise<void> {
     ["venue_id", "ALTER TABLE tournaments ADD COLUMN venue_id INTEGER"],
     ["min_rest_minutes", "ALTER TABLE tournaments ADD COLUMN min_rest_minutes INTEGER NOT NULL DEFAULT 0"],
     ["enable_third_place", "ALTER TABLE tournaments ADD COLUMN enable_third_place INTEGER NOT NULL DEFAULT 0"],
+    ["session_id", "ALTER TABLE tournaments ADD COLUMN session_id INTEGER"],
   ];
   for (const [col, sql] of tournamentAdditions) {
     if (tournamentColSet.has(col)) continue;
@@ -102,6 +103,25 @@ async function ensureExpectedSchema(db: any): Promise<void> {
       console.warn(`ensureExpectedSchema: could not add tournament_players.${col}:`, err);
     }
   }
+
+  // Sessions table — created by migration v12; fall back to a CREATE
+  // TABLE IF NOT EXISTS for users on older DB files where the migration
+  // chain stopped early.
+  try {
+    await db.execute(
+      `CREATE TABLE IF NOT EXISTS sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        venue_id INTEGER,
+        name TEXT NOT NULL,
+        started_at TEXT NOT NULL DEFAULT (datetime('now')),
+        ended_at TEXT,
+        status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'ended', 'archived')),
+        FOREIGN KEY (venue_id) REFERENCES sportstaetten(id) ON DELETE SET NULL
+      );`,
+    );
+  } catch (err) {
+    console.warn("ensureExpectedSchema: could not ensure sessions table:", err);
+  }
 }
 
 // =============================================
@@ -115,6 +135,7 @@ interface LocalStore {
   rounds: Round[];
   matches: Match[];
   sets: GameSet[];
+  sessions: import("./types").Session[];
   nextId: { [table: string]: number };
 }
 
@@ -127,7 +148,8 @@ function loadStore(): LocalStore {
     rounds: [],
     matches: [],
     sets: [],
-    nextId: { players: 1, sportstaetten: 1, tournaments: 1, rounds: 1, matches: 1, sets: 1 },
+    sessions: [],
+    nextId: { players: 1, sportstaetten: 1, tournaments: 1, rounds: 1, matches: 1, sets: 1, sessions: 1 },
   };
   const raw = localStorage.getItem("turnierplaner");
   if (raw) {
@@ -331,7 +353,11 @@ export async function deleteSportstaette(id: number): Promise<void> {
 function normalizeTournament(t: Tournament): Tournament {
   // Defensive defaults for columns added by later migrations / older
   // localStorage rows that may pre-date them.
-  return { ...t, enable_third_place: (t as any).enable_third_place ?? 0 };
+  return {
+    ...t,
+    enable_third_place: (t as any).enable_third_place ?? 0,
+    session_id: (t as any).session_id ?? null,
+  };
 }
 
 export async function getTournaments(): Promise<Tournament[]> {
@@ -407,6 +433,7 @@ export async function createTournament(
     venue_id: null,
     min_rest_minutes: minRestMinutes,
     enable_third_place: ttp,
+    session_id: null,
     created_at: new Date().toISOString(),
     status: "draft",
   });

@@ -16,6 +16,7 @@ import {
   updateTournamentPhase,
   setTournamentSeeds,
 } from "../lib/db";
+import { getSessions, attachTournamentToSession, detachTournamentFromSession } from "../lib/sessions";
 import type { Player, TournamentMode, TournamentFormat, Sportstaette, HallConfig } from "../lib/types";
 import { parseHallConfig, hallConfigTotalCourts, playerDisplayName } from "../lib/types";
 import { formFixedDoubleTeams, formFixedMixedTeams, recommendedSwissRounds } from "../lib/draw";
@@ -91,6 +92,12 @@ export default function TournamentCreate() {
   const courts = useMemo(() => Math.max(hallConfigTotalCourts(selectedHalls), 1), [selectedHalls]);
   const [sportstaetten, setSportstaetten] = useState<Sportstaette[]>([]);
   const [selectedVenueId, setSelectedVenueId] = useState<number | "">("");
+  // Session selection — optional pick for the multi-tournament-workspace
+  // feature (v2.8). Tournaments without a session keep all pre-existing
+  // single-tournament behavior. The list is filtered by `status="active"`
+  // and venue match (or no venue) so the user only sees relevant choices.
+  const [sessions, setSessions] = useState<{ id: number; name: string; venue_id: number | null; status: string }[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<number | "">("");
   const [numGroups, setNumGroups] = useState(2);
   const [qualifyPerGroup, setQualifyPerGroup] = useState(8);
   const [useEntryFee, setUseEntryFee] = useState(false);
@@ -179,16 +186,26 @@ export default function TournamentCreate() {
         await updateTeamConfig(id, manualTeams.length > 0 ? manualTeams : null);
         await updateHallConfig(id, selectedHalls.length > 0 ? selectedHalls : null);
         await updateTournamentVenueId(id, selectedVenueId !== "" ? selectedVenueId : null);
+        // Auto-save session pick. attach/detach handle the FK.
+        if (selectedSessionId !== "") {
+          await attachTournamentToSession(id, Number(selectedSessionId));
+        } else {
+          await detachTournamentFromSession(id);
+        }
       } catch (err) {
         console.error("Auto-save config error:", err);
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [isEditMode, editLoaded, editId, manualTeams, selectedHalls, selectedVenueId]);
+  }, [isEditMode, editLoaded, editId, manualTeams, selectedHalls, selectedVenueId, selectedSessionId]);
 
   useEffect(() => {
     getPlayers().then(setPlayers);
     getSportstaetten().then(setSportstaetten);
+    // Load sessions for the optional session-pick dropdown.
+    getSessions().then((ss) => {
+      setSessions(ss.map((s) => ({ id: s.id, name: s.name, venue_id: s.venue_id, status: s.status })));
+    });
   }, []);
 
   // If navigated to /tournaments/new without a draft, redirect to tournaments list
@@ -268,6 +285,7 @@ export default function TournamentCreate() {
         }
       }
       if (td.venue_id) setSelectedVenueId(td.venue_id);
+      if (td.session_id) setSelectedSessionId(td.session_id);
       setEditLoaded(true);
     };
     loadTournament();
@@ -415,6 +433,12 @@ export default function TournamentCreate() {
     // Persist hall config + venue
     await updateHallConfig(id, selectedHalls.length > 0 ? selectedHalls : null);
     await updateTournamentVenueId(id, selectedVenueId !== "" ? selectedVenueId : null);
+    // Persist session attachment (multi-tournament-workspace)
+    if (selectedSessionId !== "") {
+      await attachTournamentToSession(id, Number(selectedSessionId));
+    } else {
+      await detachTournamentFromSession(id);
+    }
 
     // Mark wizard as completed
     await updateTournamentPhase(id, "ready");
@@ -767,6 +791,39 @@ export default function TournamentCreate() {
                       ))}
                     </select>
                   </div>
+                  {/* Session picker — only when sessions exist. Filters by venue
+                      match (or no venue) so the dropdown stays focused. */}
+                  {sessions.length > 0 && (
+                    <div>
+                      <label className={`block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`}>
+                        🔗 {t.tournament_create_session_label}
+                      </label>
+                      <select
+                        value={selectedSessionId}
+                        onChange={(e) => setSelectedSessionId(e.target.value ? Number(e.target.value) : "")}
+                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      >
+                        <option value="">{t.tournament_create_session_none}</option>
+                        {sessions
+                          .filter((s) => {
+                            if (s.status !== "active") return false;
+                            // Show sessions matching the venue (or sessions
+                            // without a venue, which accept any tournament).
+                            if (s.venue_id == null) return true;
+                            if (selectedVenueId === "") return true;
+                            return s.venue_id === selectedVenueId;
+                          })
+                          .map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                      </select>
+                      <p className={`text-xs ${theme.textMuted} mt-1`}>
+                        {t.tournament_create_session_hint}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <label className={`block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`}>
                       {t.tournament_halls_courts}
