@@ -392,6 +392,26 @@ pub fn run() {
             sql: "ALTER TABLE tournaments ADD COLUMN enable_third_place INTEGER NOT NULL DEFAULT 0;",
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 12,
+            description: "create sessions table for multi-tournament workspaces",
+            sql: "CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                venue_id INTEGER,
+                name TEXT NOT NULL,
+                started_at TEXT NOT NULL DEFAULT (datetime('now')),
+                ended_at TEXT,
+                status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'ended', 'archived')),
+                FOREIGN KEY (venue_id) REFERENCES sportstaetten(id) ON DELETE SET NULL
+            );",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 13,
+            description: "add session_id to tournaments",
+            sql: "ALTER TABLE tournaments ADD COLUMN session_id INTEGER;",
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

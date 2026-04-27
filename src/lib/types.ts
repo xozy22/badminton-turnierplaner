@@ -96,8 +96,31 @@ export interface Tournament {
    * LB-semifinal-loser in double_elimination). Persisted via migration v11.
    */
   enable_third_place: number;
+  /**
+   * Optional foreign key to a `sessions` row. When set, the tournament is
+   * part of a multi-tournament workspace at the same venue — court pool
+   * and player conflicts are shared with the other tournaments in the
+   * session. NULL = standalone tournament (default behavior). Migration v13.
+   */
+  session_id: number | null;
   created_at: string;
   status: TournamentStatus;
+}
+
+/**
+ * A "session" bundles multiple tournaments that run in parallel at the
+ * same venue and share the physical court pool. Sessions are opt-in —
+ * tournaments without a session_id keep their pre-v2.8 behavior.
+ */
+export type SessionStatus = "active" | "ended" | "archived";
+
+export interface Session {
+  id: number;
+  venue_id: number | null;
+  name: string;
+  started_at: string;
+  ended_at: string | null;
+  status: SessionStatus;
 }
 
 export type PaymentMethod = "bar" | "ueberweisung" | "paypal";
