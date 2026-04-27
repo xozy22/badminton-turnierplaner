@@ -44,6 +44,10 @@ export default function Sessions() {
 
   // Delete target
   const [deleteTarget, setDeleteTarget] = useState<Session | null>(null);
+  // End-session confirm target. Same modal pattern as deleteTarget so the
+  // confirm flow stays consistent with the rest of the app — replaces the
+  // pre-v2.8.3 native browser confirm() dialog.
+  const [endTarget, setEndTarget] = useState<Session | null>(null);
 
   const load = async () => {
     try {
@@ -126,10 +130,13 @@ export default function Sessions() {
     }
   };
 
-  const handleEnd = async (s: Session) => {
-    if (!confirm(t.sessions_end_confirm)) return;
+  const handleEnd = (s: Session) => setEndTarget(s);
+
+  const confirmEnd = async () => {
+    if (!endTarget) return;
     try {
-      await updateSessionStatus(s.id, "ended");
+      await updateSessionStatus(endTarget.id, "ended");
+      setEndTarget(null);
       await load();
     } catch (err) {
       showError(String(err));
@@ -477,6 +484,38 @@ export default function Sessions() {
                 className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
               >
                 {t.sessions_delete}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* End session confirm — same modal pattern as the delete-confirm
+          above, but the action is non-destructive (status transition only),
+          so the primary button uses the amber accent instead of rose. */}
+      {endTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className={`${theme.cardBg} rounded-2xl shadow-xl border ${theme.cardBorder} max-w-md w-full p-5`}>
+            <h2 className={`text-lg font-bold ${theme.textPrimary} mb-2`}>
+              ⏹ {t.sessions_end}
+            </h2>
+            <p className={`text-sm ${theme.textSecondary} mb-4`}>
+              <strong>{endTarget.name}</strong>
+              <br />
+              {t.sessions_end_confirm}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setEndTarget(null)}
+                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
+              >
+                {t.common_cancel}
+              </button>
+              <button
+                onClick={confirmEnd}
+                className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+              >
+                {t.sessions_end}
               </button>
             </div>
           </div>

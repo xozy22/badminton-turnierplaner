@@ -79,6 +79,9 @@
 - **Save Confirmation**: Green toast notification confirms all changes (settings, players, teams, halls) were saved after editing a tournament draft
 - **Unified Toast Notifications**: A global toast context (`useToast`) replaces native browser alerts for save confirmations, import summaries, and error reporting across the app — non-blocking, stackable, auto-dismissing
 
+### End-Session Modal Polish (v2.8.3)
+- **Session beenden**: der "Session beenden"-Button oeffnete bisher das native Browser-`confirm()`-Popup — passte optisch nicht zum Rest der App und sah aus wie ein Bug. Ersetzt durch das Standard-Modal, identisch zum bestehenden Loeschen-Dialog (Header, Session-Name, Erklaerungs-Text, Cancel + amber-farbenen Bestaetigen-Button). Trifft Sessions-Liste und Session-Detail-Page; native confirm() ist dort komplett entfernt
+
 ### Mandatory Venue + Settings Cleanup (v2.8.2)
 - **Sportstaette ist jetzt Pflichtfeld**: Multi-Tournament-Sessions setzen einen festen Veranstaltungsort voraus, daher ist die Sportstaette beim Turnier-Erstellen jetzt zwingend erforderlich. Die "Keine"-Option im Venue-Dropdown ist entfernt; das Feld zeigt eine "Sportstaette auswaehlen"-Aufforderung mit roter Markierung. Wizard-Buttons "Weiter" / "Turnier erstellen" sind disabled solange keine Sportstaette ausgewaehlt ist
 - **Hard-Block bei keiner Sportstaette**: Klick auf "Neues Turnier" (Home + Tournaments) prueft erst ob eine Sportstaette existiert. Wenn nicht, redirect zu `/sportstaetten` mit einer Toast-Erklaerung "Bitte zuerst eine Sportstaette anlegen". Der Wizard zeigt zusaetzlich ein gelbes Hinweis-Panel mit "Sportstaette anlegen"-Shortcut
