@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getTournaments, deleteTournament, updateTournamentStatus, createTournament, createPlayer, getPlayers, addPlayerToTournament, updateTeamConfig, updateHallConfig, isTauri, getSportstaetten } from "../lib/db";
-import type { Tournament, Gender } from "../lib/types";
+import { getSessions } from "../lib/sessions";
+import type { Tournament, Gender, Session } from "../lib/types";
 import { getScoringModeId } from "../lib/scoring";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
@@ -15,6 +16,10 @@ export default function Tournaments() {
   useDocumentTitle(t.nav_tournaments);
   const navigate = useNavigate();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  // Session lookup so the card row can render a "🔗 Session: …" pill when
+  // a tournament is part of a multi-tournament-workspace. Loaded alongside
+  // tournaments — sessions are typically a handful, lookup overhead is nil.
+  const [sessionsById, setSessionsById] = useState<Map<number, Session>>(new Map());
   const [showArchive, setShowArchive] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -223,7 +228,11 @@ export default function Tournaments() {
     }
   };
 
-  const load = () => getTournaments().then(setTournaments);
+  const load = async () => {
+    const [ts, ss] = await Promise.all([getTournaments(), getSessions()]);
+    setTournaments(ts);
+    setSessionsById(new Map(ss.map((s) => [s.id, s])));
+  };
 
   useEffect(() => {
     load();
@@ -274,7 +283,21 @@ export default function Tournaments() {
       }`}
     >
       <Link to={`/tournaments/${tr.id}`} className="flex-1">
-        <div className={`font-semibold ${theme.textPrimary}`}>{tr.name}</div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`font-semibold ${theme.textPrimary}`}>{tr.name}</span>
+          {/* Session pill: visible when tournament is bound to a workspace.
+              Bare span (not a Link) — the card itself is wrapped in a Link
+              and nesting <a> inside <a> is invalid HTML. Click on the pill
+              still navigates because the parent Link picks it up. */}
+          {tr.session_id != null && sessionsById.has(tr.session_id) && (
+            <span
+              className="text-[10px] font-bold uppercase tracking-wide bg-violet-100 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full"
+              title={sessionsById.get(tr.session_id)!.name}
+            >
+              🔗 {sessionsById.get(tr.session_id)!.name}
+            </span>
+          )}
+        </div>
         <div className={`text-sm ${theme.textSecondary} mt-0.5`}>
           {{ singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed }[tr.mode]} &middot; {{ round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall }[tr.format]} &middot;{" "}
           {t[`scoring_mode_${getScoringModeId(tr.points_per_set, tr.cap)}` as keyof typeof t] as string}

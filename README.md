@@ -79,6 +79,10 @@
 - **Save Confirmation**: Green toast notification confirms all changes (settings, players, teams, halls) were saved after editing a tournament draft
 - **Unified Toast Notifications**: A global toast context (`useToast`) replaces native browser alerts for save confirmations, import summaries, and error reporting across the app — non-blocking, stackable, auto-dismissing
 
+### Session-Pill in Turnieruebersicht (v2.8.5)
+- **Turniere mit Session-Verknuepfung sind jetzt auf einen Blick erkennbar**: in der Turnierliste (`/tournaments`) zeigt jede Karte neben dem Namen einen violetten "🔗 Session-Name"-Pill, wenn das Turnier einer Multi-Tournament-Workspace zugeordnet ist. Tooltip zeigt den vollen Session-Namen falls abgeschnitten. Sessions werden mit den Turnieren parallel geladen — kein Extra-Roundtrip pro Karte
+- **Visuell konsistent** mit dem Session-Header in der TournamentView (gleicher violetter Pill-Style)
+
 ### Sportstaette-Loeschen-Guard (v2.8.4)
 - **Sportstaetten in Benutzung sind jetzt loesch-geschuetzt**: bisher konnte eine Sportstaette geloescht werden auch wenn aktive Turniere oder Sessions sie referenzierten — das hinterliess `venue_id`-Pointer, die ins Leere zeigten und das Session-Dashboard kaputt machten (`hall_config`-Lookup ueber `venue.halls` schlug fehl). Jetzt blockiert ein neuer Pre-Flight-Check `getVenueUsage(id)` das Loeschen, wenn ein Turnier mit Status `draft`/`active` oder eine Session mit Status `active` die Sportstaette nutzt
 - **Block-Modal mit Detail-Liste**: statt des regulaeren Loeschen-Confirms erscheint ein 🔒 Block-Modal mit der Liste aller blockierenden Turniere (inkl. Status-Badge) und Sessions plus einem Hinweis, wie der User entsperren kann (Turnier beenden/archivieren oder einer anderen Sportstaette zuweisen)
