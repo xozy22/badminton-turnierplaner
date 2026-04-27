@@ -165,8 +165,14 @@ const EMPTY: SessionContextValue = {
  *   const blocked = ctx.courtOccupancy.has(targetCourt);
  *
  * The polling interval matches LivePublisherHost / TvMode for consistency.
+ *
+ * `paused` (v2.8.6): when true, the hook still does an initial fetch to
+ * populate the value, but skips the recurring 5s tick. Used by the session
+ * dashboard to stop polling when the session is non-active AND no
+ * tournaments are still running — the data wouldn't change anyway, and
+ * the visual "polling paused" indicator makes it explicit.
  */
-export function useSessionContext(sessionId: number | null): SessionContextValue {
+export function useSessionContext(sessionId: number | null, paused = false): SessionContextValue {
   const [value, setValue] = useState<SessionContextValue>(EMPTY);
 
   useEffect(() => {
@@ -193,13 +199,18 @@ export function useSessionContext(sessionId: number | null): SessionContextValue
         console.error(`useSessionContext(${sessionId}): poll failed:`, err);
       }
     };
+    // Always run one tick so the value is populated even when paused —
+    // the dashboard needs the last known state to render the static view.
     tick();
+    if (paused) {
+      return () => { cancelled = true; };
+    }
     const id = setInterval(tick, SESSION_CONTEXT_POLL_MS);
     return () => {
       cancelled = true;
       clearInterval(id);
     };
-  }, [sessionId]);
+  }, [sessionId, paused]);
 
   return value;
 }

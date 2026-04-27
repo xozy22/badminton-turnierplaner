@@ -875,6 +875,22 @@ export interface Translations {
   sessions_manage: string;
   sessions_end: string;
   sessions_end_confirm: string;
+  // Pre-end stats shown inside the confirm modal
+  sessions_end_stats_title: string;
+  sessions_end_stats_active_tournaments: string;
+  sessions_end_stats_on_court: string;
+  sessions_end_stats_none: string;
+  sessions_end_loading_stats: string;
+  // Status suffixes appended to the session pill in TournamentView /
+  // Tournaments list when the session has been ended/archived
+  session_pill_ended_suffix: string;
+  session_pill_archived_suffix: string;
+  // Banner shown on the session dashboard when status != active
+  session_dashboard_ended_banner: string;
+  session_dashboard_archived_banner: string;
+  session_dashboard_polling_paused: string;
+  // Attach guard messages (UI + thrown error)
+  session_attach_blocked_status_hint: string;
   sessions_reactivate: string;
   sessions_archive: string;
   sessions_unarchive: string;

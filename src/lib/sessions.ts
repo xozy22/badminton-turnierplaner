@@ -199,12 +199,76 @@ export async function deleteSession(id: number): Promise<void> {
   saveLocalStore(store);
 }
 
+/**
+ * Pre-flight stats for the End-Session confirm modal: how many tournaments
+ * are still actively running, and how many of their matches are sitting on
+ * a court right now. Used to enrich the confirm copy ("Es laufen noch 3
+ * Turniere mit 2 Matches auf Court — wirklich beenden?") so the user knows
+ * what they're signing off on.
+ *
+ * The session can still be ended in any state — this is informational, not
+ * a hard block. Tournaments stay attached and keep running independently;
+ * the session status is purely administrative.
+ */
+export interface SessionEndStats {
+  activeTournaments: { id: number; name: string }[];
+  matchesOnCourt: number;
+}
+
+export async function getSessionEndStats(sessionId: number): Promise<SessionEndStats> {
+  if (isTauri()) {
+    const d = await getDb();
+    const tournaments: { id: number; name: string }[] = await d.select(
+      "SELECT id, name FROM tournaments WHERE session_id = $1 AND status = 'active' ORDER BY id ASC",
+      [sessionId],
+    );
+    let matchesOnCourt = 0;
+    for (const tt of tournaments) {
+      const rows: { c: number }[] = await d.select(
+        // Match.court is set means the match is physically on a court; status
+        // != "completed" means it hasn't finished yet (covers both
+        // "pending" — assigned but not started — and "active" — running).
+        "SELECT COUNT(*) AS c FROM matches m JOIN rounds r ON m.round_id = r.id WHERE r.tournament_id = $1 AND m.court IS NOT NULL AND m.status != 'completed'",
+        [tt.id],
+      );
+      matchesOnCourt += rows[0]?.c ?? 0;
+    }
+    return { activeTournaments: tournaments, matchesOnCourt };
+  }
+  // localStorage fallback: derive from in-memory store.
+  const store = loadLocalStore();
+  const tournaments = (store.tournaments ?? [])
+    .filter((tt) => (tt as Tournament).session_id === sessionId && (tt as Tournament).status === "active")
+    .map((tt) => ({ id: (tt as Tournament).id, name: (tt as Tournament).name }));
+  // localStorage doesn't keep matches per tournament structurally — return 0.
+  // (browser-mode usage is rare; the Tauri path covers the real case.)
+  return { activeTournaments: tournaments, matchesOnCourt: 0 };
+}
+
 // ---- Tournament <-> Session linking ----
 
+/**
+ * Attach a tournament to a session.
+ *
+ * Hard guard since v2.8.6: only `active` sessions accept new tournaments.
+ * Ended/archived sessions are explicitly read-only for attaches — the
+ * intent is administrative closure, so silently allowing new attachments
+ * would contradict it. Detach stays open in every state so the user can
+ * always break a stale link.
+ */
 export async function attachTournamentToSession(
   tournamentId: number,
   sessionId: number,
 ): Promise<void> {
+  // DB-layer status check. UI also disables the attach button on non-active
+  // sessions (defense in depth — covers the race window between tabs).
+  const session = await getSession(sessionId);
+  if (!session) throw new Error(`Session ${sessionId} not found`);
+  if (session.status !== "active") {
+    throw new Error(
+      `Session "${session.name}" ist ${session.status === "ended" ? "beendet" : "archiviert"} — Turniere koennen nur an aktive Sessions angedockt werden.`,
+    );
+  }
   if (isTauri()) {
     const d = await getDb();
     await d.execute(

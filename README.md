@@ -79,6 +79,14 @@
 - **Save Confirmation**: Green toast notification confirms all changes (settings, players, teams, halls) were saved after editing a tournament draft
 - **Unified Toast Notifications**: A global toast context (`useToast`) replaces native browser alerts for save confirmations, import summaries, and error reporting across the app — non-blocking, stackable, auto-dismissing
 
+### Session-End-Lifecycle ausgebaut (v2.8.6)
+- **Pre-End-Stats im Confirm-Modal**: beim Klick auf "Session beenden" zeigt das Modal jetzt einen Status-Block — wieviele Turniere noch aktiv sind und wieviele Matches gerade auf Court stehen. Zwei Render-Pfade: amber-Warnbox wenn was laeuft, emerald-OK wenn die Session sicher abgeschlossen werden kann. Daten werden async per neuem `getSessionEndStats(sessionId)` Helper geladen, Modal rendert instant mit "Stand wird geladen..."-Placeholder
+- **Attach-Guard fuer ended/archived Sessions**: `attachTournamentToSession()` wirft jetzt einen Error wenn die Ziel-Session nicht `active` ist. UI: der "+ Turnier hinzufuegen"-Button auf der Session-Detail-Seite ist disabled bei nicht-aktiven Sessions, mit erklaerender Hinweiszeile darunter. Detach bleibt in jedem Status erlaubt — kaputte Verknuepfungen muss man immer loesen koennen
+- **Session-Pill adaptiert sich an Status**: in der Turnieruebersicht (`/tournaments`) und im TournamentView-Header zeigt der Session-Pill jetzt grauen Style + "(beendet)" / "(archiviert)"-Suffix wenn die Session nicht mehr aktiv ist. Auf einen Blick erkennbar dass die Workspace administrativ geschlossen ist
+- **Dashboard-Status-Banner**: das Session-Dashboard (`/sessions/:id/live`) bekommt einen Status-Banner ueber dem Header — amber "⏹ Session beendet am {date}" bei `ended`, grau "📦 Session archiviert" bei `archived`
+- **Smart-Polling**: `useSessionContext(sessionId, paused)` akzeptiert jetzt einen optionalen `paused`-Parameter. Das Dashboard pausiert das 5s-Polling automatisch wenn die Session nicht-active ist UND kein angedocktes Turnier mehr `status="active"` hat — der Header zeigt dann "⏸ Live-Polling pausiert" statt "Live aktiv". Daten werden beim Mount weiterhin einmal gefetched, danach statisch
+- **i18n**: 12 neue Keys fuer die Status-Texte (`sessions_end_stats_*`, `session_pill_*_suffix`, `session_dashboard_ended_banner` / `_archived_banner` / `_polling_paused`, `session_attach_blocked_status_hint`)
+
 ### Session-Pill in Turnieruebersicht (v2.8.5)
 - **Turniere mit Session-Verknuepfung sind jetzt auf einen Blick erkennbar**: in der Turnierliste (`/tournaments`) zeigt jede Karte neben dem Namen einen violetten "🔗 Session-Name"-Pill, wenn das Turnier einer Multi-Tournament-Workspace zugeordnet ist. Tooltip zeigt den vollen Session-Namen falls abgeschnitten. Sessions werden mit den Turnieren parallel geladen — kein Extra-Roundtrip pro Karte
 - **Visuell konsistent** mit dem Session-Header in der TournamentView (gleicher violetter Pill-Style)

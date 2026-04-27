@@ -288,15 +288,28 @@ export default function Tournaments() {
           {/* Session pill: visible when tournament is bound to a workspace.
               Bare span (not a Link) — the card itself is wrapped in a Link
               and nesting <a> inside <a> is invalid HTML. Click on the pill
-              still navigates because the parent Link picks it up. */}
-          {tr.session_id != null && sessionsById.has(tr.session_id) && (
-            <span
-              className="text-[10px] font-bold uppercase tracking-wide bg-violet-100 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full"
-              title={sessionsById.get(tr.session_id)!.name}
-            >
-              🔗 {sessionsById.get(tr.session_id)!.name}
-            </span>
-          )}
+              still navigates because the parent Link picks it up.
+              v2.8.6: pill style + suffix adapt to session status so the
+              user sees at a glance whether the workspace is still live. */}
+          {tr.session_id != null && sessionsById.has(tr.session_id) && (() => {
+            const s = sessionsById.get(tr.session_id)!;
+            const styled = s.status === "active"
+              ? "bg-violet-100 text-violet-700 border-violet-200"
+              : s.status === "ended"
+                ? "bg-gray-100 text-gray-600 border-gray-200"
+                : "bg-gray-50 text-gray-500 border-gray-200";
+            const suffix = s.status === "ended" ? ` ${t.session_pill_ended_suffix}`
+              : s.status === "archived" ? ` ${t.session_pill_archived_suffix}`
+                : "";
+            return (
+              <span
+                className={`text-[10px] font-bold uppercase tracking-wide border px-2 py-0.5 rounded-full ${styled}`}
+                title={s.name + suffix}
+              >
+                🔗 {s.name}{suffix}
+              </span>
+            );
+          })()}
         </div>
         <div className={`text-sm ${theme.textSecondary} mt-0.5`}>
           {{ singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed }[tr.mode]} &middot; {{ round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall }[tr.format]} &middot;{" "}

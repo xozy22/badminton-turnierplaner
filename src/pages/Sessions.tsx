@@ -12,7 +12,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getSessions, createSession, updateSessionStatus, deleteSession, attachTournamentToSession } from "../lib/sessions";
+import { getSessions, createSession, updateSessionStatus, deleteSession, attachTournamentToSession, getSessionEndStats } from "../lib/sessions";
+import type { SessionEndStats } from "../lib/sessions";
 import { getSportstaetten, getTournaments } from "../lib/db";
 import type { Session, SessionStatus, Sportstaette, Tournament } from "../lib/types";
 import { useTheme } from "../lib/ThemeContext";
@@ -46,8 +47,11 @@ export default function Sessions() {
   const [deleteTarget, setDeleteTarget] = useState<Session | null>(null);
   // End-session confirm target. Same modal pattern as deleteTarget so the
   // confirm flow stays consistent with the rest of the app — replaces the
-  // pre-v2.8.3 native browser confirm() dialog.
+  // pre-v2.8.3 native browser confirm() dialog. v2.8.6 adds a stats block
+  // showing how many tournaments are still active + how many matches are
+  // on court so the TD knows what they're signing off on.
   const [endTarget, setEndTarget] = useState<Session | null>(null);
+  const [endStats, setEndStats] = useState<SessionEndStats | null>(null);
 
   const load = async () => {
     try {
@@ -130,13 +134,25 @@ export default function Sessions() {
     }
   };
 
-  const handleEnd = (s: Session) => setEndTarget(s);
+  const handleEnd = (s: Session) => {
+    // Open modal with placeholder stats (loading state), then fetch
+    // real numbers in the background so the modal renders instantly.
+    setEndTarget(s);
+    setEndStats(null);
+    getSessionEndStats(s.id)
+      .then((stats) => setEndStats(stats))
+      .catch((err) => {
+        console.error("getSessionEndStats failed:", err);
+        // Keep stats null — modal still works, just without enrichment.
+      });
+  };
 
   const confirmEnd = async () => {
     if (!endTarget) return;
     try {
       await updateSessionStatus(endTarget.id, "ended");
       setEndTarget(null);
+      setEndStats(null);
       await load();
     } catch (err) {
       showError(String(err));
@@ -492,21 +508,52 @@ export default function Sessions() {
 
       {/* End session confirm — same modal pattern as the delete-confirm
           above, but the action is non-destructive (status transition only),
-          so the primary button uses the amber accent instead of rose. */}
+          so the primary button uses the amber accent instead of rose.
+          v2.8.6: stats block shows how many tournaments are still active
+          and how many matches are on court — empty state ("ready to end")
+          gets an emerald confirmation instead. */}
       {endTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className={`${theme.cardBg} rounded-2xl shadow-xl border ${theme.cardBorder} max-w-md w-full p-5`}>
             <h2 className={`text-lg font-bold ${theme.textPrimary} mb-2`}>
               ⏹ {t.sessions_end}
             </h2>
-            <p className={`text-sm ${theme.textSecondary} mb-4`}>
+            <p className={`text-sm ${theme.textSecondary} mb-3`}>
               <strong>{endTarget.name}</strong>
               <br />
               {t.sessions_end_confirm}
             </p>
+
+            {/* Stats block — three render paths: loading / has activity /
+                clean. The clean state uses an emerald border to signal
+                "no surprises here, safe to end". */}
+            {endStats === null ? (
+              <p className={`text-xs ${theme.textMuted} italic mb-4`}>
+                {t.sessions_end_loading_stats}
+              </p>
+            ) : endStats.activeTournaments.length === 0 ? (
+              <div className="border border-emerald-200 bg-emerald-50 rounded-xl px-3 py-2 mb-4 text-xs text-emerald-700">
+                ✓ {t.sessions_end_stats_none}
+              </div>
+            ) : (
+              <div className="border border-amber-200 bg-amber-50 rounded-xl px-3 py-2 mb-4">
+                <div className="text-[10px] font-bold uppercase tracking-wide text-amber-700 mb-1">
+                  ⚠ {t.sessions_end_stats_title}
+                </div>
+                <ul className="text-xs text-amber-800 space-y-0.5 pl-1">
+                  <li>
+                    🏆 {t.sessions_end_stats_active_tournaments.replace("{count}", String(endStats.activeTournaments.length))}
+                  </li>
+                  <li>
+                    🟩 {t.sessions_end_stats_on_court.replace("{count}", String(endStats.matchesOnCourt))}
+                  </li>
+                </ul>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => setEndTarget(null)}
+                onClick={() => { setEndTarget(null); setEndStats(null); }}
                 className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
               >
                 {t.common_cancel}

@@ -41,7 +41,21 @@ export default function SessionDashboard() {
   const [tournamentFilter, setTournamentFilter] = useState<number | "all">("all");
   const [now, setNow] = useState(Date.now());
 
-  const ctx = useSessionContext(sessionId);
+  // Smart-pause polling once the session is non-active AND no attached
+  // tournament is still running. The data won't change, so we save the
+  // 5s tick load and surface a "polling paused" badge in the header.
+  // Single useSessionContext call: shouldPause is derived from the
+  // existing ctx state; when it flips to true the hook's useEffect
+  // re-runs (paused is in its deps array) and the interval clears.
+  // The hook always does an initial tick before pausing, so the static
+  // view is correctly populated.
+  const [shouldPause, setShouldPause] = useState(false);
+  const ctx = useSessionContext(sessionId, shouldPause);
+  useEffect(() => {
+    if (!session) { setShouldPause(false); return; }
+    if (session.status === "active") { setShouldPause(false); return; }
+    setShouldPause(!ctx.tournaments.some((tt) => tt.status === "active"));
+  }, [session, ctx.tournaments]);
 
   useDocumentTitle(session?.name ?? t.session_dashboard_title);
 
@@ -177,8 +191,34 @@ export default function SessionDashboard() {
     );
   }
 
+  // Helper for the ended-banner timestamp formatting.
+  const formatTimestamp = (iso: string | null): string => {
+    if (!iso) return "—";
+    try {
+      const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
+      return d.toLocaleString();
+    } catch {
+      return iso;
+    }
+  };
+
   return (
     <div className={`min-h-screen ${theme.cardBg}`}>
+      {/* Status banner — shown when session is ended or archived. Sits
+          above the header so it's the first thing the TD sees. Distinct
+          color per status: amber for ended (recent winding-down), grey
+          for archived (historical). */}
+      {session.status === "ended" && (
+        <div className="bg-amber-100 text-amber-900 border-b border-amber-200 px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
+          ⏹ {t.session_dashboard_ended_banner.replace("{date}", formatTimestamp(session.ended_at))}
+        </div>
+      )}
+      {session.status === "archived" && (
+        <div className="bg-gray-100 text-gray-700 border-b border-gray-200 px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
+          📦 {t.session_dashboard_archived_banner}
+        </div>
+      )}
+
       {/* Header */}
       <header className={`${theme.sidebarBg} text-white px-6 py-4 flex items-center justify-between flex-wrap gap-3`}>
         <div>
@@ -202,7 +242,11 @@ export default function SessionDashboard() {
             {new Date(now).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
           </div>
           <div className="text-xs text-white/70 mt-0.5">
-            {ctx.loaded ? t.tournament_live_publish_active.replace("{count}", "") : t.common_loading}
+            {shouldPause
+              ? `⏸ ${t.session_dashboard_polling_paused}`
+              : ctx.loaded
+                ? t.tournament_live_publish_active.replace("{count}", "")
+                : t.common_loading}
           </div>
         </div>
       </header>

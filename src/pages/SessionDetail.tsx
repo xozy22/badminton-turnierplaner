@@ -16,7 +16,9 @@ import {
   updateSessionStatus,
   attachTournamentToSession,
   detachTournamentFromSession,
+  getSessionEndStats,
 } from "../lib/sessions";
+import type { SessionEndStats } from "../lib/sessions";
 import { getSportstaetten, getTournaments } from "../lib/db";
 import type { Session, Sportstaette, Tournament, SessionStatus } from "../lib/types";
 import { useTheme } from "../lib/ThemeContext";
@@ -42,8 +44,10 @@ export default function SessionDetail() {
   const [showAttach, setShowAttach] = useState(false);
   const [attachQuery, setAttachQuery] = useState("");
   // Confirm dialog for the End-session transition. Replaces the native
-  // browser confirm() so the look matches the rest of the app.
+  // browser confirm() so the look matches the rest of the app. v2.8.6
+  // enriched with active-tournament + on-court counts.
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [endStats, setEndStats] = useState<SessionEndStats | null>(null);
 
   useDocumentTitle(session?.name ?? t.session_detail_title);
 
@@ -116,7 +120,16 @@ export default function SessionDetail() {
     if (!session) return;
     // The "ended" transition gets a styled confirm modal (see render block);
     // every other status change applies immediately.
-    if (status === "ended") { setShowEndConfirm(true); return; }
+    if (status === "ended") {
+      setShowEndConfirm(true);
+      setEndStats(null);
+      // Fetch live stats in the background so the modal can render the
+      // "still N tournaments active" warning.
+      getSessionEndStats(session.id)
+        .then((stats) => setEndStats(stats))
+        .catch((err) => console.error("getSessionEndStats failed:", err));
+      return;
+    }
     try {
       await updateSessionStatus(session.id, status);
       await load();
@@ -130,6 +143,7 @@ export default function SessionDetail() {
     try {
       await updateSessionStatus(session.id, "ended");
       setShowEndConfirm(false);
+      setEndStats(null);
       await load();
     } catch (err) {
       showError(String(err));
@@ -302,11 +316,18 @@ export default function SessionDetail() {
           </div>
           <button
             onClick={() => setShowAttach(true)}
-            className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-lg text-sm font-semibold transition-all`}
+            disabled={session.status !== "active"}
+            title={session.status !== "active" ? t.session_attach_blocked_status_hint : undefined}
+            className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             + {t.session_detail_attach_button}
           </button>
         </div>
+        {session.status !== "active" && (
+          <p className={`text-xs ${theme.textMuted} italic mb-3 -mt-2`}>
+            {t.session_attach_blocked_status_hint}
+          </p>
+        )}
 
         {tournaments.length === 0 ? (
           <p className={`text-sm ${theme.textMuted} italic py-6 text-center`}>
@@ -416,21 +437,48 @@ export default function SessionDetail() {
 
       {/* End session confirm — replaces the native browser confirm() so
           the look matches the rest of the app. Non-destructive transition,
-          so the primary button uses amber rather than rose. */}
+          so the primary button uses amber rather than rose. v2.8.6 adds
+          a stats block (active tournaments + matches on court) — empty
+          state ("nothing running") gets an emerald confirmation. */}
       {showEndConfirm && session && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className={`${theme.cardBg} rounded-2xl shadow-xl border ${theme.cardBorder} max-w-md w-full p-5`}>
             <h2 className={`text-lg font-bold ${theme.textPrimary} mb-2`}>
               ⏹ {t.sessions_end}
             </h2>
-            <p className={`text-sm ${theme.textSecondary} mb-4`}>
+            <p className={`text-sm ${theme.textSecondary} mb-3`}>
               <strong>{session.name}</strong>
               <br />
               {t.sessions_end_confirm}
             </p>
+
+            {endStats === null ? (
+              <p className={`text-xs ${theme.textMuted} italic mb-4`}>
+                {t.sessions_end_loading_stats}
+              </p>
+            ) : endStats.activeTournaments.length === 0 ? (
+              <div className="border border-emerald-200 bg-emerald-50 rounded-xl px-3 py-2 mb-4 text-xs text-emerald-700">
+                ✓ {t.sessions_end_stats_none}
+              </div>
+            ) : (
+              <div className="border border-amber-200 bg-amber-50 rounded-xl px-3 py-2 mb-4">
+                <div className="text-[10px] font-bold uppercase tracking-wide text-amber-700 mb-1">
+                  ⚠ {t.sessions_end_stats_title}
+                </div>
+                <ul className="text-xs text-amber-800 space-y-0.5 pl-1">
+                  <li>
+                    🏆 {t.sessions_end_stats_active_tournaments.replace("{count}", String(endStats.activeTournaments.length))}
+                  </li>
+                  <li>
+                    🟩 {t.sessions_end_stats_on_court.replace("{count}", String(endStats.matchesOnCourt))}
+                  </li>
+                </ul>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => setShowEndConfirm(false)}
+                onClick={() => { setShowEndConfirm(false); setEndStats(null); }}
                 className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
               >
                 {t.common_cancel}

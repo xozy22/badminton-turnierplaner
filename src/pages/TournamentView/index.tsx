@@ -1993,12 +1993,24 @@ export default function TournamentView() {
 
   return (
     <div>
-      {/* Session bar — only when this tournament is part of a session */}
-      {tournament.session_id != null && sessionMeta && (
+      {/* Session bar — only when this tournament is part of a session.
+          Pill style adapts to session.status so the user can tell at a
+          glance whether the workspace is still live (violet) or wound
+          down (grey). The bar itself is always shown — even ended
+          sessions retain the cross-tournament context for live matches. */}
+      {tournament.session_id != null && sessionMeta && (() => {
+        const isActive = sessionMeta.status === "active";
+        const pillClass = isActive
+          ? "bg-violet-100 text-violet-700 border-violet-200"
+          : "bg-gray-100 text-gray-600 border-gray-200";
+        const statusSuffix = sessionMeta.status === "ended" ? ` ${t.session_pill_ended_suffix}`
+          : sessionMeta.status === "archived" ? ` ${t.session_pill_archived_suffix}`
+            : "";
+        return (
         <div className={`mb-3 ${theme.cardBg} border ${theme.cardBorder} rounded-2xl px-4 py-2 flex items-center justify-between flex-wrap gap-2 shadow-sm`}>
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-xs font-bold uppercase tracking-wide bg-violet-100 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full">
-              🔗 {t.session_pill_label}
+            <span className={`text-xs font-bold uppercase tracking-wide border px-2 py-0.5 rounded-full ${pillClass}`}>
+              🔗 {t.session_pill_label}{statusSuffix}
             </span>
             <span className={`text-sm font-semibold ${theme.textPrimary}`}>
               {sessionMeta.name}
@@ -2031,7 +2043,8 @@ export default function TournamentView() {
             📺 {t.session_pill_open_dashboard} →
           </button>
         </div>
-      )}
+        );
+      })()}
 
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
