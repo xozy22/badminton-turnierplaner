@@ -1,11 +1,13 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { getSportstaetten, createSportstaette, updateSportstaette, deleteSportstaette, isTauri } from "../lib/db";
+import { getSportstaetten, createSportstaette, updateSportstaette, deleteSportstaette, getVenueUsage, isTauri } from "../lib/db";
+import type { VenueUsage } from "../lib/db";
 import { getSessions } from "../lib/sessions";
 import type { Sportstaette, HallConfig, Session } from "../lib/types";
 import { parseHallConfig, hallConfigTotalCourts } from "../lib/types";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
+import { useToast } from "../lib/ToastContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import type { Translations } from "../lib/i18n/types";
 
@@ -78,6 +80,7 @@ function HallEditor({
 export default function Sportstaetten() {
   const { theme } = useTheme();
   const { t } = useT();
+  const { showError } = useToast();
   useDocumentTitle(t.nav_venues);
   const [sportstaetten, setSportstaetten] = useState<Sportstaette[]>([]);
   const [name, setName] = useState("");
@@ -97,6 +100,11 @@ export default function Sportstaetten() {
 
   // Delete
   const [deleteTarget, setDeleteTarget] = useState<{ ids: number[]; names: string[] } | null>(null);
+  // Blocked-delete modal: opens when the user tries to delete a venue
+  // that is referenced by an active/draft tournament or active session.
+  // Replaces the regular delete-confirm in that case so the user can
+  // see exactly what's blocking and resolve it before retrying.
+  const [deleteBlocked, setDeleteBlocked] = useState<{ venue: Sportstaette; usage: VenueUsage } | null>(null);
 
   // Active sessions across all venues — used by the "Active Sessions"
   // panel that links each venue card to the live dashboard.
@@ -153,17 +161,42 @@ export default function Sportstaetten() {
     load();
   };
 
-  const handleDeleteSingle = (s: Sportstaette) => {
-    setDeleteTarget({ ids: [s.id], names: [s.name] });
+  /**
+   * Pre-flight check: if the venue is referenced by any active/draft
+   * tournament or active session, open the blocking modal with the list of
+   * blockers instead of the regular delete-confirm. The DB layer also
+   * enforces this — the UI block is just a friendlier surface.
+   */
+  const handleDeleteSingle = async (s: Sportstaette) => {
+    try {
+      const usage = await getVenueUsage(s.id);
+      if (usage.activeTournaments.length > 0 || usage.activeSessions.length > 0) {
+        setDeleteBlocked({ venue: s, usage });
+        return;
+      }
+      setDeleteTarget({ ids: [s.id], names: [s.name] });
+    } catch (err) {
+      console.error("getVenueUsage failed:", err);
+      showError(String(err));
+    }
   };
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
-    for (const id of deleteTarget.ids) {
-      await deleteSportstaette(id);
+    try {
+      for (const id of deleteTarget.ids) {
+        await deleteSportstaette(id);
+      }
+      setDeleteTarget(null);
+      load();
+    } catch (err) {
+      // The DB-layer guard surfaces here when something changed between
+      // the pre-flight check and the actual delete (rare but possible).
+      console.error("deleteSportstaette failed:", err);
+      showError(String(err));
+      setDeleteTarget(null);
+      load();
     }
-    setDeleteTarget(null);
-    load();
   };
 
   const formatHallsSummary = (s: Sportstaette): string => {
@@ -595,6 +628,74 @@ export default function Sportstaetten() {
                 className="flex-1 bg-rose-600 text-white px-4 py-2.5 rounded-xl hover:bg-rose-700 transition-all text-sm font-medium"
               >
                 {t.common_delete}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete blocked: venue is referenced by an active/draft tournament
+          or active session. Show what's blocking + a Close-only action. */}
+      {deleteBlocked && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-lg p-6 border ${theme.cardBorder}`}>
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-3">🔒</div>
+              <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
+                {t.venues_delete_blocked_title}
+              </h3>
+              <p className={`text-sm ${theme.textSecondary} mt-2`}>
+                <strong>{deleteBlocked.venue.name}</strong>
+              </p>
+              <p className={`text-sm ${theme.textSecondary} mt-2`}>
+                {t.venues_delete_blocked_message}
+              </p>
+            </div>
+
+            <div className="space-y-3 max-h-72 overflow-y-auto">
+              {deleteBlocked.usage.activeTournaments.length > 0 && (
+                <div>
+                  <div className={`text-xs font-bold uppercase tracking-wide ${theme.textMuted} mb-1`}>
+                    🏆 {t.venues_delete_blocked_tournaments_label} ({deleteBlocked.usage.activeTournaments.length})
+                  </div>
+                  <ul className={`space-y-1 text-sm ${theme.textPrimary} pl-1`}>
+                    {deleteBlocked.usage.activeTournaments.map((tt) => (
+                      <li key={`t-${tt.id}`} className="flex items-center gap-2">
+                        <span className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${
+                          tt.status === "active" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-blue-100 text-blue-700 border-blue-200"
+                        }`}>
+                          {tt.status}
+                        </span>
+                        <span className="truncate">{tt.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {deleteBlocked.usage.activeSessions.length > 0 && (
+                <div>
+                  <div className={`text-xs font-bold uppercase tracking-wide ${theme.textMuted} mb-1`}>
+                    🔗 {t.venues_delete_blocked_sessions_label} ({deleteBlocked.usage.activeSessions.length})
+                  </div>
+                  <ul className={`space-y-1 text-sm ${theme.textPrimary} pl-1`}>
+                    {deleteBlocked.usage.activeSessions.map((ss) => (
+                      <li key={`s-${ss.id}`} className="truncate">{ss.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <p className={`mt-4 text-xs ${theme.textMuted} italic text-center`}>
+              {t.venues_delete_blocked_resolve_hint}
+            </p>
+
+            <div className="flex justify-end mt-5">
+              <button
+                onClick={() => setDeleteBlocked(null)}
+                className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-5 py-2 rounded-xl text-sm font-semibold transition-all`}
+              >
+                {t.common_close}
               </button>
             </div>
           </div>

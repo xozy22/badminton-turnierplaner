@@ -718,6 +718,13 @@ export interface Translations {
   venues_hall_plural: string;
   venues_field_singular: string;
   venues_field_plural: string;
+  // In-use guard: a venue referenced by an active/draft tournament or an
+  // active session must not be deleted. These cover the modal copy.
+  venues_delete_blocked_title: string;
+  venues_delete_blocked_message: string;
+  venues_delete_blocked_tournaments_label: string;
+  venues_delete_blocked_sessions_label: string;
+  venues_delete_blocked_resolve_hint: string;
 
   // ===== TV Mode =====
   tv_courts: string;

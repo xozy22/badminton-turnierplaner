@@ -79,6 +79,12 @@
 - **Save Confirmation**: Green toast notification confirms all changes (settings, players, teams, halls) were saved after editing a tournament draft
 - **Unified Toast Notifications**: A global toast context (`useToast`) replaces native browser alerts for save confirmations, import summaries, and error reporting across the app — non-blocking, stackable, auto-dismissing
 
+### Sportstaette-Loeschen-Guard (v2.8.4)
+- **Sportstaetten in Benutzung sind jetzt loesch-geschuetzt**: bisher konnte eine Sportstaette geloescht werden auch wenn aktive Turniere oder Sessions sie referenzierten — das hinterliess `venue_id`-Pointer, die ins Leere zeigten und das Session-Dashboard kaputt machten (`hall_config`-Lookup ueber `venue.halls` schlug fehl). Jetzt blockiert ein neuer Pre-Flight-Check `getVenueUsage(id)` das Loeschen, wenn ein Turnier mit Status `draft`/`active` oder eine Session mit Status `active` die Sportstaette nutzt
+- **Block-Modal mit Detail-Liste**: statt des regulaeren Loeschen-Confirms erscheint ein 🔒 Block-Modal mit der Liste aller blockierenden Turniere (inkl. Status-Badge) und Sessions plus einem Hinweis, wie der User entsperren kann (Turnier beenden/archivieren oder einer anderen Sportstaette zuweisen)
+- **DB-Layer Defense in Depth**: `deleteSportstaette()` ruft selbst nochmal `getVenueUsage()` auf bevor `DELETE` ausgefuehrt wird und wirft eine getypte Error-Meldung wenn doch was zwischen Pre-Flight und Delete reingerutscht ist (race condition zwischen Tabs / Live-Push). Toast surface'd den Fehler im UI
+- **i18n**: 5 neue Keys (`venues_delete_blocked_*`)
+
 ### End-Session Modal Polish (v2.8.3)
 - **Session beenden**: der "Session beenden"-Button oeffnete bisher das native Browser-`confirm()`-Popup — passte optisch nicht zum Rest der App und sah aus wie ein Bug. Ersetzt durch das Standard-Modal, identisch zum bestehenden Loeschen-Dialog (Header, Session-Name, Erklaerungs-Text, Cancel + amber-farbenen Bestaetigen-Button). Trifft Sessions-Liste und Session-Detail-Page; native confirm() ist dort komplett entfernt
 

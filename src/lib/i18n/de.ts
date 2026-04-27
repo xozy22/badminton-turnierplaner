@@ -706,6 +706,11 @@ export const de: Translations = {
   venues_hall_plural: "Hallen",
   venues_field_singular: "Feld",
   venues_field_plural: "Felder",
+  venues_delete_blocked_title: "Sportstaette wird aktiv genutzt",
+  venues_delete_blocked_message: "Diese Sportstaette kann nicht geloescht werden, solange sie von folgenden aktiven Turnieren oder Sessions verwendet wird:",
+  venues_delete_blocked_tournaments_label: "Aktive Turniere",
+  venues_delete_blocked_sessions_label: "Aktive Sessions",
+  venues_delete_blocked_resolve_hint: "Beende oder archiviere zuerst die Turniere/Sessions oder weise ihnen eine andere Sportstaette zu.",
 
   // ===== TV Mode =====
   tv_courts: "Spielfelder",

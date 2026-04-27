@@ -706,6 +706,11 @@ export const en: Translations = {
   venues_hall_plural: "Halls",
   venues_field_singular: "Court",
   venues_field_plural: "Courts",
+  venues_delete_blocked_title: "Venue is in active use",
+  venues_delete_blocked_message: "This venue can't be deleted while it's referenced by these active tournaments or sessions:",
+  venues_delete_blocked_tournaments_label: "Active tournaments",
+  venues_delete_blocked_sessions_label: "Active sessions",
+  venues_delete_blocked_resolve_hint: "End or archive the tournaments/sessions first, or reassign them to a different venue.",
 
   // ===== TV Mode =====
   tv_courts: "Courts",

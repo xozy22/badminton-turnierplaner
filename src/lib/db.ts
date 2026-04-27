@@ -337,7 +337,62 @@ export async function updateSportstaette(id: number, name: string, address: stri
   saveStore(store);
 }
 
+/**
+ * Returns the in-use counts for a venue: how many active/draft tournaments
+ * and how many active sessions reference it. A venue with any non-zero count
+ * MUST NOT be deleted — it would orphan the live data and break the session
+ * dashboard's hall_config lookup.
+ *
+ * "In use" semantics:
+ *  - Tournaments: status IN ('draft', 'active') count. Completed and
+ *    archived tournaments don't block delete (the venue link there is
+ *    historical reference only — losing it doesn't break ongoing work).
+ *  - Sessions: status = 'active' counts. Ended/archived sessions don't
+ *    block delete for the same historical-reference reason.
+ */
+export interface VenueUsage {
+  activeTournaments: { id: number; name: string; status: string }[];
+  activeSessions: { id: number; name: string }[];
+}
+
+export async function getVenueUsage(id: number): Promise<VenueUsage> {
+  if (isTauri()) {
+    const d = await getTauriDb();
+    const tournaments: { id: number; name: string; status: string }[] = await d.select(
+      "SELECT id, name, status FROM tournaments WHERE venue_id = $1 AND status IN ('draft', 'active') ORDER BY id ASC",
+      [id],
+    );
+    const sessions: { id: number; name: string }[] = await d.select(
+      "SELECT id, name FROM sessions WHERE venue_id = $1 AND status = 'active' ORDER BY id ASC",
+      [id],
+    );
+    return { activeTournaments: tournaments, activeSessions: sessions };
+  }
+  const store = loadStore();
+  const tournaments = (store.tournaments ?? [])
+    .filter((tt) => tt.venue_id === id && (tt.status === "draft" || tt.status === "active"))
+    .map((tt) => ({ id: tt.id, name: tt.name, status: tt.status }));
+  const sessionsArr = ((store as any).sessions as { id: number; name: string; venue_id: number | null; status: string }[] | undefined) ?? [];
+  const sessions = sessionsArr
+    .filter((ss) => ss.venue_id === id && ss.status === "active")
+    .map((ss) => ({ id: ss.id, name: ss.name }));
+  return { activeTournaments: tournaments, activeSessions: sessions };
+}
+
 export async function deleteSportstaette(id: number): Promise<void> {
+  // Defense in depth: even if the UI somehow misses the guard, the DB
+  // layer throws a typed error so the caller can surface it. The error
+  // message intentionally enumerates the blockers — easier to debug
+  // than a vague "in use" string.
+  const usage = await getVenueUsage(id);
+  if (usage.activeTournaments.length > 0 || usage.activeSessions.length > 0) {
+    const tNames = usage.activeTournaments.map((t) => t.name).join(", ");
+    const sNames = usage.activeSessions.map((s) => s.name).join(", ");
+    const parts: string[] = [];
+    if (tNames) parts.push(`Turniere: ${tNames}`);
+    if (sNames) parts.push(`Sessions: ${sNames}`);
+    throw new Error(`Sportstaette wird verwendet von ${parts.join(" / ")}`);
+  }
   if (isTauri()) {
     const d = await getTauriDb();
     await d.execute("DELETE FROM sportstaetten WHERE id = $1", [id]);
