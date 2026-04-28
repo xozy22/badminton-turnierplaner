@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { getSportstaetten, createSportstaette, updateSportstaette, deleteSportstaette, getVenueUsage, isTauri } from "../lib/db";
 import type { VenueUsage } from "../lib/db";
 import { getSessions } from "../lib/sessions";
@@ -118,6 +118,30 @@ export default function Sportstaetten() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Deep-link support: /sportstaetten?edit=42 opens venue 42 in edit mode
+  // and scrolls its row into view. Used by the TournamentCreate hall
+  // section's "Edit venue" shortcut so the TD lands directly on the
+  // right row without having to scan the table. v2.8.9.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editRowRefs = useRef<Map<number, HTMLTableRowElement | null>>(new Map());
+  useEffect(() => {
+    const editIdParam = searchParams.get("edit");
+    if (!editIdParam) return;
+    const targetId = Number(editIdParam);
+    const venue = sportstaetten.find((s) => s.id === targetId);
+    if (!venue) return; // not loaded yet — re-runs when sportstaetten populates
+    handleEdit(venue);
+    // Scroll on next tick so the row is mounted in edit mode first.
+    setTimeout(() => {
+      editRowRefs.current.get(targetId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+    // Strip the param so a subsequent reload doesn't keep re-triggering.
+    const next = new URLSearchParams(searchParams);
+    next.delete("edit");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sportstaetten, searchParams]);
 
   const filteredSportstaetten = useMemo(() => {
     return sportstaetten.filter((s) => {
@@ -479,7 +503,8 @@ export default function Sportstaetten() {
             {filteredSportstaetten.map((s, i) => (
               <tr
                 key={s.id}
-                className={`border-b ${theme.cardBorder} last:border-0 transition-colors hover:${theme.cardBg}`}
+                ref={(el) => { editRowRefs.current.set(s.id, el); }}
+                className={`border-b ${theme.cardBorder} last:border-0 transition-colors hover:${theme.cardBg} ${editingId === s.id ? "ring-2 ring-emerald-300/40" : ""}`}
               >
                 <td className={`px-3 py-3 ${theme.textMuted} font-mono text-xs`}>
                   {i + 1}

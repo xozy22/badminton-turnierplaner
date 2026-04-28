@@ -79,6 +79,11 @@
 - **Save Confirmation**: Green toast notification confirms all changes (settings, players, teams, halls) were saved after editing a tournament draft
 - **Unified Toast Notifications**: A global toast context (`useToast`) replaces native browser alerts for save confirmations, import summaries, and error reporting across the app — non-blocking, stackable, auto-dismissing
 
+### Hallen-Section: Klarheit + Quick-Edit (v2.8.9)
+- **"📌 Aus Sportstaette X uebernommen"-Hinweis**: Im Tournament-Wizard direkt unter den Hallen-Checkboxen erklaert eine kleine, kursive Notiz, **woher** die Hallen + Felder kommen. Beseitigt die Verwirrung, warum Hall-Namen und Court-Counts read-only aussehen — die gehoeren zur Sportstaette, nicht zum Turnier
+- **"→ Sportstaette bearbeiten"-Shortcut**: Direkt daneben ein Quick-Link zur `/sportstaetten?edit={venueId}`-Route. Sportstaetten-Page liest den `edit`-Query-Param, oeffnet die Ziel-Zeile automatisch im Edit-Modus, scrollt sie sanft in den Viewport und stripped den Param wieder raus damit Refresh-Loops nicht passieren. Die geoeffnete Zeile bekommt einen dezenten emerald Ring zur visuellen Hervorhebung
+- **i18n**: 2 neue Keys (`tournament_halls_synced_from_venue`, `tournament_halls_edit_venue_link`)
+
 ### Sportstaette als first-class Bestandteil von Export & Import (v2.8.8)
 - **Sportstaette ist jetzt garantierter Bestandteil jeder Vorlage**: Der Export emittiert den `venue`-Block immer (statt nur wenn `tournament.venue_id` gesetzt war). Falls aus historischen Gruenden kein `venue_id` da ist, wird der Block aus `tournament.hall_config` + Turniername synthetisiert. Dadurch ist der Roundtrip Export → Import vollstaendig verlustfrei
 - **Export-Modal zeigt Sportstaette-Preview**: Vor dem Export sieht der User in einer violetten Info-Zeile genau, welche Sportstaette mitgeschrieben wird (Name, Anzahl Hallen + Felder, optional Stadt). Bei dem theoretischen Edge-Case "kein venue + kein hall_config" gibt es eine amber Warnzeile als Hinweis

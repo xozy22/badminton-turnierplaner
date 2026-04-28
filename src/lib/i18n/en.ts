@@ -148,6 +148,8 @@ export const en: Translations = {
   tournament_venue_create_first: "Create venue",
   tournament_halls_courts: "Halls / Courts",
   tournament_courts_selected: "{count} court(s) selected",
+  tournament_halls_synced_from_venue: "📌 Synced from venue '{name}'",
+  tournament_halls_edit_venue_link: "→ Need to change halls or courts? Edit venue",
   tournament_num_groups: "Number of groups",
   tournament_qualify_per_group: "Qualifiers per group",
   tournament_qualify_ko_count: "{count} players in KO",

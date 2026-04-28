@@ -863,6 +863,29 @@ export default function TournamentCreate() {
                         </div>
                       </div>
                     )}
+                    {/* "Why isn't this editable?" — surfaces the link to
+                        the venue and provides a one-click shortcut to
+                        edit it. The hall layout is owned by the venue
+                        (every sessioned tournament shares it), so any
+                        structural change has to happen there. v2.8.9. */}
+                    {selectedVenueId !== "" && (() => {
+                      const venue = sportstaetten.find((s) => s.id === selectedVenueId);
+                      if (!venue) return null;
+                      return (
+                        <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
+                          <span className={`text-xs ${theme.textMuted} italic`}>
+                            {t.tournament_halls_synced_from_venue.replace("{name}", venue.name)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/sportstaetten?edit=${venue.id}`)}
+                            className={`text-xs font-medium ${theme.activeBadgeText} hover:opacity-80 transition-colors whitespace-nowrap`}
+                          >
+                            {t.tournament_halls_edit_venue_link}
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 

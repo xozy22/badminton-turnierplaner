@@ -148,6 +148,8 @@ export const de: Translations = {
   tournament_venue_create_first: "Sportstaette anlegen",
   tournament_halls_courts: "Hallen / Spielfelder",
   tournament_courts_selected: "{count} Felder ausgewaehlt",
+  tournament_halls_synced_from_venue: "📌 Aus Sportstaette '{name}' uebernommen",
+  tournament_halls_edit_venue_link: "→ Hallen oder Felder aendern? Sportstaette bearbeiten",
   tournament_num_groups: "Anzahl Gruppen",
   tournament_qualify_per_group: "Qualifikanten pro Gruppe",
   tournament_qualify_ko_count: "{count} Spieler im KO",

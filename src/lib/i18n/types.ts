@@ -151,6 +151,11 @@ export interface Translations {
   tournament_venue_create_first: string;
   tournament_halls_courts: string;
   tournament_courts_selected: string;
+  // Hint + shortcut shown under the halls section to clarify why
+  // hall names + court counts aren't editable inline (they're owned by
+  // the venue) and to send the user to the right place to change them.
+  tournament_halls_synced_from_venue: string;
+  tournament_halls_edit_venue_link: string;
   tournament_num_groups: string;
   tournament_qualify_per_group: string;
   tournament_qualify_ko_count: string;
