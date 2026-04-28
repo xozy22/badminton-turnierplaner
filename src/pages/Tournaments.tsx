@@ -73,66 +73,71 @@ export default function Tournaments() {
       : (format === "elimination" || format === "group_ko" || format === "double_elimination");
 
     // ---- Venue resolution ----
-    // Since v2.8.2 every tournament needs a venue. Templates from before
-    // v2.8.7 only carry `hall_config`; v3 templates carry a `venue` block.
-    // Resolution priority:
-    //   1. v3: tpl.venue.name → match by case-insensitive name → use
-    //      existing OR auto-create from the full venue block.
-    //   2. v2 legacy + venues exist locally → use the first venue
-    //      (alphabetical), assume the user picked the right DB.
-    //   3. v2 legacy + no venues → auto-create from tpl.hall_config with
-    //      a derived name so the tournament is immediately startable.
-    //   4. No info at all + no venues → throw, let the caller surface it.
+    // Single pipeline since v2.8.8: synthesize a target venue spec from
+    // whatever the template gives us (v3 venue block preferred, v2
+    // hall_config as fallback), then match-or-create against the local
+    // venue list by case-insensitive name.
+    //
+    // Why dropped the "use first existing" shortcut: it produced surprising
+    // results when the user had multiple venues — the import silently
+    // picked one that had nothing to do with the source tournament. Better
+    // to always materialize the source venue (existing OR new) so the
+    // round-trip is predictable.
     const norm = (s: unknown) => String(s || "").trim().toLowerCase();
-    const existingVenues = await getSportstaetten();
     let venueId: number | null = null;
     let venueToastMsg: string | null = null;
     const tplVenue = (tpl.venue as { name?: string; address?: string | null; zip?: string | null; city?: string | null; halls?: { name: string; courts: number }[] } | undefined);
     const tplHallConfig = tpl.hall_config as { name: string; courts: number }[] | undefined;
+
+    // Synthesize target venue spec — prefer v3 venue block, fall back to
+    // legacy hall_config + tournament name for v2 templates.
+    type VenueSpec = { name: string; address: string | null; zip: string | null; city: string | null; halls: { name: string; courts: number }[] };
+    let target: VenueSpec | null = null;
     if (tplVenue && tplVenue.name) {
-      const match = existingVenues.find((v) => norm(v.name) === norm(tplVenue.name));
-      if (match) {
-        venueId = match.id;
-        venueToastMsg = t.import_venue_matched.replace("{name}", match.name);
-      } else {
-        const halls = (tplVenue.halls && tplVenue.halls.length > 0)
+      target = {
+        name: tplVenue.name,
+        address: tplVenue.address ?? null,
+        zip: tplVenue.zip ?? null,
+        city: tplVenue.city ?? null,
+        halls: (tplVenue.halls && tplVenue.halls.length > 0)
           ? tplVenue.halls
-          : (tplHallConfig ?? [{ name: "Halle 1", courts: courts || 2 }]);
-        const totalCourts = hallConfigTotalCourts(halls);
-        await createSportstaette(
-          tplVenue.name,
-          tplVenue.address ?? null,
-          tplVenue.zip ?? null,
-          tplVenue.city ?? null,
-          totalCourts,
-          JSON.stringify(halls),
-        );
-        // Re-read to find the just-created id (createSportstaette doesn't return one).
-        const refreshed = await getSportstaetten();
-        const created = refreshed.find((v) => norm(v.name) === norm(tplVenue.name));
-        if (created) {
-          venueId = created.id;
-          venueToastMsg = t.import_venue_created.replace("{name}", tplVenue.name);
-        }
-      }
-    } else if (existingVenues.length > 0) {
-      venueId = existingVenues[0].id;
-      venueToastMsg = t.import_venue_fallback_existing.replace("{name}", existingVenues[0].name);
+          : (tplHallConfig ?? [{ name: "Halle 1", courts: courts || 2 }]),
+      };
     } else if (tplHallConfig && tplHallConfig.length > 0) {
       const autoName = name ? `${name} - Sportstaette` : "Importierte Sportstaette";
-      const totalCourts = hallConfigTotalCourts(tplHallConfig);
-      await createSportstaette(autoName, null, null, null, totalCourts, JSON.stringify(tplHallConfig));
+      target = { name: autoName, address: null, zip: null, city: null, halls: tplHallConfig };
+    }
+
+    if (!target) {
+      // Template carries neither a venue block nor hall_config — can't
+      // produce a usable tournament. Caller should have caught this via
+      // the v2.8.2 no-venues guard, but surface it explicitly here too.
+      throw new Error(t.tournament_venue_no_venues_message);
+    }
+
+    // Match-or-create: the importer always materializes the source venue
+    // on the destination DB so the round-trip is lossless.
+    const existingVenues = await getSportstaetten();
+    const match = existingVenues.find((v) => norm(v.name) === norm(target.name));
+    if (match) {
+      venueId = match.id;
+      venueToastMsg = t.import_venue_matched.replace("{name}", match.name);
+    } else {
+      const totalCourts = hallConfigTotalCourts(target.halls);
+      await createSportstaette(
+        target.name,
+        target.address,
+        target.zip,
+        target.city,
+        totalCourts,
+        JSON.stringify(target.halls),
+      );
       const refreshed = await getSportstaetten();
-      const created = refreshed.find((v) => norm(v.name) === norm(autoName));
+      const created = refreshed.find((v) => norm(v.name) === norm(target!.name));
       if (created) {
         venueId = created.id;
-        venueToastMsg = t.import_venue_created_fallback.replace("{name}", autoName);
+        venueToastMsg = t.import_venue_created.replace("{name}", target.name);
       }
-    } else {
-      // No venue anywhere — this is the v2.8.2 mandatory-venue era.
-      // Caller should have shown the no-venues empty state; surface it
-      // here too just in case.
-      throw new Error(t.tournament_venue_no_venues_message);
     }
 
     const id = await createTournament(

@@ -79,6 +79,12 @@
 - **Save Confirmation**: Green toast notification confirms all changes (settings, players, teams, halls) were saved after editing a tournament draft
 - **Unified Toast Notifications**: A global toast context (`useToast`) replaces native browser alerts for save confirmations, import summaries, and error reporting across the app — non-blocking, stackable, auto-dismissing
 
+### Sportstaette als first-class Bestandteil von Export & Import (v2.8.8)
+- **Sportstaette ist jetzt garantierter Bestandteil jeder Vorlage**: Der Export emittiert den `venue`-Block immer (statt nur wenn `tournament.venue_id` gesetzt war). Falls aus historischen Gruenden kein `venue_id` da ist, wird der Block aus `tournament.hall_config` + Turniername synthetisiert. Dadurch ist der Roundtrip Export → Import vollstaendig verlustfrei
+- **Export-Modal zeigt Sportstaette-Preview**: Vor dem Export sieht der User in einer violetten Info-Zeile genau, welche Sportstaette mitgeschrieben wird (Name, Anzahl Hallen + Felder, optional Stadt). Bei dem theoretischen Edge-Case "kein venue + kein hall_config" gibt es eine amber Warnzeile als Hinweis
+- **Importer: Single-Pipeline match-or-create**: Die alte Vier-Pfade-Heuristik (v2.8.7) ist auf einen einzigen Pfad reduziert: Template-Venue-Spec synthetisieren (aus `venue` oder Fallback `hall_config`) → per case-insensitive Name gegen lokale Sportstaetten matchen → bei Treffer verlinken, sonst aus dem Block neu anlegen. Der "erste vorhandene nehmen"-Shortcut ist entfernt — er produzierte unerwartete Verknuepfungen wenn der User mehrere Sportstaetten hatte
+- **i18n**: 2 unbenutzte Keys entfernt (`import_venue_fallback_existing`, `import_venue_created_fallback`), 2 neue Keys (`template_export_venue_label`, `template_export_venue_missing`)
+
 ### Vorlagen-Import & Sportstaetten (v2.8.7)
 - **Vorlagen-Export Format v3**: Der Export schreibt jetzt zusaetzlich einen `venue`-Block ins Template-JSON (`name`, `address`, `zip`, `city`, `halls[]`). v2-Reader ignorieren das Feld einfach (vorwaerts-kompatibel). `hall_config` bleibt drin fuer den Backward-Compat. `enable_third_place` wird jetzt auch exportiert
 - **Importer mit Venue-Resolution-Pipeline**: Vier Pfade, automatisch in Priority-Reihenfolge angewendet:

@@ -112,14 +112,13 @@ export interface Translations {
   tournaments_import: string;
   tournaments_import_error: string;
   // Toast text emitted after the venue-resolution step of a template
-  // import. Four paths: matched existing by name / created new from
-  // template venue block / fallback to first existing local venue
-  // (legacy template) / auto-created from hall_config (legacy template
-  // and no local venues yet).
+  // import. Two paths since v2.8.8 (the always-synthesize pipeline):
+  // matched existing venue by name / created new venue from the template.
   import_venue_matched: string;
   import_venue_created: string;
-  import_venue_fallback_existing: string;
-  import_venue_created_fallback: string;
+  // Export modal: venue-block preview + missing-venue fallback warning.
+  template_export_venue_label: string;
+  template_export_venue_missing: string;
 
   // ===== Tournament Create / Edit =====
   tournament_create_title: string;

@@ -113,8 +113,8 @@ export const de: Translations = {
   tournaments_import_error: "Vorlage konnte nicht geladen werden",
   import_venue_matched: "Sportstaette '{name}' (bestehend) verknuepft",
   import_venue_created: "Neue Sportstaette '{name}' aus Vorlage angelegt",
-  import_venue_fallback_existing: "Vorlage hatte keine Sportstaette - '{name}' wird verwendet",
-  import_venue_created_fallback: "Sportstaette '{name}' aus Hallen-Konfiguration der Vorlage angelegt",
+  template_export_venue_label: "Sportstaette wird mitexportiert",
+  template_export_venue_missing: "Diesem Turnier ist keine Sportstaette zugeordnet — die Vorlage wird ohne Venue-Block exportiert. Beim Import muss eine Sportstaette manuell ausgewaehlt werden.",
   tournaments_best_of: "Best of {count}",
   tournaments_up_to: "bis {points}",
 

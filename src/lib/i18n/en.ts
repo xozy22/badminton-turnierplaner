@@ -113,8 +113,8 @@ export const en: Translations = {
   tournaments_import_error: "Failed to load template",
   import_venue_matched: "Venue '{name}' (existing) linked",
   import_venue_created: "New venue '{name}' created from template",
-  import_venue_fallback_existing: "Template had no venue — using '{name}'",
-  import_venue_created_fallback: "Venue '{name}' created from template hall config",
+  template_export_venue_label: "Venue included in export",
+  template_export_venue_missing: "This tournament has no venue assigned — the template will be exported without a venue block. The user will have to pick a venue manually on import.",
   tournaments_best_of: "Best of {count}",
   tournaments_up_to: "up to {points}",
 
