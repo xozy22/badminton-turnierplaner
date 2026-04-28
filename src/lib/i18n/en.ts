@@ -111,6 +111,10 @@ export const en: Translations = {
   tournaments_delete_confirm_word: "DELETE",
   tournaments_import: "Import tournament",
   tournaments_import_error: "Failed to load template",
+  import_venue_matched: "Venue '{name}' (existing) linked",
+  import_venue_created: "New venue '{name}' created from template",
+  import_venue_fallback_existing: "Template had no venue — using '{name}'",
+  import_venue_created_fallback: "Venue '{name}' created from template hall config",
   tournaments_best_of: "Best of {count}",
   tournaments_up_to: "up to {points}",
 

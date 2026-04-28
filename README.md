@@ -79,6 +79,17 @@
 - **Save Confirmation**: Green toast notification confirms all changes (settings, players, teams, halls) were saved after editing a tournament draft
 - **Unified Toast Notifications**: A global toast context (`useToast`) replaces native browser alerts for save confirmations, import summaries, and error reporting across the app — non-blocking, stackable, auto-dismissing
 
+### Vorlagen-Import & Sportstaetten (v2.8.7)
+- **Vorlagen-Export Format v3**: Der Export schreibt jetzt zusaetzlich einen `venue`-Block ins Template-JSON (`name`, `address`, `zip`, `city`, `halls[]`). v2-Reader ignorieren das Feld einfach (vorwaerts-kompatibel). `hall_config` bleibt drin fuer den Backward-Compat. `enable_third_place` wird jetzt auch exportiert
+- **Importer mit Venue-Resolution-Pipeline**: Vier Pfade, automatisch in Priority-Reihenfolge angewendet:
+  1. **v3-Template mit `venue.name`** → Match per case-insensitive Name gegen lokale Sportstaetten → bei Treffer verlinken, sonst aus dem Block neu anlegen (Adresse, Hallen, alles uebernommen)
+  2. **Legacy v2-Template + lokale Sportstaette existiert** → erste lokale Sportstaette wird verknuepft (User kann im Wizard wechseln)
+  3. **Legacy v2-Template + keine lokale Sportstaette** → automatische Sportstaette aus `tpl.hall_config` mit Auto-Name "{Turniername} - Sportstaette"
+  4. **Keine Sportstaette ueberhaupt verfuegbar** → Import bricht mit klarer Fehlermeldung ab (sollte durch Hard-Guard in v2.8.2 schon vorher abgefangen sein)
+- **Smart-Sync der Halle**: Nach erfolgreichem Venue-Match wird `tournament.hall_config` mit `venue.halls` synchronisiert — vermeidet das "Sportstaette zeigt 6 Felder, Turnier zeigt 4 Felder"-UI-Mismatch bei Non-Session-Turnieren
+- **Toast-Feedback**: Jeder der vier Pfade emittiert einen eigenen erklaerenden Toast ("Sportstaette 'X' verknuepft" / "Neue Sportstaette 'Y' aus Vorlage angelegt" / etc.) damit der TD weiss was passiert ist
+- **i18n**: 4 neue Keys (`import_venue_*`)
+
 ### Session-End-Lifecycle ausgebaut (v2.8.6)
 - **Pre-End-Stats im Confirm-Modal**: beim Klick auf "Session beenden" zeigt das Modal jetzt einen Status-Block — wieviele Turniere noch aktiv sind und wieviele Matches gerade auf Court stehen. Zwei Render-Pfade: amber-Warnbox wenn was laeuft, emerald-OK wenn die Session sicher abgeschlossen werden kann. Daten werden async per neuem `getSessionEndStats(sessionId)` Helper geladen, Modal rendert instant mit "Stand wird geladen..."-Placeholder
 - **Attach-Guard fuer ended/archived Sessions**: `attachTournamentToSession()` wirft jetzt einen Error wenn die Ziel-Session nicht `active` ist. UI: der "+ Turnier hinzufuegen"-Button auf der Session-Detail-Seite ist disabled bei nicht-aktiven Sessions, mit erklaerender Hinweiszeile darunter. Detach bleibt in jedem Status erlaubt — kaputte Verknuepfungen muss man immer loesen koennen

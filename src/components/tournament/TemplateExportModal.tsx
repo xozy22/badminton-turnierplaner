@@ -1,9 +1,9 @@
 import { useState } from "react";
 import type { ThemeColors } from "../../lib/theme";
 import type { Tournament, Player } from "../../lib/types";
-import { playerDisplayName } from "../../lib/types";
+import { playerDisplayName, parseHallConfig } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
-import { isTauri } from "../../lib/db";
+import { isTauri, getSportstaetten } from "../../lib/db";
 
 interface TemplateExportModalProps {
   tournament: Tournament;
@@ -60,7 +60,11 @@ export default function TemplateExportModal({
           </button>
           <button
             onClick={async () => {
-              const template: Record<string, unknown> = { version: 2 };
+              // v3 template format adds a `venue` block so the importer can
+              // reconstruct (or pick up) the venue without the user having
+              // to set it up by hand. v2 readers ignore unknown fields, so
+              // forward-compat is fine — the file still parses for them.
+              const template: Record<string, unknown> = { version: 3 };
               if (templateInclude.settings) {
                 template.name = tournament.name;
                 template.mode = tournament.mode;
@@ -74,8 +78,33 @@ export default function TemplateExportModal({
                 template.entry_fee_single = tournament.entry_fee_single;
                 template.entry_fee_double = tournament.entry_fee_double;
                 template.min_rest_minutes = tournament.min_rest_minutes;
+                template.enable_third_place = tournament.enable_third_place;
                 if (tournament.hall_config) {
+                  // Kept for v2-reader backward compat; the v3 importer
+                  // prefers `venue.halls` when both are present.
                   try { template.hall_config = JSON.parse(tournament.hall_config); } catch (err) { console.error("TemplateExport: failed to parse hall_config JSON:", err); }
+                }
+                // Venue block — only when the tournament has a venue_id.
+                // The importer tries to find an existing venue by name
+                // (case-insensitive) before creating a new one. Address
+                // and city are included so freshly imported venues are
+                // usable straight away on the destination machine.
+                if (tournament.venue_id != null) {
+                  try {
+                    const venues = await getSportstaetten();
+                    const v = venues.find((vv) => vv.id === tournament.venue_id);
+                    if (v) {
+                      template.venue = {
+                        name: v.name,
+                        address: v.address,
+                        zip: v.zip,
+                        city: v.city,
+                        halls: v.halls ? parseHallConfig(v.halls) : [],
+                      };
+                    }
+                  } catch (err) {
+                    console.error("TemplateExport: failed to read venue:", err);
+                  }
                 }
               }
               if (templateInclude.players) {

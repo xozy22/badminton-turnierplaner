@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getTournaments, deleteTournament, updateTournamentStatus, createTournament, createPlayer, getPlayers, addPlayerToTournament, updateTeamConfig, updateHallConfig, isTauri, getSportstaetten } from "../lib/db";
+import { getTournaments, deleteTournament, updateTournamentStatus, createTournament, createPlayer, getPlayers, addPlayerToTournament, updateTeamConfig, updateHallConfig, isTauri, getSportstaetten, createSportstaette, updateTournamentVenueId } from "../lib/db";
+import { hallConfigTotalCourts } from "../lib/types";
 import { getSessions } from "../lib/sessions";
 import type { Tournament, Gender, Session } from "../lib/types";
 import { getScoringModeId } from "../lib/scoring";
@@ -12,7 +13,7 @@ import { useDocumentTitle } from "../lib/useDocumentTitle";
 export default function Tournaments() {
   const { theme } = useTheme();
   const { t } = useT();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   useDocumentTitle(t.nav_tournaments);
   const navigate = useNavigate();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -71,6 +72,69 @@ export default function Tournaments() {
       ? tpl.enable_third_place === 1
       : (format === "elimination" || format === "group_ko" || format === "double_elimination");
 
+    // ---- Venue resolution ----
+    // Since v2.8.2 every tournament needs a venue. Templates from before
+    // v2.8.7 only carry `hall_config`; v3 templates carry a `venue` block.
+    // Resolution priority:
+    //   1. v3: tpl.venue.name → match by case-insensitive name → use
+    //      existing OR auto-create from the full venue block.
+    //   2. v2 legacy + venues exist locally → use the first venue
+    //      (alphabetical), assume the user picked the right DB.
+    //   3. v2 legacy + no venues → auto-create from tpl.hall_config with
+    //      a derived name so the tournament is immediately startable.
+    //   4. No info at all + no venues → throw, let the caller surface it.
+    const norm = (s: unknown) => String(s || "").trim().toLowerCase();
+    const existingVenues = await getSportstaetten();
+    let venueId: number | null = null;
+    let venueToastMsg: string | null = null;
+    const tplVenue = (tpl.venue as { name?: string; address?: string | null; zip?: string | null; city?: string | null; halls?: { name: string; courts: number }[] } | undefined);
+    const tplHallConfig = tpl.hall_config as { name: string; courts: number }[] | undefined;
+    if (tplVenue && tplVenue.name) {
+      const match = existingVenues.find((v) => norm(v.name) === norm(tplVenue.name));
+      if (match) {
+        venueId = match.id;
+        venueToastMsg = t.import_venue_matched.replace("{name}", match.name);
+      } else {
+        const halls = (tplVenue.halls && tplVenue.halls.length > 0)
+          ? tplVenue.halls
+          : (tplHallConfig ?? [{ name: "Halle 1", courts: courts || 2 }]);
+        const totalCourts = hallConfigTotalCourts(halls);
+        await createSportstaette(
+          tplVenue.name,
+          tplVenue.address ?? null,
+          tplVenue.zip ?? null,
+          tplVenue.city ?? null,
+          totalCourts,
+          JSON.stringify(halls),
+        );
+        // Re-read to find the just-created id (createSportstaette doesn't return one).
+        const refreshed = await getSportstaetten();
+        const created = refreshed.find((v) => norm(v.name) === norm(tplVenue.name));
+        if (created) {
+          venueId = created.id;
+          venueToastMsg = t.import_venue_created.replace("{name}", tplVenue.name);
+        }
+      }
+    } else if (existingVenues.length > 0) {
+      venueId = existingVenues[0].id;
+      venueToastMsg = t.import_venue_fallback_existing.replace("{name}", existingVenues[0].name);
+    } else if (tplHallConfig && tplHallConfig.length > 0) {
+      const autoName = name ? `${name} - Sportstaette` : "Importierte Sportstaette";
+      const totalCourts = hallConfigTotalCourts(tplHallConfig);
+      await createSportstaette(autoName, null, null, null, totalCourts, JSON.stringify(tplHallConfig));
+      const refreshed = await getSportstaetten();
+      const created = refreshed.find((v) => norm(v.name) === norm(autoName));
+      if (created) {
+        venueId = created.id;
+        venueToastMsg = t.import_venue_created_fallback.replace("{name}", autoName);
+      }
+    } else {
+      // No venue anywhere — this is the v2.8.2 mandatory-venue era.
+      // Caller should have shown the no-venues empty state; surface it
+      // here too just in case.
+      throw new Error(t.tournament_venue_no_venues_message);
+    }
+
     const id = await createTournament(
       name,
       mode as any,
@@ -86,6 +150,15 @@ export default function Tournaments() {
       minRestMinutes,
       enableThirdPlace
     );
+
+    // Persist the resolved venue_id immediately so the wizard's first
+    // render already shows the right pick.
+    if (venueId != null) {
+      await updateTournamentVenueId(id, venueId);
+    }
+    if (venueToastMsg) {
+      try { showSuccess(venueToastMsg); } catch { /* toast may not exist on first render — non-blocking */ }
+    }
 
     // --- Robust player import: auto-create missing, build id-map ---
     if (tpl.players && Array.isArray(tpl.players)) {
@@ -184,7 +257,24 @@ export default function Tournaments() {
       }
     }
 
-    if (tpl.hall_config) {
+    // Sync tournament.hall_config with whatever venue we resolved to.
+    // Non-sessioned tournaments use this local copy directly; sessioned
+    // ones fall back to venue.halls anyway, so keeping these consistent
+    // avoids the "halls don't match the picked venue" UI surprise.
+    if (venueId != null) {
+      const refreshedVenues = await getSportstaetten();
+      const v = refreshedVenues.find((vv) => vv.id === venueId);
+      if (v && v.halls) {
+        try {
+          await updateHallConfig(id, JSON.parse(v.halls));
+        } catch (err) {
+          console.error("Template import: failed to mirror venue halls into tournament:", err);
+        }
+      } else if (tpl.hall_config) {
+        await updateHallConfig(id, tpl.hall_config as any);
+      }
+    } else if (tpl.hall_config) {
+      // No venue resolved (legacy fallback): use the template's halls.
       await updateHallConfig(id, tpl.hall_config as any);
     }
 

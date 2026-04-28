@@ -111,6 +111,10 @@ export const de: Translations = {
   tournaments_delete_confirm_word: "LOESCHEN",
   tournaments_import: "Turnier importieren",
   tournaments_import_error: "Vorlage konnte nicht geladen werden",
+  import_venue_matched: "Sportstaette '{name}' (bestehend) verknuepft",
+  import_venue_created: "Neue Sportstaette '{name}' aus Vorlage angelegt",
+  import_venue_fallback_existing: "Vorlage hatte keine Sportstaette - '{name}' wird verwendet",
+  import_venue_created_fallback: "Sportstaette '{name}' aus Hallen-Konfiguration der Vorlage angelegt",
   tournaments_best_of: "Best of {count}",
   tournaments_up_to: "bis {points}",
 
