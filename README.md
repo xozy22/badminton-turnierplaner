@@ -79,6 +79,10 @@
 - **Save Confirmation**: Green toast notification confirms all changes (settings, players, teams, halls) were saved after editing a tournament draft
 - **Unified Toast Notifications**: A global toast context (`useToast`) replaces native browser alerts for save confirmations, import summaries, and error reporting across the app — non-blocking, stackable, auto-dismissing
 
+### Hallen-Section: Single-Hall ohne Checkbox (v2.8.10)
+- **Checkbox bei Single-Hall-Sportstaetten entfernt**: Bei einer Sportstaette mit nur einer Halle macht die Hallen-Checkbox keinen Sinn — abhaken bedeutet 0 Felder = Turnier kaputt. Section rendert jetzt eine schlichte Info-Zeile "🏟 Halle 1 (2 Felder)" statt einer scheinbar-funktionsfaehigen Checkbox. Bei 2+ Hallen bleibt das Checkbox-Verhalten unveraendert
+- **Defensive: 0-Hallen-Auswahl wird verhindert**: Auch bei Multi-Hall-Venues kann der User nicht alle Hallen abwaehlen — die letzte verbleibende Halle wird automatisch wieder aktiviert, statt das Turnier in einen 0-Felder-Zustand zu fahren
+
 ### Hallen-Section: Klarheit + Quick-Edit (v2.8.9)
 - **"📌 Aus Sportstaette X uebernommen"-Hinweis**: Im Tournament-Wizard direkt unter den Hallen-Checkboxen erklaert eine kleine, kursive Notiz, **woher** die Hallen + Felder kommen. Beseitigt die Verwirrung, warum Hall-Namen und Court-Counts read-only aussehen — die gehoeren zur Sportstaette, nicht zum Turnier
 - **"→ Sportstaette bearbeiten"-Shortcut**: Direkt daneben ein Quick-Link zur `/sportstaetten?edit={venueId}`-Route. Sportstaetten-Page liest den `edit`-Query-Param, oeffnet die Ziel-Zeile automatisch im Edit-Modus, scrollt sie sanft in den Viewport und stripped den Param wieder raus damit Refresh-Loops nicht passieren. Die geoeffnete Zeile bekommt einen dezenten emerald Ring zur visuellen Hervorhebung

@@ -838,25 +838,45 @@ export default function TournamentCreate() {
                     </label>
                     {hallConfig.length > 0 && (
                       <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-xl px-3 py-2 space-y-1`}>
+                        {/* Checkbox is only meaningful when the venue has 2+
+                            halls — picking a subset of the available halls
+                            for this tournament. With a single hall the
+                            checkbox would be a no-op (unchecking it
+                            produces 0 courts → tournament breaks), so we
+                            render plain info text in that case. v2.8.10. */}
                         {hallConfig.map((hall, idx) => (
-                          <label key={idx} className="flex items-center gap-2 cursor-pointer text-sm">
-                            <input
-                              type="checkbox"
-                              checked={selectedHallIndices.has(idx)}
-                              onChange={() => {
-                                setSelectedHallIndices((prev) => {
-                                  const next = new Set(prev);
-                                  if (next.has(idx)) next.delete(idx);
-                                  else next.add(idx);
-                                  return next;
-                                });
-                              }}
-                              className="rounded"
-                            />
-                            <span className={theme.textPrimary}>
-                              {hall.name} ({hall.courts} {hall.courts === 1 ? t.common_field : t.common_fields})
-                            </span>
-                          </label>
+                          hallConfig.length > 1 ? (
+                            <label key={idx} className="flex items-center gap-2 cursor-pointer text-sm">
+                              <input
+                                type="checkbox"
+                                checked={selectedHallIndices.has(idx)}
+                                onChange={() => {
+                                  setSelectedHallIndices((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(idx)) next.delete(idx);
+                                    else next.add(idx);
+                                    // Defensive: never let the user end
+                                    // up with 0 selected halls — that
+                                    // bricks the wizard. Re-add this idx
+                                    // if it would empty the set.
+                                    if (next.size === 0) next.add(idx);
+                                    return next;
+                                  });
+                                }}
+                                className="rounded"
+                              />
+                              <span className={theme.textPrimary}>
+                                {hall.name} ({hall.courts} {hall.courts === 1 ? t.common_field : t.common_fields})
+                              </span>
+                            </label>
+                          ) : (
+                            <div key={idx} className={`text-sm ${theme.textPrimary} flex items-center gap-2`}>
+                              <span>🏟</span>
+                              <span>
+                                {hall.name} ({hall.courts} {hall.courts === 1 ? t.common_field : t.common_fields})
+                              </span>
+                            </div>
+                          )
                         ))}
                         <div className={`text-xs ${theme.textMuted} pt-1 border-t ${theme.cardBorder}`}>
                           {t.tournament_courts_selected.replace("{count}", String(courts))}
