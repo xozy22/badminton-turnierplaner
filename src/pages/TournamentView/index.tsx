@@ -2798,6 +2798,13 @@ export default function TournamentView() {
               remainingByGroup={remainingByGroup}
               roundToGroup={roundToGroup}
               onDrop={(matchId, court) => handleCourtChange(matchId, court)}
+              onUnassign={(matchId) => {
+                // Right-click → "Return match to queue". Same code path
+                // as the MatchCard dropdown's empty option (court=null
+                // → updateMatchCourt clears the field → loadAll).
+                handleCourtChange(matchId, null);
+                showSuccess(t.court_context_menu_unassign_done);
+              }}
               onMatchClick={(matchId) => {
                 const match = allMatches.find((m) => m.id === matchId);
                 if (!match) return;

@@ -521,6 +521,10 @@ export interface Translations {
   court_drag_or_double_click: string;
   court_double_click_jump: string;
   court_next_round_separator: string;
+  // Right-click context menu on an occupied court card. Action sends
+  // the match back to the queue (clears match.court). v2.9.0.
+  court_context_menu_unassign: string;
+  court_context_menu_unassign_done: string;
 
   // ===== Court Timer =====
   court_timer_started: string;

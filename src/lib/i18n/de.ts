@@ -502,6 +502,8 @@ export const de: Translations = {
   court_drag_or_double_click: "Drag auf ein Feld oder Doppelklick zum Zuweisen",
   court_double_click_jump: "Doppelklick: Zum Spiel springen",
   court_next_round_separator: "— Runde {n} —",
+  court_context_menu_unassign: "🔄 Match zurueck in die Warteschlange",
+  court_context_menu_unassign_done: "Match zurueck in die Warteschlange",
 
   // ===== Court Timer =====
   court_timer_started: "Gestartet: {time}",

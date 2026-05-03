@@ -3,6 +3,7 @@ import type { Match, HallConfig, Round, TournamentStatus } from "../../lib/types
 import { getCourtHallLabel } from "../../lib/types";
 import type { ConflictPlayer } from "../../lib/courtConflicts";
 import { CourtTimer } from "./CourtTimer";
+import CourtContextMenu from "./CourtContextMenu";
 import { useTheme } from "../../lib/ThemeContext";
 import { useT } from "../../lib/I18nContext";
 import RestIndicator from "../players/RestIndicator";
@@ -14,6 +15,13 @@ interface Props {
   futureRoundQueues?: { round: Round; matches: Match[] }[];  // Early-draw: next rounds in queue
   playerName: (id: number | null) => string;
   onDrop?: (matchId: number, court: number) => void;
+  /**
+   * Right-click → "Return match to queue". Fires with the match id of
+   * the right-clicked occupied court. Host wires this to the same
+   * handleCourtChange path that the MatchCard dropdown's empty option
+   * uses (i.e. updateMatchCourt(id, null) → reload). v2.9.0.
+   */
+  onUnassign?: (matchId: number) => void;
   onMatchClick?: (matchId: number) => void;
   hallConfig?: HallConfig[];
   /** For the ⏱ rest indicator next to player names. */
@@ -38,7 +46,7 @@ interface Props {
   roundToGroup?: Map<number, number>;
 }
 
-export default function CourtOverview({ courts, matches, activeRoundMatches, futureRoundQueues, playerName, onDrop, onMatchClick, hallConfig, minRestMinutes = 0, tournamentStatus, conflictedMatches, remainingByGroup, roundToGroup }: Props) {
+export default function CourtOverview({ courts, matches, activeRoundMatches, futureRoundQueues, playerName, onDrop, onUnassign, onMatchClick, hallConfig, minRestMinutes = 0, tournamentStatus, conflictedMatches, remainingByGroup, roundToGroup }: Props) {
   const { theme } = useTheme();
   const { t } = useT();
   // Finde fuer jedes Feld das aktive (nicht abgeschlossene) Match - aus ALLEN Runden
@@ -160,6 +168,10 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
 
   // Double-click to assign court via popup
   const [courtPickerMatchId, setCourtPickerMatchId] = useState<number | null>(null);
+  // Right-click → context menu state. Cleared on action / outside-click /
+  // Escape (the menu component handles those listeners itself; we just
+  // own the position + match payload here). v2.9.0.
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; match: Match } | null>(null);
   const freeCourts = useMemo(() => {
     const free: number[] = [];
     for (let i = 1; i <= courts; i++) {
@@ -240,6 +252,17 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
         onDragOver={(e) => handleDragOver(e, courtNum)}
         onDrop={(e) => handleDrop(e, courtNum)}
         onDoubleClick={() => match && onMatchClick?.(match.id)}
+        // Right-click on an occupied court while the tournament is
+        // active → custom context menu with the "Return to queue"
+        // action. Free courts and non-active tournaments fall through
+        // to the browser's default menu (no preventDefault). v2.9.0.
+        onContextMenu={(e) => {
+          if (!match) return;
+          if (tournamentStatus !== "active") return;
+          if (!onUnassign) return;
+          e.preventDefault();
+          setContextMenu({ x: e.clientX, y: e.clientY, match });
+        }}
         className={`rounded-2xl border-2 border-dashed p-4 transition-all duration-200 min-h-[100px] relative overflow-hidden ${
           isFree
             ? `${theme.cardBorder} ${theme.cardBg} opacity-70 hover:opacity-100`
@@ -477,6 +500,23 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
           </>
         );
       })()}
+
+      {/* Right-click context menu for occupied courts. Renders only
+          when state is set; the menu component handles its own
+          dismissal listeners (Escape + click-outside). v2.9.0. */}
+      {contextMenu && (
+        <CourtContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          courtLabel={getCourtLabel(contextMenu.match.court ?? 0)}
+          onUnassign={() => {
+            if (onUnassign) onUnassign(contextMenu.match.id);
+          }}
+          onClose={() => setContextMenu(null)}
+          theme={theme}
+          t={t}
+        />
+      )}
     </div>
   );
 }

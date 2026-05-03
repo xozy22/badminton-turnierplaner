@@ -79,6 +79,13 @@
 - **Save Confirmation**: Green toast notification confirms all changes (settings, players, teams, halls) were saved after editing a tournament draft
 - **Unified Toast Notifications**: A global toast context (`useToast`) replaces native browser alerts for save confirmations, import summaries, and error reporting across the app — non-blocking, stackable, auto-dismissing
 
+### Match per Rechtsklick zurueck in die Warteschlange (v2.9.0)
+- **Rechtsklick auf eine belegte Court-Karte** oeffnet ein kompaktes Floating-Menue mit der Aktion "🔄 Match zurueck in die Warteschlange". Klick darauf clear't `match.court`, das Match landet wieder im Queue-Bucket der Court-Overview, Saetze und Match-Status bleiben erhalten. Toast bestaetigt die Aktion. Reversibel — erneutes Drag-Drop weist das Match wieder einem Feld zu
+- **Menue-Verhalten**: schliesst per Klick-ausserhalb, Esc-Taste, oder nach der Aktion. Position wird viewport-clamped (rechts/unten am Rand klappt es nach links/oben statt zu ueberlaufen). z-index analog zu bestehenden Modals
+- **Guards**: Rechtsklick auf freie Felder oeffnet kein Custom-Menue (Browser-Default bleibt). Aktion ist nur verfuegbar wenn das Turnier `status === "active"` ist — gleiche Regel wie Drag-Drop. Score-Inputs in der Card (heute keine, fuer zukuenftige Inline-Eingabe vorbereitet) wuerden ebenfalls durchgereicht
+- **Code**: neue Komponente `CourtContextMenu.tsx` (~80 Zeilen, kapselt Positioning + Dismissal-Listener), `CourtOverview` bekommt einen optionalen `onUnassign`-Prop, `TournamentView` mappt das auf das bestehende `handleCourtChange(matchId, null)` — keine neue DB-Logik, der Pfad existiert seit v2.0 (`clearMatchCourt`)
+- **i18n**: 2 neue Keys (`court_context_menu_unassign`, `court_context_menu_unassign_done`)
+
 ### Hallen-Section: Single-Hall ohne Checkbox (v2.8.10)
 - **Checkbox bei Single-Hall-Sportstaetten entfernt**: Bei einer Sportstaette mit nur einer Halle macht die Hallen-Checkbox keinen Sinn — abhaken bedeutet 0 Felder = Turnier kaputt. Section rendert jetzt eine schlichte Info-Zeile "🏟 Halle 1 (2 Felder)" statt einer scheinbar-funktionsfaehigen Checkbox. Bei 2+ Hallen bleibt das Checkbox-Verhalten unveraendert
 - **Defensive: 0-Hallen-Auswahl wird verhindert**: Auch bei Multi-Hall-Venues kann der User nicht alle Hallen abwaehlen — die letzte verbleibende Halle wird automatisch wieder aktiviert, statt das Turnier in einen 0-Felder-Zustand zu fahren

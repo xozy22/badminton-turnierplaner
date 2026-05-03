@@ -502,6 +502,8 @@ export const en: Translations = {
   court_drag_or_double_click: "Drag to a court or double-click to assign",
   court_double_click_jump: "Double-click: Jump to match",
   court_next_round_separator: "— Round {n} —",
+  court_context_menu_unassign: "🔄 Return match to queue",
+  court_context_menu_unassign_done: "Match returned to queue",
 
   // ===== Court Timer =====
   court_timer_started: "Started: {time}",
