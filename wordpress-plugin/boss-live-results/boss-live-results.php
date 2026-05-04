@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BOSS Live Results
  * Description: Receives live tournament snapshots from the BOSS desktop app and renders matches, standings, and brackets via shortcodes.
- * Version:     1.0.4
+ * Version:     1.0.5
  * Author:      BOSS
  * License:     MIT
  * Text Domain: boss-live-results
@@ -19,7 +19,7 @@ defined('ABSPATH') || exit;
 
 const BOSS_CPT             = 'boss_tournament';
 const BOSS_OPT_SECRET      = 'boss_live_secret';
-const BOSS_PLUGIN_VERSION  = '1.0.4';
+const BOSS_PLUGIN_VERSION  = '1.0.5';
 const BOSS_SCHEMA_VERSION  = 1;
 
 // ---------------------------------------------------------------------------
