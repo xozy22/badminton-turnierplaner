@@ -14,6 +14,7 @@ import type {
 } from "./types";
 import { playerDisplayName } from "./types";
 import { nowIso, byNewest } from "./datetime";
+import { notifyDataChanged } from "./changeEvents";
 
 // DB row type for type safety
 interface PlayerRow {
@@ -742,12 +743,14 @@ export async function updateTournamentPhase(id: number, phase: string | null): P
   if (isTauri()) {
     const d = await getTauriDb();
     await d.execute("UPDATE tournaments SET current_phase = $1 WHERE id = $2", [phase, id]);
+    await notifyDataChanged({ kind: "tournament", tournamentId: id });
     return;
   }
   const store = loadStore();
   const t = store.tournaments.find((t) => t.id === id);
   if (t) t.current_phase = phase as Tournament["current_phase"];
   saveStore(store);
+  await notifyDataChanged({ kind: "tournament", tournamentId: id });
 }
 
 export async function updateTournamentKoScoring(
@@ -778,12 +781,14 @@ export async function updateTournamentStatus(id: number, status: string): Promis
   if (isTauri()) {
     const d = await getTauriDb();
     await d.execute("UPDATE tournaments SET status = $1 WHERE id = $2", [status, id]);
+    await notifyDataChanged({ kind: "tournament", tournamentId: id });
     return;
   }
   const store = loadStore();
   const t = store.tournaments.find((t) => t.id === id);
   if (t) t.status = status as Tournament["status"];
   saveStore(store);
+  await notifyDataChanged({ kind: "tournament", tournamentId: id });
 }
 
 export async function deleteTournament(id: number): Promise<void> {
@@ -1256,6 +1261,7 @@ export async function setMatchWalkover(matchId: number, winnerTeam: 1 | 2): Prom
       "UPDATE matches SET winner_team = $1, status = 'completed', walkover = 1, court = NULL, completed_at = $2 WHERE id = $3",
       [winnerTeam, completedAt, matchId],
     );
+    await notifyDataChanged({ kind: "match" });
     return;
   }
   const store = loadStore();
@@ -1269,6 +1275,7 @@ export async function setMatchWalkover(matchId: number, winnerTeam: 1 | 2): Prom
     m.completed_at = completedAt;
   }
   saveStore(store);
+  await notifyDataChanged({ kind: "match" });
 }
 
 /** One match to create. `team2_p1 === null` marks a bye (no opponent). */
@@ -1367,6 +1374,7 @@ export async function createSchedule(
     }
 
     const ids: number[] = await invoke("execute_transaction", { statements });
+    await notifyDataChanged({ kind: "schedule", tournamentId });
     return roundStatementIndex.map((i) => ids[i]);
   }
 
@@ -1389,6 +1397,7 @@ export async function createSchedule(
   }
   if (opts.status !== undefined) await updateTournamentStatus(tournamentId, opts.status);
   if (opts.phase !== undefined) await updateTournamentPhase(tournamentId, opts.phase);
+  await notifyDataChanged({ kind: "schedule", tournamentId });
   return roundIds;
 }
 
@@ -1431,6 +1440,7 @@ export async function deleteRoundsAtomically(
     }
 
     await invoke("execute_transaction", { statements });
+    await notifyDataChanged({ kind: "schedule", tournamentId });
     return;
   }
 
@@ -1438,6 +1448,7 @@ export async function deleteRoundsAtomically(
   if (opts.status !== undefined) await updateTournamentStatus(tournamentId, opts.status);
   if (opts.phase !== undefined) await updateTournamentPhase(tournamentId, opts.phase);
   if (opts.clearKoScoring) await updateTournamentKoScoring(tournamentId, null, null, null);
+  await notifyDataChanged({ kind: "schedule", tournamentId });
 }
 
 export async function updateMatchCourt(matchId: number, court: number | null): Promise<void> {
@@ -1446,6 +1457,7 @@ export async function updateMatchCourt(matchId: number, court: number | null): P
   if (isTauri()) {
     const d = await getTauriDb();
     await d.execute("UPDATE matches SET court = $1, court_assigned_at = $2, started_at = $3 WHERE id = $4", [court, assignedAt, startedAt, matchId]);
+    await notifyDataChanged({ kind: "match" });
     return;
   }
   const store = loadStore();
@@ -1456,18 +1468,21 @@ export async function updateMatchCourt(matchId: number, court: number | null): P
     m.started_at = startedAt;
   }
   saveStore(store);
+  await notifyDataChanged({ kind: "match" });
 }
 
 export async function clearMatchCourt(matchId: number): Promise<void> {
   if (isTauri()) {
     const d = await getTauriDb();
     await d.execute("UPDATE matches SET court = NULL WHERE id = $1", [matchId]);
+    await notifyDataChanged({ kind: "match" });
     return;
   }
   const store = loadStore();
   const m = store.matches.find((m) => m.id === matchId);
   if (m) m.court = null;
   saveStore(store);
+  await notifyDataChanged({ kind: "match" });
 }
 
 export async function updateMatchResult(matchId: number, winnerTeam: 1 | 2 | null): Promise<void> {
@@ -1479,6 +1494,7 @@ export async function updateMatchResult(matchId: number, winnerTeam: 1 | 2 | nul
         "UPDATE matches SET winner_team = NULL, status = 'active', completed_at = NULL, walkover = 0 WHERE id = $1",
         [matchId]
       );
+      await notifyDataChanged({ kind: "match" });
       return;
     }
     const store = loadStore();
@@ -1490,6 +1506,7 @@ export async function updateMatchResult(matchId: number, winnerTeam: 1 | 2 | nul
       m.walkover = 0;
     }
     saveStore(store);
+    await notifyDataChanged({ kind: "match" });
     return;
   }
   const completedAt = nowIso();
@@ -1499,6 +1516,7 @@ export async function updateMatchResult(matchId: number, winnerTeam: 1 | 2 | nul
       "UPDATE matches SET winner_team = $1, status = 'completed', completed_at = $2 WHERE id = $3",
       [winnerTeam, completedAt, matchId]
     );
+    await notifyDataChanged({ kind: "match" });
     return;
   }
   const store = loadStore();
@@ -1509,6 +1527,7 @@ export async function updateMatchResult(matchId: number, winnerTeam: 1 | 2 | nul
     m.completed_at = completedAt;
   }
   saveStore(store);
+  await notifyDataChanged({ kind: "match" });
 }
 
 export async function reopenMatch(matchId: number): Promise<void> {
@@ -1518,6 +1537,7 @@ export async function reopenMatch(matchId: number): Promise<void> {
       "UPDATE matches SET winner_team = NULL, status = 'pending', completed_at = NULL, walkover = 0 WHERE id = $1",
       [matchId]
     );
+    await notifyDataChanged({ kind: "match" });
     return;
   }
   const store = loadStore();
@@ -1529,6 +1549,7 @@ export async function reopenMatch(matchId: number): Promise<void> {
     m.walkover = 0;
   }
   saveStore(store);
+  await notifyDataChanged({ kind: "match" });
 }
 
 // --- Sets ---
@@ -1639,6 +1660,7 @@ export async function upsertSet(
                      team2_score = excluded.team2_score`,
       [matchId, setNumber, team1Score, team2Score],
     );
+    await notifyDataChanged({ kind: "match" });
     return;
   }
   const store = loadStore();
@@ -1658,6 +1680,7 @@ export async function upsertSet(
     });
   }
   saveStore(store);
+  await notifyDataChanged({ kind: "match" });
 }
 
 // --- Wipe / Reset ---

@@ -19,7 +19,8 @@
 // polling is consistent with how the existing live publisher and TV
 // mode operate).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { onDataChanged } from "./changeEvents";
 import { usePolling } from "./usePolling";
 import { getMatchesForTournaments } from "./db";
 import { getSessionTournaments } from "./sessions";
@@ -139,7 +140,9 @@ export function getSessionPlayerCourts(
 
 // ---- Reactive hook ----
 
-const SESSION_CONTEXT_POLL_MS = 5_000;
+// Writes announce themselves (see changeEvents), so this is the safety
+// net rather than the primary path (REVIEW-BACKLOG.md E3).
+const SESSION_CONTEXT_POLL_MS = 30_000;
 
 export interface SessionContextValue {
   matches: SessionMatch[];
@@ -176,6 +179,12 @@ const EMPTY: SessionContextValue = {
 export function useSessionContext(sessionId: number | null, paused = false): SessionContextValue {
   const [value, setValue] = useState<SessionContextValue>(EMPTY);
 
+  // Bumping this restarts the poller, and usePolling always opens with an
+  // immediate tick — so an announced write refreshes the view at once
+  // instead of waiting for the interval (REVIEW-BACKLOG.md E3).
+  const [changeTick, setChangeTick] = useState(0);
+  useEffect(() => onDataChanged(() => setChangeTick((n) => n + 1)), []);
+
   usePolling(
     async (cancelled) => {
       if (sessionId == null) {
@@ -203,7 +212,7 @@ export function useSessionContext(sessionId: number | null, paused = false): Ses
       paused: paused || sessionId == null,
       label: `useSessionContext(${sessionId})`,
     },
-    [sessionId],
+    [sessionId, changeTick],
   );
 
   return value;

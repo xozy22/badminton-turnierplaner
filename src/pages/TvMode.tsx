@@ -11,6 +11,8 @@
 // and multi-hall layout all stay in sync without re-implementing logic.
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { onDataChanged } from "../lib/changeEvents";
+import { usePolling } from "../lib/usePolling";
 import { useParams } from "react-router-dom";
 import {
   getTournament,
@@ -165,12 +167,15 @@ export default function TvMode() {
     }
   }, [tournamentId]);
 
-  // Poll data every 5 seconds
-  useEffect(() => {
-    loadAll();
-    const interval = setInterval(loadAll, 5000);
-    return () => clearInterval(interval);
-  }, [loadAll]);
+  // A result reaches the wall as soon as it is entered: the write announces
+  // itself across windows, and this listens. Polling stays as a safety net
+  // for anything that changes without an announcement — a database edited
+  // from elsewhere, or a notification lost with a closed window — but at
+  // 30s instead of 5s, since it is no longer the primary path
+  // (REVIEW-BACKLOG.md E3).
+  useEffect(() => onDataChanged(() => void loadAll()), [loadAll]);
+
+  usePolling(() => loadAll(), { intervalMs: 30_000, label: "TvMode" }, [loadAll]);
 
   // Listen for announcements from main window
   useEffect(() => {

@@ -15,7 +15,7 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | **1** ✅ | A1–A7 (kritische Bugs) — erledigt | Formate/Freilose/Setzliste sind teilweise kaputt |
 | **2** ✅ | B1–B14 (Turnierlogik & Fairness) — erledigt | Kern des Produkts |
 | **3** ✅ | C1–C9, D1–D9 (Daten & Architektur) — erledigt | Basis für alles Weitere |
-| **4** | E1–E5 (Performance) | Schnelle Gewinne |
+| **4** ✅ | E1–E4 (Performance) — erledigt; E5 wartet auf F1 | Schnelle Gewinne |
 | **5** | F1–F10, G1–G5 (Design & Barrierefreiheit) | Das „komplett überarbeitet"-Gefühl |
 | **6** | H1 ✅, H2–H5, I1–I5, J3–J6 | Politur & Sicherheit |
 
@@ -541,14 +541,20 @@ Dazu eine Route pro Seite über `React.lazy` + `Suspense`. Die Startseite bleibt
 
 ---
 
-### [ ] E3 — Vier Polling-Schleifen mit Voll-Reload
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/TvMode.tsx:171`, `src/lib/sessionContext.ts:208`, `src/lib/useLivePublisher.tsx:194,241,434,449`, `src/pages/Settings.tsx:1411`
+### [x] E3 — Vier Polling-Schleifen mit Voll-Reload — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/lib/changeEvents.ts` (neu), `src/lib/db.ts`, `src/pages/TvMode.tsx`, `src/lib/sessionContext.ts`
 
-**Problem:** Der TV-Modus lädt alle 5 Sekunden das komplette Turnier neu (mehrere SQL-Abfragen über IPC), der Session-Kontext ebenfalls alle 5 Sekunden über **alle** Turniere der Session, der Live-Publisher pollt zusätzlich. Auf schwacher Hardware (typischer Hallen-Laptop) ist das dauerhafte Grundlast.
+**Problem:** Der TV-Modus lud alle 5 Sekunden das komplette Turnier neu, der Session-Kontext ebenso über alle Turniere der Session. Auf einem Hallen-Laptop ist das Dauerlast — und ein eingetragenes Ergebnis stand trotzdem bis zu fünf Sekunden lang nicht an der Wand.
 
-**Fix:** Änderungen aktiv signalisieren statt zu pollen: Tauri-Events (`emit`/`listen`) beim Schreiben in die DB; das TV-Fenster und das Dashboard abonnieren. Polling nur noch als Sicherheitsnetz mit deutlich längerem Intervall. Der `BroadcastChannel`, der bereits für Ansagen existiert, sollte auf Tauri-Events umgestellt werden — zwischen getrennten WebView-Fenstern ist `BroadcastChannel` nicht zuverlässig (bitte auf Windows verifizieren).
+**Umgesetzt:** Schreibvorgänge melden sich selbst. `notifyDataChanged` in `src/lib/changeEvents.ts` verschickt eine Änderungsmeldung an alle Fenster; 23 Schreibpfade in der Datenschicht rufen sie auf — Ergebnisse, Sätze, Kampflos, Feldzuweisung, Wiederöffnen, Spielplan, Turnierstatus und -phase.
 
-**Fertig wenn:** Ein eingetragenes Ergebnis erscheint im TV-Modus in unter 1 Sekunde, ohne dauerhaftes Polling.
+Der Transportweg richtet sich nach der Umgebung: In Tauri der Event-Bus (`emit`/`listen`), der zuverlässig alle WebView-Fenster erreicht; im Browser-Build ein `BroadcastChannel`. Zusätzlich gibt es eine prozessinterne Zustellung, weil Schreiber und Zuhörer oft im selben Fenster sitzen und keiner der beiden Transportwege an den eigenen Absender liefert.
+
+Das Polling bleibt als Sicherheitsnetz — für Änderungen, die ohne Meldung passieren —, aber mit 30 statt 5 Sekunden.
+
+**Fertig wenn:** ~~Ein eingetragenes Ergebnis erscheint im TV-Modus in unter 1 Sekunde, ohne dauerhaftes Polling~~ — mit zwei Fenstern gemessen: **9 ms** von der Meldung bis zur sichtbaren Anzeige, und in zehn Sekunden Ruhe keine einzige DOM-Änderung mehr (vorher alle fünf Sekunden ein vollständiger Neuaufbau).
+
+**Noch offen — eine Verifikation, die diese Umgebung nicht leisten kann:** Gemessen wurde der Browser-Weg über `BroadcastChannel`. Der Tauri-Weg ist implementiert und typgeprüft, aber nicht praktisch erprobt; dafür braucht es einen echten Tauri-Build mit zwei Fenstern unter Windows. Der Backlog hielt ohnehin fest, dass `BroadcastChannel` zwischen getrennten WebViews als unzuverlässig gilt — genau deshalb liegt dort jetzt der Event-Bus.
 
 ---
 
@@ -571,14 +577,14 @@ Dazu eine Route pro Seite über `React.lazy` + `Suspense`. Die Startseite bleibt
 
 ---
 
-### [ ] E5 — 145 KB CSS
+### [ ] E5 — 145 KB CSS — **wartet auf F1**
 **Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/lib/theme.ts`, projektweit
 
-**Problem:** Tailwind kann kaum etwas entfernen, weil die Klassennamen in `theme.ts` als Strings zusammengesetzt und über Props verteilt werden. Wird mit F1 gemeinsam gelöst.
+**Problem:** Tailwind kann kaum etwas entfernen, weil die Klassennamen in `theme.ts` als Strings zusammengesetzt und über Props verteilt werden.
 
-**Fix:** Siehe F1 — Umstellung auf CSS-Variablen reduziert die Klassenmenge drastisch.
+**Stand:** Das CSS-Bündel ist inzwischen bei **80 KB** statt 145 KB — der Rückgang stammt aus E2, wo die eingebetteten `@font-face`-Blöcke der vier nicht geladenen Familien entfielen. Die eigentliche Ursache ist unverändert und lässt sich nicht getrennt von F1 lösen: Solange die Klassen zur Laufzeit zusammengesetzt werden, sieht Tailwinds Scanner sie nicht als tot an. Das Ziel von 60 KB kommt mit der Umstellung auf CSS-Variablen.
 
-**Fertig wenn:** CSS-Bundle unter 60 KB.
+**Fertig wenn:** CSS-Bundle unter 60 KB — gemeinsam mit F1.
 
 ---
 
