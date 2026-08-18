@@ -66,7 +66,7 @@ export default function AttendanceCheckModal({
         <div className="px-5 py-4 border-b flex justify-between items-center">
           <div>
             <h2 className={`font-semibold text-lg ${theme.textPrimary}`}>
-              ✅ {t.attendance_title}
+              <span aria-hidden="true">✅</span> {t.attendance_title}
             </h2>
             <p className={`text-xs mt-0.5 ${theme.textMuted}`}>
               {t.attendance_subtitle}
@@ -200,7 +200,7 @@ export default function AttendanceCheckModal({
               disabled={!canStart}
               className={`${theme.primaryBg} text-white px-5 py-2 rounded-xl text-sm font-medium ${theme.primaryHoverBg} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
             >
-              🚀 {t.attendance_start}
+              <span aria-hidden="true">🚀</span> {t.attendance_start}
             </button>
           </div>
         </div>

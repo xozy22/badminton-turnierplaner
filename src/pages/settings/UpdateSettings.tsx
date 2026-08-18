@@ -95,14 +95,14 @@ export function UpdateChecker() {
 
       {status === "uptodate" && (
         <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl px-4 py-3 text-sm">
-          ✅ {t.settings_up_to_date.replace("{version}", currentVersion)}
+          <span aria-hidden="true">✅</span> {t.settings_up_to_date.replace("{version}", currentVersion)}
         </div>
       )}
 
       {status === "available" && updateInfo && (
         <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-xl p-4`}>
           <div className={`text-sm font-semibold ${theme.textPrimary} mb-1`}>
-            🎉 {t.settings_new_version.replace("{version}", "")} <span className="font-mono">{updateInfo.version}</span>
+            <span aria-hidden="true">🎉</span> {t.settings_new_version.replace("{version}", "")} <span className="font-mono">{updateInfo.version}</span>
           </div>
           {updateInfo.notes && (
             <div className={`text-xs ${theme.textSecondary} mb-3 whitespace-pre-line max-h-32 overflow-y-auto`}>
@@ -129,7 +129,7 @@ export function UpdateChecker() {
               onClick={installUpdate}
               className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium"
             >
-              ⬇️ {t.settings_install_update}
+              <span aria-hidden="true">⬇️</span> {t.settings_install_update}
             </button>
           )}
         </div>
@@ -137,7 +137,7 @@ export function UpdateChecker() {
 
       {status === "error" && (
         <div className="bg-danger-subtle text-danger-text border border-danger rounded-xl px-4 py-3 text-sm">
-          ❌ {errorMsg || t.settings_update_failed}
+          <span aria-hidden="true">❌</span> {errorMsg || t.settings_update_failed}
         </div>
       )}
     </div>

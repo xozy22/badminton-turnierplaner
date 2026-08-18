@@ -81,7 +81,7 @@ export default function GroupProgressBar({ progress }: Props) {
                       title={t.group_progress_behind_tooltip}
                       aria-label={t.group_progress_behind_tooltip}
                     >
-                      ⚠
+                      <span aria-hidden="true">⚠</span>
                     </span>
                   )}
                   {done && <span className="ml-1 text-emerald-600">✓</span>}

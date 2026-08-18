@@ -91,7 +91,7 @@ export default function Statistics() {
       <div>
         <div className="mb-8">
           <h1 className={`text-3xl font-extrabold ${theme.textPrimary} tracking-tight`}>
-            {t.stats_title} 📊
+            {t.stats_title} <span aria-hidden="true">📊</span>
           </h1>
           <p className={`${theme.textSecondary} mt-1`}>{t.stats_subtitle}</p>
         </div>
@@ -125,7 +125,7 @@ export default function Statistics() {
       <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <h1 className={`text-3xl font-extrabold ${theme.textPrimary} tracking-tight`}>
-            {t.stats_title} 📊
+            {t.stats_title} <span aria-hidden="true">📊</span>
           </h1>
           <p className={`${theme.textSecondary} mt-1`}>{t.stats_subtitle}</p>
         </div>
@@ -307,7 +307,7 @@ export default function Statistics() {
                   className="h-full flex items-center justify-center text-xs font-bold text-white transition-all duration-500"
                   style={{ width: `${(demoStats.genderSplit.male / demoStats.totalPlayers * 100)}%`, background: "#22c55e", minWidth: "40px" }}
                 >
-                  ♂ {Math.round(demoStats.genderSplit.male / demoStats.totalPlayers * 100)}%
+                  <span aria-hidden="true">♂</span> {Math.round(demoStats.genderSplit.male / demoStats.totalPlayers * 100)}%
                 </div>
               )}
               {demoStats.genderSplit.female > 0 && (
@@ -315,7 +315,7 @@ export default function Statistics() {
                   className="h-full flex items-center justify-center text-xs font-bold text-white transition-all duration-500"
                   style={{ width: `${(demoStats.genderSplit.female / demoStats.totalPlayers * 100)}%`, background: "#f43f5e", minWidth: "40px" }}
                 >
-                  ♀ {Math.round(demoStats.genderSplit.female / demoStats.totalPlayers * 100)}%
+                  <span aria-hidden="true">♀</span> {Math.round(demoStats.genderSplit.female / demoStats.totalPlayers * 100)}%
                 </div>
               )}
             </div>

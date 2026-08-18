@@ -733,14 +733,24 @@ Das Feldmenü gab es bereits; es war nur per Doppelklick erreichbar. Es ist jetz
 
 ---
 
-### [ ] F10 — Emojis als Icon-System
-**Schwere:** niedrig · **Aufwand:** M · **Dateien:** projektweit
+### [~] F10 — Emojis als Icon-System — **Navigation auf SVG, Rest für Screenreader ausgeblendet**
+**Schwere:** niedrig · **Aufwand:** M · **Dateien:** `src/components/ui/Icon.tsx` (neu), `src/components/layout/Sidebar.tsx`, 30 weitere Dateien
 
-**Problem:** 🚀 🏆 🎲 ➡️ ↩️ 📦 🔓 📋 🗑️ 📺 🔗 📌 werden als Icons verwendet. Darstellung, Größe und Grundlinie unterscheiden sich je nach Betriebssystem und Schriftart; Screenreader lesen sie als Text vor („Rakete Turnier starten"); Farbanpassung ans Theme ist unmöglich.
+**Problem:** 66 verschiedene Emojis in 332 Vorkommen dienten als Icons. Darstellung, Größe und Grundlinie unterscheiden sich je nach Betriebssystem und Schriftart, Farbanpassung ans Theme ist unmöglich, und ein Screenreader liest sie mit — „Rakete Turnier starten".
 
-**Fix:** Ein SVG-Icon-Set (z. B. Lucide, tree-shakebar) einführen, Emojis in funktionalen Elementen ersetzen. Wo Emojis bewusst dekorativ bleiben (TV-Modus, Medaillen), `aria-hidden="true"` setzen.
+**Umgesetzt:**
 
-**Fertig wenn:** Alle Knöpfe und Navigationselemente verwenden SVG-Icons; verbliebene Emojis sind für Screenreader ausgeblendet.
+*Ein Icon-Set.* `src/components/ui/Icon.tsx` enthält 25 Symbole als Inline-SVG in der Lucide-Geometrie (24×24, 2 px Strich). Bewusst kein Icon-Paket: Die Formen kosten zusammen rund drei Kilobyte, nehmen über `currentColor` die Themefarbe an und ersparen einer Desktop-Anwendung eine weitere Abhängigkeit. Ohne `label` ist ein Icon automatisch `aria-hidden`; nur wenn es allein in einem Bedienelement steht, bekommt es über `label` einen Namen.
+
+*Die Navigation* nutzt sie — sieben Einträge plus Einstellungen, jetzt mit einheitlicher Strichstärke und gemeinsamer Grundlinie, in der Farbe des jeweiligen Zustands.
+
+*122 dekorative Emojis* in 30 Dateien stehen jetzt in `aria-hidden`-Elementen. Ein Knopf heißt für den Screenreader „Turnier starten" statt „Rakete Turnier starten".
+
+**Dabei aufgefallen:** Vier Bedienelemente bestanden **nur** aus einem Emoji — drei Schließen-Knöpfe in Dialogen und die Dashboard-Verknüpfung auf der Sportstättenseite. Sie zu verbergen hätte sie namenlos gemacht; sie haben jetzt ein `aria-label`. Eine Prüfung über alle Seiten und den Quelltext bestätigt: kein Bedienelement ohne zugänglichen Namen.
+
+**Was fehlt:** Die Emojis in den übrigen Knöpfen sind ausgeblendet, aber noch nicht durch SVG ersetzt. Für Screenreader ist das gelöst; die uneinheitliche Darstellung zwischen Betriebssystemen bleibt, bis die restlichen Knöpfe auf `Icon` umgestellt sind — mechanische Arbeit über rund 30 Dateien.
+
+**Fertig wenn:** Alle Knöpfe und Navigationselemente verwenden SVG-Icons; verbliebene Emojis sind für Screenreader ausgeblendet — der zweite Teil ist erfüllt, der erste für die Navigation.
 
 ---
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { useTheme } from "../../lib/ThemeContext";
+import Icon from "../ui/Icon";
 import { useT } from "../../lib/I18nContext";
 import { getCustomLogo } from "../../pages/settings/LogoSettings";
 import { getAppSetting } from "../../lib/db";
@@ -36,12 +37,12 @@ export default function Sidebar() {
   };
 
   const links = [
-    { to: "/", label: t.nav_home, icon: "🏠" },
-    { to: "/sportstaetten", label: t.nav_venues, icon: "🏟️" },
-    { to: "/players", label: t.nav_players, icon: "👥" },
-    { to: "/tournaments", label: t.nav_tournaments, icon: "🏆" },
-    { to: "/sessions", label: t.nav_sessions, icon: "🔗" },
-    { to: "/statistics", label: t.nav_statistics, icon: "📊" },
+    { to: "/", label: t.nav_home, icon: "home" as const },
+    { to: "/sportstaetten", label: t.nav_venues, icon: "building" as const },
+    { to: "/players", label: t.nav_players, icon: "users" as const },
+    { to: "/tournaments", label: t.nav_tournaments, icon: "trophy" as const },
+    { to: "/sessions", label: t.nav_sessions, icon: "link" as const },
+    { to: "/statistics", label: t.nav_statistics, icon: "chart" as const },
   ];
 
   return (
@@ -88,7 +89,7 @@ export default function Sidebar() {
               }`
             }
           >
-            <span className={collapsed ? "text-xl" : "text-lg"}>{link.icon}</span>
+            <Icon name={link.icon} size={collapsed ? 22 : 18} />
             {!collapsed && link.label}
           </NavLink>
         ))}
@@ -107,7 +108,7 @@ export default function Sidebar() {
             }`
           }
         >
-          <span className={collapsed ? "text-xl" : "text-lg"}>⚙️</span>
+          <Icon name="settings" size={collapsed ? 22 : 18} />
           {!collapsed && t.nav_settings}
         </NavLink>
 

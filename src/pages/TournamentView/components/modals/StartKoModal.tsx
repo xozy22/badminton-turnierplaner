@@ -45,13 +45,13 @@ export default function StartKoModal({
       <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
         <div className="flex justify-between items-center mb-5">
           <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
-            🏆 {t.ko_modal_title}
+            <span aria-hidden="true">🏆</span> {t.ko_modal_title}
           </h3>
           <button
-            onClick={onClose}
+            onClick={onClose} aria-label={t.common_close}
             className={`${theme.textMuted} text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg transition-colors`}
           >
-            ✕
+            <span aria-hidden="true">✕</span>
           </button>
         </div>
 
@@ -128,7 +128,7 @@ export default function StartKoModal({
             )}
             className="flex-1 bg-phase text-white px-4 py-2.5 rounded-xl hover:bg-phase shadow-sm transition-all text-sm font-medium"
           >
-            🏆 {t.ko_modal_start_button}
+            <span aria-hidden="true">🏆</span> {t.ko_modal_start_button}
           </button>
         </div>
       </div>

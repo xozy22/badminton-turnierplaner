@@ -57,7 +57,7 @@ export function ThemeSelector() {
                 </div>
                 {isActive && (
                   <span className="ml-auto text-sm font-bold" style={{ color: id === "dark" ? "#10b981" : preview }}>
-                    ✓
+                    <span aria-hidden="true">✓</span>
                   </span>
                 )}
               </button>

@@ -33,7 +33,7 @@ export default function RetirePlayerModal({
             }}
             tone="danger"
           >
-            🏥 {t.retire_confirm}
+            <span aria-hidden="true">🏥</span> {t.retire_confirm}
           </ModalConfirmButton>
         </>
       }
@@ -49,7 +49,7 @@ export default function RetirePlayerModal({
           <p className="mt-2 text-xs text-muted">{t.retire_details}</p>
           {retireTarget.partnerNote && (
             <p className="mt-2 text-xs font-medium text-warning-text">
-              ⚠️ {retireTarget.partnerNote}
+              <span aria-hidden="true">⚠️</span> {retireTarget.partnerNote}
             </p>
           )}
         </div>

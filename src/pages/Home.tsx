@@ -31,7 +31,7 @@ export default function Home() {
       {/* Hero */}
       <div className="mb-8">
         <h1 className={`text-3xl font-extrabold ${theme.textPrimary} tracking-tight`}>
-          {t.home_welcome} 🏸
+          {t.home_welcome} <span aria-hidden="true">🏸</span>
         </h1>
         <p className={`${theme.textSecondary} mt-1`}>
           {t.home_subtitle}
@@ -101,7 +101,7 @@ export default function Home() {
           to="/players"
           className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textPrimary} px-5 py-2.5 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all duration-200 text-sm font-medium`}
         >
-          👥 {t.home_manage_players}
+          <span aria-hidden="true">👥</span> {t.home_manage_players}
         </Link>
         <button
           onClick={async () => {
@@ -127,7 +127,7 @@ export default function Home() {
           disabled={creating}
           className={`${theme.primaryBg} ${theme.primaryText} px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all duration-200 text-sm font-medium disabled:opacity-50`}
         >
-          🏆 {t.home_new_tournament}
+          <span aria-hidden="true">🏆</span> {t.home_new_tournament}
         </button>
       </div>
     </div>

@@ -67,7 +67,7 @@ export default function TeamPairingStep({
     <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5`}>
       <div className="flex items-center justify-between mb-4">
         <h2 className={`font-semibold ${theme.textPrimary}`}>
-          🤝 {t.teams_title}
+          <span aria-hidden="true">🤝</span> {t.teams_title}
           <span className={`ml-2 text-xs font-normal ${theme.textSecondary}`}>
             {manualTeams.length > 0
               ? t.teams_count_info.replace("{teams}", String(manualTeams.length)).replace("{open}", String(poolPlayers.length))
@@ -152,7 +152,7 @@ export default function TeamPairingStep({
                     className="opacity-0 group-hover:opacity-100 text-xs text-danger-text hover:text-danger-text transition-all ml-2"
                     title={t.teams_remove_title}
                   >
-                    ✕
+                    <span aria-hidden="true">✕</span>
                   </button>
                 </div>
               );
@@ -164,12 +164,12 @@ export default function TeamPairingStep({
       {/* Status */}
       {poolPlayers.length > 0 && poolPlayers.length < 2 && (
         <div className={`text-xs ${theme.textMuted} mt-3`}>
-          ⚠️ {t.teams_player_leftover}
+          <span aria-hidden="true">⚠️</span> {t.teams_player_leftover}
         </div>
       )}
       {poolPlayers.length === 0 && manualTeams.length > 0 && (
         <div className={`text-xs text-green-600 mt-3`}>
-          ✓ {t.teams_all_assigned}
+          <span aria-hidden="true">✓</span> {t.teams_all_assigned}
         </div>
       )}
     </div>

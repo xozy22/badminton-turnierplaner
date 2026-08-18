@@ -59,7 +59,7 @@ function HallEditor({
               onClick={() => onChange(halls.filter((_, i) => i !== idx))}
               className={`${theme.textMuted} hover:text-danger-text text-sm transition-colors px-0.5 shrink-0`}
             >
-              ✕
+              <span aria-hidden="true">✕</span>
             </button>
           )}
         </div>
@@ -293,10 +293,10 @@ export default function Sportstaetten() {
             disabled={sportstaetten.length === 0}
             className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed`}
           >
-            📤 {t.common_export}
+            <span aria-hidden="true">📤</span> {t.common_export}
           </button>
           <label className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium cursor-pointer`}>
-            📥 {t.common_import}
+            <span aria-hidden="true">📥</span> {t.common_import}
             <input
               type="file"
               accept=".json"
@@ -334,7 +334,7 @@ export default function Sportstaetten() {
         <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 mb-6`}>
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h2 className={`font-semibold ${theme.textPrimary}`}>
-              🔗 {t.sportstaetten_active_sessions}
+              <span aria-hidden="true">🔗</span> {t.sportstaetten_active_sessions}
             </h2>
             <Link
               to="/sessions"
@@ -356,14 +356,15 @@ export default function Sportstaetten() {
                       {sess.name}
                     </div>
                     <div className={`text-xs ${theme.textMuted} truncate`}>
-                      🏟️ {venue?.name ?? "—"}
+                      <span aria-hidden="true">🏟️</span> {venue?.name ?? "—"}
                     </div>
                   </div>
                   <Link
                     to={`/sessions/${sess.id}/live`}
+                    aria-label={t.session_pill_open_dashboard}
                     className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all`}
                   >
-                    📺
+                    <span aria-hidden="true">📺</span>
                   </Link>
                 </div>
               );
@@ -688,7 +689,7 @@ export default function Sportstaetten() {
               {deleteBlocked.usage.activeTournaments.length > 0 && (
                 <div>
                   <div className={`text-xs font-bold uppercase tracking-wide ${theme.textMuted} mb-1`}>
-                    🏆 {t.venues_delete_blocked_tournaments_label} ({deleteBlocked.usage.activeTournaments.length})
+                    <span aria-hidden="true">🏆</span> {t.venues_delete_blocked_tournaments_label} ({deleteBlocked.usage.activeTournaments.length})
                   </div>
                   <ul className={`space-y-1 text-sm ${theme.textPrimary} pl-1`}>
                     {deleteBlocked.usage.activeTournaments.map((tt) => (
@@ -707,7 +708,7 @@ export default function Sportstaetten() {
               {deleteBlocked.usage.activeSessions.length > 0 && (
                 <div>
                   <div className={`text-xs font-bold uppercase tracking-wide ${theme.textMuted} mb-1`}>
-                    🔗 {t.venues_delete_blocked_sessions_label} ({deleteBlocked.usage.activeSessions.length})
+                    <span aria-hidden="true">🔗</span> {t.venues_delete_blocked_sessions_label} ({deleteBlocked.usage.activeSessions.length})
                   </div>
                   <ul className={`space-y-1 text-sm ${theme.textPrimary} pl-1`}>
                     {deleteBlocked.usage.activeSessions.map((ss) => (

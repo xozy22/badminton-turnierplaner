@@ -59,7 +59,7 @@ export default function SeedingStep({
     <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 space-y-5`}>
       <div>
         <h2 className={`font-semibold ${theme.textPrimary} mb-1`}>
-          🎯 {t.seeding_title}
+          <span aria-hidden="true">🎯</span> {t.seeding_title}
         </h2>
         <p className={`text-xs ${theme.textMuted}`}>
           {t.seeding_description}

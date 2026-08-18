@@ -407,7 +407,7 @@ export default function Tournaments() {
                 className={`text-[10px] font-bold uppercase tracking-wide border px-2 py-0.5 rounded-full ${styled}`}
                 title={s.name + suffix}
               >
-                🔗 {s.name}{suffix}
+                <span aria-hidden="true">🔗</span> {s.name}{suffix}
               </span>
             );
           })()}
@@ -429,7 +429,7 @@ export default function Tournaments() {
             className="text-muted hover:text-phase-text text-sm transition-colors"
             title={t.tournaments_archive_button}
           >
-            📦 {t.tournaments_archive_button}
+            <span aria-hidden="true">📦</span> {t.tournaments_archive_button}
           </button>
         )}
         {tr.status === "archived" && (
@@ -446,7 +446,7 @@ export default function Tournaments() {
           className="text-muted hover:text-danger-text text-sm transition-colors"
           title={t.tournaments_delete_title}
         >
-          🗑
+          <span aria-hidden="true">🗑</span>
         </button>
       </div>
     </div>
@@ -476,7 +476,7 @@ export default function Tournaments() {
                   : `${theme.cardBg} ${theme.cardBorder} ${theme.textSecondary} hover:border-phase`
               }`}
             >
-              📦 {t.tournaments_archive} ({archivedTournaments.length})
+              <span aria-hidden="true">📦</span> {t.tournaments_archive} ({archivedTournaments.length})
             </button>
           )}
           <input
@@ -490,14 +490,14 @@ export default function Tournaments() {
             onClick={handleImportTemplate}
             className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium`}
           >
-            📋 {t.tournaments_import}
+            <span aria-hidden="true">📋</span> {t.tournaments_import}
           </button>
           <button
             onClick={handleNewTournament}
             disabled={creating}
             className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all text-sm font-medium disabled:opacity-50`}
           >
-            🏆 {t.tournaments_new}
+            <span aria-hidden="true">🏆</span> {t.tournaments_new}
           </button>
         </div>
       </div>
@@ -518,7 +518,7 @@ export default function Tournaments() {
       {showArchive && archivedTournaments.length > 0 && (
         <div className="mt-8">
           <h2 className={`text-lg font-bold ${theme.textPrimary} mb-3 flex items-center gap-2`}>
-            📦 {t.tournaments_archive}
+            <span aria-hidden="true">📦</span> {t.tournaments_archive}
           </h2>
           <div className="space-y-3">
             {archivedTournaments.map((tr) => renderTournamentCard(tr, true))}

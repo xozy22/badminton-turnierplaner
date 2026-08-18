@@ -297,7 +297,7 @@ export default function VerwaltungTab({
                                   const partnerPaidBy = pd.payment_status !== "paid" ? getPartnerPaidInfo(pd.player.id) : null;
                                   return partnerPaidBy ? (
                                     <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-info-text" title={partnerPaidBy}>
-                                      ✓ {partnerPaidBy}
+                                      <span aria-hidden="true">✓</span> {partnerPaidBy}
                                     </span>
                                   ) : (
                                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -396,7 +396,7 @@ export default function VerwaltungTab({
                                   title={t.retire_undo}
                                   className="text-xs text-emerald-500 hover:text-emerald-700 ml-1"
                                 >
-                                  ✅
+                                  <span aria-hidden="true">✅</span>
                                 </button>
                               )}
                             </div>

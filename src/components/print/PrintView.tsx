@@ -72,7 +72,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>
-              🏸 {tournament.name}
+              <span aria-hidden="true">🏸</span> {tournament.name}
             </h1>
             <div style={{ fontSize: 11, color: "#666", marginTop: 4 }}>
               {MODE_LABELS[tournament.mode]} &middot;{" "}

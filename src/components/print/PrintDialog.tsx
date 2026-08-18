@@ -258,14 +258,14 @@ export default function PrintDialog({
         {/* Header */}
         <div className={`px-6 py-4 border-b ${theme.cardBorder} flex justify-between items-center`}>
           <div>
-            <h2 className={`font-bold text-lg ${theme.textPrimary}`}>🖨️ {t.print_title}</h2>
+            <h2 className={`font-bold text-lg ${theme.textPrimary}`}><span aria-hidden="true">🖨️</span> {t.print_title}</h2>
             <p className={`text-xs ${theme.textSecondary} mt-0.5`}>{tournament.name}</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={onClose} aria-label={t.common_close}
             className={`${theme.textMuted} hover:${theme.textSecondary} text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg transition-colors`}
           >
-            ✕
+            <span aria-hidden="true">✕</span>
           </button>
         </div>
 
@@ -322,20 +322,20 @@ export default function PrintDialog({
             disabled={pdfLoading}
             className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-5 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium disabled:opacity-50`}
           >
-            📄 {pdfLoading ? t.pdf_saving : t.pdf_save}
+            <span aria-hidden="true">📄</span> {pdfLoading ? t.pdf_saving : t.pdf_save}
           </button>
           <button
             onClick={handleCertificates}
             disabled={certLoading || standings.length < 1}
             className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-5 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium disabled:opacity-50`}
           >
-            🏆 {certLoading ? t.pdf_saving : t.certificate_generate}
+            <span aria-hidden="true">🏆</span> {certLoading ? t.pdf_saving : t.certificate_generate}
           </button>
           <button
             onClick={handlePrint}
             className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all text-sm font-medium`}
           >
-            🖨️ {t.print_button}
+            <span aria-hidden="true">🖨️</span> {t.print_button}
           </button>
         </div>
       </div>

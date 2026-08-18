@@ -214,7 +214,7 @@ export default function Sessions() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className={`text-2xl font-extrabold ${theme.textPrimary} tracking-tight`}>
-            🔗 {t.sessions_title}
+            <span aria-hidden="true">🔗</span> {t.sessions_title}
           </h1>
           <p className={`text-sm ${theme.textSecondary} mt-0.5`}>
             {t.sessions_subtitle}
@@ -279,7 +279,7 @@ export default function Sessions() {
                     {s.name}
                   </h3>
                   <p className={`text-xs ${theme.textMuted} truncate`}>
-                    🏟️ {venueName(s.venue_id)}
+                    <span aria-hidden="true">🏟️</span> {venueName(s.venue_id)}
                   </p>
                 </div>
                 <span
@@ -299,7 +299,7 @@ export default function Sessions() {
                   </div>
                 )}
                 <div>
-                  🏆 {t.session_detail_attached_count.replace("{count}", String(tCount))}
+                  <span aria-hidden="true">🏆</span> {t.session_detail_attached_count.replace("{count}", String(tCount))}
                 </div>
               </div>
 
@@ -308,13 +308,13 @@ export default function Sessions() {
                   to={`/sessions/${s.id}/live`}
                   className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-lg text-xs font-semibold transition-all`}
                 >
-                  📺 {t.sessions_open_dashboard}
+                  <span aria-hidden="true">📺</span> {t.sessions_open_dashboard}
                 </Link>
                 <Link
                   to={`/sessions/${s.id}`}
                   className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} ${theme.cardHoverBorder} px-3 py-1.5 rounded-lg text-xs font-medium transition-all`}
                 >
-                  ⚙️ {t.sessions_manage}
+                  <span aria-hidden="true">⚙️</span> {t.sessions_manage}
                 </Link>
                 {s.status === "active" && (
                   <button
@@ -353,7 +353,7 @@ export default function Sessions() {
                   className={`text-xs ${theme.textMuted} hover:text-danger-text px-2 py-1.5 transition-colors ml-auto`}
                   title={t.sessions_delete}
                 >
-                  🗑
+                  <span aria-hidden="true">🗑</span>
                 </button>
               </div>
             </div>
@@ -533,19 +533,19 @@ export default function Sessions() {
               </p>
             ) : endStats.activeTournaments.length === 0 ? (
               <div className="border border-emerald-200 bg-emerald-50 rounded-xl px-3 py-2 mb-4 text-xs text-emerald-700">
-                ✓ {t.sessions_end_stats_none}
+                <span aria-hidden="true">✓</span> {t.sessions_end_stats_none}
               </div>
             ) : (
               <div className="border border-warning bg-warning-subtle rounded-xl px-3 py-2 mb-4">
                 <div className="text-[10px] font-bold uppercase tracking-wide text-warning-text mb-1">
-                  ⚠ {t.sessions_end_stats_title}
+                  <span aria-hidden="true">⚠</span> {t.sessions_end_stats_title}
                 </div>
                 <ul className="text-xs text-warning-text space-y-0.5 pl-1">
                   <li>
-                    🏆 {t.sessions_end_stats_active_tournaments.replace("{count}", String(endStats.activeTournaments.length))}
+                    <span aria-hidden="true">🏆</span> {t.sessions_end_stats_active_tournaments.replace("{count}", String(endStats.activeTournaments.length))}
                   </li>
                   <li>
-                    🟩 {t.sessions_end_stats_on_court.replace("{count}", String(endStats.matchesOnCourt))}
+                    <span aria-hidden="true">🟩</span> {t.sessions_end_stats_on_court.replace("{count}", String(endStats.matchesOnCourt))}
                   </li>
                 </ul>
               </div>

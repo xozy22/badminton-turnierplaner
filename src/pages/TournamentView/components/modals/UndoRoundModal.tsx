@@ -68,7 +68,7 @@ export default function UndoRoundModal({
             <li>• {t.tournament_view_undo_match_count.replace("{n}", String(target.matchCount))}</li>
             {target.completedCount > 0 && (
               <li className="text-warning-text dark:text-warning-text font-medium">
-                • {t.tournament_view_undo_completed_count.replace("{n}", String(target.completedCount))} ⚠
+                • {t.tournament_view_undo_completed_count.replace("{n}", String(target.completedCount))} <span aria-hidden="true">⚠</span>
               </li>
             )}
             {target.setCount > 0 && (
@@ -76,7 +76,7 @@ export default function UndoRoundModal({
             )}
             {target.activeOnCourtCount > 0 && (
               <li className="text-warning-text dark:text-warning-text font-medium">
-                • {t.tournament_view_undo_active_count.replace("{n}", String(target.activeOnCourtCount))} ⚠
+                • {t.tournament_view_undo_active_count.replace("{n}", String(target.activeOnCourtCount))} <span aria-hidden="true">⚠</span>
               </li>
             )}
           </ul>

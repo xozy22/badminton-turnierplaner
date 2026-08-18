@@ -215,7 +215,7 @@ export default function SessionDashboard() {
       )}
       {session.status === "archived" && (
         <div className="bg-surface-sunken text-secondary border-b border-line-strong px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
-          📦 {t.session_dashboard_archived_banner}
+          <span aria-hidden="true">📦</span> {t.session_dashboard_archived_banner}
         </div>
       )}
 
@@ -231,10 +231,10 @@ export default function SessionDashboard() {
             </Link>
           </div>
           <h1 className="text-xl font-extrabold tracking-tight mt-1">
-            🔗 {session.name}
+            <span aria-hidden="true">🔗</span> {session.name}
           </h1>
           <p className="text-sm text-white/80">
-            🏟️ {venue?.name ?? "—"} · {ctx.tournaments.length} {t.tournaments_title.toLowerCase()}
+            <span aria-hidden="true">🏟️</span> {venue?.name ?? "—"} · {ctx.tournaments.length} {t.tournaments_title.toLowerCase()}
           </p>
         </div>
         <div className="text-right">
@@ -255,7 +255,7 @@ export default function SessionDashboard() {
         {/* --- COURTS --- */}
         <section>
           <h2 className={`text-lg font-bold ${theme.textPrimary} mb-3`}>
-            🟩 {t.session_dashboard_courts_section} ({totalCourts})
+            <span aria-hidden="true">🟩</span> {t.session_dashboard_courts_section} ({totalCourts})
           </h2>
           {totalCourts === 0 ? (
             <p className={`text-sm ${theme.textMuted} italic`}>
@@ -320,7 +320,7 @@ export default function SessionDashboard() {
         <section>
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
             <h2 className={`text-lg font-bold ${theme.textPrimary}`}>
-              ⏳ {t.session_dashboard_queue_section} ({queue.length})
+              <span aria-hidden="true">⏳</span> {t.session_dashboard_queue_section} ({queue.length})
             </h2>
             <div className="flex flex-wrap gap-1.5">
               <button
@@ -365,7 +365,7 @@ export default function SessionDashboard() {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h3 className={`font-semibold text-sm ${theme.textPrimary}`}>
-                        🏆 {tName}
+                        <span aria-hidden="true">🏆</span> {tName}
                       </h3>
                       <span className={`text-xs ${theme.textMuted}`}>
                         {ms.length} wartend
@@ -403,7 +403,7 @@ export default function SessionDashboard() {
         {/* --- RECENT --- */}
         <section>
           <h2 className={`text-lg font-bold ${theme.textPrimary} mb-3`}>
-            ✓ {t.session_dashboard_recent_section}
+            <span aria-hidden="true">✓</span> {t.session_dashboard_recent_section}
           </h2>
           {recent.length === 0 ? (
             <p className={`text-sm ${theme.textMuted} italic`}>
@@ -425,7 +425,7 @@ export default function SessionDashboard() {
                   </span>
                   {m.winner_team && (
                     <span className="text-xs font-bold text-emerald-700 shrink-0">
-                      🏅 Team {m.winner_team}
+                      <span aria-hidden="true">🏅</span> Team {m.winner_team}
                     </span>
                   )}
                 </button>

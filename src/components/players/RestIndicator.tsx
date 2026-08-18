@@ -63,7 +63,7 @@ export default function RestIndicator({
       title={tooltip}
       aria-label={tooltip}
     >
-      ⏱
+      <span aria-hidden="true">⏱</span>
     </span>
   );
 }

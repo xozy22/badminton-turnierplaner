@@ -46,7 +46,7 @@ export function CourtTimer({ assignedAt, completed }: Props) {
           : ""
       }`}
     >
-      ⏱ {display || "00:00"}
+      <span aria-hidden="true">⏱</span> {display || "00:00"}
     </span>
   );
 }

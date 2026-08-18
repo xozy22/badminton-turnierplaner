@@ -595,7 +595,7 @@ export default function TvMode() {
             )}
           </div>
           <span className="text-sm font-mono font-bold text-warning-text">
-            ⏱ {formatTimer(match.court_assigned_at)}
+            <span aria-hidden="true">⏱</span> {formatTimer(match.court_assigned_at)}
           </span>
         </div>
 

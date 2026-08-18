@@ -269,7 +269,7 @@ export default function MatchCard({
               className="text-xs text-muted hover:text-warning-text font-medium transition-colors"
               title={t.tournament_view_announce_title}
             >
-              📢
+              <span aria-hidden="true">📢</span>
             </button>
           )}
         </div>
@@ -278,7 +278,7 @@ export default function MatchCard({
       {/* Not started hint */}
       {notStarted && (
         <div className="text-xs text-warning-text bg-warning-subtle border border-warning rounded-lg px-3 py-1.5 mb-3 inline-block">
-          ⏳ {t.tournament_view_assign_court_first}
+          <span aria-hidden="true">⏳</span> {t.tournament_view_assign_court_first}
         </div>
       )}
 

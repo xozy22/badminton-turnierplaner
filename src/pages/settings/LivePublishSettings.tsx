@@ -181,9 +181,9 @@ export function LivePublishSettings() {
           </div>
           {statuses.length > 0 ? (
             <div className={`text-xs ${theme.textSecondary} mb-2`}>
-              {okCount > 0 && <span className="text-emerald-600">✓ {okCount} OK</span>}
+              {okCount > 0 && <span className="text-emerald-600"><span aria-hidden="true">✓</span> {okCount} OK</span>}
               {okCount > 0 && errCount > 0 && <span> / </span>}
-              {errCount > 0 && <span className="text-danger-text">✗ {errCount} Fehler</span>}
+              {errCount > 0 && <span className="text-danger-text"><span aria-hidden="true">✗</span> {errCount} Fehler</span>}
             </div>
           ) : (
             <div className={`text-xs ${theme.textMuted}`}>
@@ -309,10 +309,10 @@ export function PushLogPanel() {
                     </td>
                     <td className={`px-2 py-1 text-right font-mono`}>
                       {e.ok ? (
-                        <span className="text-emerald-600">✓ {e.status ?? ""}</span>
+                        <span className="text-emerald-600"><span aria-hidden="true">✓</span> {e.status ?? ""}</span>
                       ) : (
                         <span className="text-danger-text" title={e.error}>
-                          ✗ {(e.error ?? "").slice(0, 30)}
+                          <span aria-hidden="true">✗</span> {(e.error ?? "").slice(0, 30)}
                         </span>
                       )}
                     </td>
