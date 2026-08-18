@@ -539,11 +539,11 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                   <table className={`w-full text-xs border ${theme.cardBorder} ${theme.inputText}`}>
                     <thead>
                       <tr className={theme.headerGradient}>
-                        <th className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_first_name}</th>
-                        {lastNameCol && <th className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_last_name}</th>}
-                        <th className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_gender}</th>
-                        {birthDateCol && <th className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_birth_date}</th>}
-                        {clubCol && <th className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_club}</th>}
+                        <th scope="col" className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_first_name}</th>
+                        {lastNameCol && <th scope="col" className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_last_name}</th>}
+                        <th scope="col" className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_gender}</th>
+                        {birthDateCol && <th scope="col" className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_birth_date}</th>}
+                        {clubCol && <th scope="col" className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_club}</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -609,13 +609,13 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                 <table className="w-full text-sm">
                   <thead className={`${theme.headerGradient} sticky top-0`}>
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs">#</th>
-                      <th className="px-3 py-2 text-left text-xs">{t.common_first_name}</th>
-                      {previewRows.some(r => r.lastName) && <th className="px-3 py-2 text-left text-xs">{t.common_last_name}</th>}
-                      <th className="px-3 py-2 text-left text-xs">{t.common_gender}</th>
-                      {previewRows.some(r => r.birthDate) && <th className="px-3 py-2 text-left text-xs">{t.common_birth_date}</th>}
-                      {previewRows.some(r => r.club) && <th className="px-3 py-2 text-left text-xs">{t.common_club}</th>}
-                      <th className="px-3 py-2 text-left text-xs">Status</th>
+                      <th scope="col" className="px-3 py-2 text-left text-xs">#</th>
+                      <th scope="col" className="px-3 py-2 text-left text-xs">{t.common_first_name}</th>
+                      {previewRows.some(r => r.lastName) && <th scope="col" className="px-3 py-2 text-left text-xs">{t.common_last_name}</th>}
+                      <th scope="col" className="px-3 py-2 text-left text-xs">{t.common_gender}</th>
+                      {previewRows.some(r => r.birthDate) && <th scope="col" className="px-3 py-2 text-left text-xs">{t.common_birth_date}</th>}
+                      {previewRows.some(r => r.club) && <th scope="col" className="px-3 py-2 text-left text-xs">{t.common_club}</th>}
+                      <th scope="col" className="px-3 py-2 text-left text-xs">Status</th>
                     </tr>
                   </thead>
                   <tbody>

@@ -38,14 +38,14 @@ export default function RanglisteTab({ standings, theme }: RanglisteTabProps) {
         <table className="w-full text-xs">
           <thead>
             <tr className={`border-b ${theme.cardBorder}`}>
-              <th className={`px-3 py-2.5 text-left ${theme.textSecondary} font-medium`}>#</th>
-              <th className={`px-3 py-2.5 text-left ${theme.textSecondary} font-medium`}>{t.standings_player}</th>
-              <th className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`}>{t.standings_wins}</th>
-              <th className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`}>{t.standings_losses}</th>
-              <th className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`}>{t.standings_sets_header}</th>
-              <th className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`}>{t.standings_points}</th>
+              <th scope="col" className={`px-3 py-2.5 text-left ${theme.textSecondary} font-medium`}>#</th>
+              <th scope="col" className={`px-3 py-2.5 text-left ${theme.textSecondary} font-medium`}>{t.standings_player}</th>
+              <th scope="col" className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`}>{t.standings_wins}</th>
+              <th scope="col" className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`}>{t.standings_losses}</th>
+              <th scope="col" className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`}>{t.standings_sets_header}</th>
+              <th scope="col" className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`}>{t.standings_points}</th>
               {showBuchholz && (
-                <th className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`} title={t.standings_buchholz_hint}>
+                <th scope="col" className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`} title={t.standings_buchholz_hint}>
                   {t.standings_buchholz}
                 </th>
               )}

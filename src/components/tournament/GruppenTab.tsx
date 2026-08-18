@@ -238,11 +238,11 @@ export default function GruppenTab({
             </colgroup>
             <thead>
               <tr className={`border-b ${theme.cardBorder}`}>
-                <th className={`px-3 py-2 text-left ${theme.textSecondary} font-medium`}>#</th>
-                <th className={`px-3 py-2 text-left ${theme.textSecondary} font-medium`}>{t.groups_team}</th>
-                <th className={`px-3 py-2 text-center ${theme.textSecondary} font-medium`}>{t.common_wins_abbr}</th>
-                <th className={`px-3 py-2 text-center ${theme.textSecondary} font-medium`}>{t.common_losses_abbr}</th>
-                <th className={`px-3 py-2 text-center ${theme.textSecondary} font-medium`}>{t.common_points_abbr}</th>
+                <th scope="col" className={`px-3 py-2 text-left ${theme.textSecondary} font-medium`}>#</th>
+                <th scope="col" className={`px-3 py-2 text-left ${theme.textSecondary} font-medium`}>{t.groups_team}</th>
+                <th scope="col" className={`px-3 py-2 text-center ${theme.textSecondary} font-medium`}>{t.common_wins_abbr}</th>
+                <th scope="col" className={`px-3 py-2 text-center ${theme.textSecondary} font-medium`}>{t.common_losses_abbr}</th>
+                <th scope="col" className={`px-3 py-2 text-center ${theme.textSecondary} font-medium`}>{t.common_points_abbr}</th>
               </tr>
             </thead>
             <tbody>
@@ -301,11 +301,11 @@ export default function GruppenTab({
           </colgroup>
           <thead>
             <tr className={`border-b ${theme.cardBorder}`}>
-              <th className={`px-3 py-2 text-left ${theme.textSecondary} font-medium`}>#</th>
-              <th className={`px-3 py-2 text-left ${theme.textSecondary} font-medium`}>{t.groups_player}</th>
-              <th className={`px-3 py-2 text-center ${theme.textSecondary} font-medium`}>{t.common_wins_abbr}</th>
-              <th className={`px-3 py-2 text-center ${theme.textSecondary} font-medium`}>{t.common_losses_abbr}</th>
-              <th className={`px-3 py-2 text-center ${theme.textSecondary} font-medium`}>{t.common_points_abbr}</th>
+              <th scope="col" className={`px-3 py-2 text-left ${theme.textSecondary} font-medium`}>#</th>
+              <th scope="col" className={`px-3 py-2 text-left ${theme.textSecondary} font-medium`}>{t.groups_player}</th>
+              <th scope="col" className={`px-3 py-2 text-center ${theme.textSecondary} font-medium`}>{t.common_wins_abbr}</th>
+              <th scope="col" className={`px-3 py-2 text-center ${theme.textSecondary} font-medium`}>{t.common_losses_abbr}</th>
+              <th scope="col" className={`px-3 py-2 text-center ${theme.textSecondary} font-medium`}>{t.common_points_abbr}</th>
             </tr>
           </thead>
           <tbody>

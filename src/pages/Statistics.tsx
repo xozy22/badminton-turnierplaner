@@ -385,13 +385,13 @@ export default function Statistics() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className={`${theme.headerGradient} text-xs`}>
-                    <th className={`text-left px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_rank}</th>
-                    <th className={`text-left px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_player}</th>
-                    <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_matches_played}</th>
-                    <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.common_wins_abbr}</th>
-                    <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.common_losses_abbr}</th>
-                    <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_win_rate}</th>
-                    <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_points_avg}</th>
+                    <th scope="col" className={`text-left px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_rank}</th>
+                    <th scope="col" className={`text-left px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_player}</th>
+                    <th scope="col" className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_matches_played}</th>
+                    <th scope="col" className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.common_wins_abbr}</th>
+                    <th scope="col" className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.common_losses_abbr}</th>
+                    <th scope="col" className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_win_rate}</th>
+                    <th scope="col" className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_points_avg}</th>
                   </tr>
                 </thead>
                 <tbody>

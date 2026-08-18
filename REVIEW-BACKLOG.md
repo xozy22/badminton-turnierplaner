@@ -17,8 +17,8 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — C-Reihe erledigt, D1/D2/D5 teilweise | Basis für alles Weitere |
 | | offen: Ansichten in Komponenten zerlegen (D1), Anzeige-Eigenschaften in die Format-Engines (D2), Datenbankverwaltung aus den Einstellungen lösen (D5) | |
 | **4** ✅ | E1–E4 (Performance) — erledigt; E5 von 145 auf 64 KB (Ziel 60) | Schnelle Gewinne |
-| **5** ⏳ | F1–F10, G1–G5 — neun erledigt (F1, F2, F3, F4, F6, F9, G3, G4, G5), G2 weitgehend | Das „komplett überarbeitet"-Gefühl |
-| | offen: F7 (Lade-/Leerzustände), F8 (Fensterbreite), F10 (Icons), G1 (ARIA-Rest), acht Modals aus F5, Tastaturkürzel-Übersicht aus G2 | |
+| **5** ⏳ | F1–F10, G1–G5 — elf erledigt; F5, G1, G2 teilweise | Das „komplett überarbeitet"-Gefühl |
+| | offen: F7 (Lade-/Leerzustände), acht Modals aus F5, Tab-Rollen und Fortschrittsbalken aus G1, Tastaturkürzel-Übersicht aus G2 | |
 | **6** | H1 ✅, H2–H5, I1–I5, J3–J6 | Politur & Sicherheit |
 
 ---
@@ -758,14 +758,30 @@ Die Sidebar war bereits einklappbar; der TV-Modus bleibt eine eigene Ansicht, we
 
 # G · Barrierefreiheit
 
-### [ ] G1 — Nahezu keine ARIA-Auszeichnung
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** projektweit (16 `aria-`-Vorkommen in der gesamten Anwendung)
+### [~] G1 — Nahezu keine ARIA-Auszeichnung — **das meiste erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** projektweit
 
-**Problem:** Modals ohne `role="dialog"`/`aria-modal`/`aria-labelledby`, Tabs ohne `role="tablist"`/`aria-selected`, Icon-Knöpfe ohne `aria-label`, Tabellen ohne `scope`-Attribute, Fortschrittsbalken ohne `role="progressbar"`.
+**Ausgangslage:** 16 `aria-`-Vorkommen in der gesamten Anwendung.
 
-**Fix:** Semantisches HTML bevorzugen (`<button>`, `<nav>`, `<table>` mit `<th scope>`), ARIA nur ergänzend; Modal-Rollen zentral über F5 lösen; Tab-Leisten über ein gemeinsames `<Tabs>`-Muster.
+**Umgesetzt — überwiegend als Nebenwirkung der anderen Punkte:**
 
-**Fertig wenn:** Ein Durchlauf mit einem Accessibility-Prüfwerkzeug meldet auf den Hauptseiten keine kritischen Verstöße.
+*Dialoge* (F5): `role="dialog"`, `aria-modal` und `aria-labelledby` im gemeinsamen Fundament — für die fünf umgestellten Modals.
+
+*Menüs* (F3, F6): Überlaufmenü und Feldauswahl als `role="menu"` mit `aria-haspopup` und `aria-expanded` am auslösenden Knopf.
+
+*Formularfelder* (G4): Die Punkteingaben nennen Satz und Team, ungültige Eingaben tragen `aria-invalid`.
+
+*Ansagen* (G4, F9): Toasts und die Nächster-Schritt-Leiste sind `aria-live`-Regionen.
+
+*Icons* (F10): Dekorative Symbole sind ausgeblendet, alleinstehende haben einen Namen — nachweislich kein Bedienelement ohne zugänglichen Namen.
+
+*Tabellen:* 86 Kopfzellen in neun Dateien tragen jetzt `scope="col"`. Ohne das kann ein Screenreader nicht sagen, ob eine Überschrift zu ihrer Spalte oder ihrer Zeile gehört, und liest die Zellen vor, ohne zu benennen, was sie sind.
+
+Aus 16 `aria`-Vorkommen sind rund 170 geworden.
+
+**Was fehlt:** Die Tab-Leisten (Spiele / Rangliste / Verwaltung und die Rundenwahl) sind Knopfreihen ohne `role="tablist"`, `role="tab"` und `aria-selected`. Fortschrittsbalken haben kein `role="progressbar"`. Und die acht noch nicht umgestellten Dialoge aus F5 bringen ihre Rollen erst mit der Umstellung mit.
+
+**Fertig wenn:** Ein Durchlauf mit einem Prüfwerkzeug meldet auf den Hauptseiten keine kritischen Verstöße.
 
 ---
 

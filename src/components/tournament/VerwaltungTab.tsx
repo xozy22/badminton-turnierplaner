@@ -237,17 +237,17 @@ export default function VerwaltungTab({
           <table className="w-full text-sm">
             <thead>
               <tr className={`border-b ${theme.cardBorder} text-xs ${theme.textMuted}`}>
-                <th className="text-left px-3 py-2">{t.common_name}</th>
-                <th className="text-center px-2 py-2">{t.common_gender}</th>
-                <th className="text-left px-2 py-2">{t.common_club}</th>
+                <th scope="col" className="text-left px-3 py-2">{t.common_name}</th>
+                <th scope="col" className="text-center px-2 py-2">{t.common_gender}</th>
+                <th scope="col" className="text-left px-2 py-2">{t.common_club}</th>
                 {hasPayment && (
                   <>
-                    <th className="text-center px-2 py-2">{t.management_entry_fee}</th>
-                    <th className="text-center px-2 py-2">{t.management_payment_method}</th>
-                    <th className="text-center px-2 py-2">{t.management_payment_date}</th>
+                    <th scope="col" className="text-center px-2 py-2">{t.management_entry_fee}</th>
+                    <th scope="col" className="text-center px-2 py-2">{t.management_payment_method}</th>
+                    <th scope="col" className="text-center px-2 py-2">{t.management_payment_date}</th>
                   </>
                 )}
-                <th className="text-right px-3 py-2">{t.common_actions}</th>
+                <th scope="col" className="text-right px-3 py-2">{t.common_actions}</th>
               </tr>
             </thead>
             <tbody>

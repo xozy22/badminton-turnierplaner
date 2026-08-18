@@ -289,11 +289,11 @@ export function PushLogPanel() {
             <table className="w-full text-[11px]">
               <thead>
                 <tr className={`border-b ${theme.cardBorder}`}>
-                  <th className={`px-2 py-1.5 text-left font-medium ${theme.textMuted} uppercase tracking-wide`}>Zeit</th>
-                  <th className={`px-2 py-1.5 text-left font-medium ${theme.textMuted} uppercase tracking-wide`}>Turnier</th>
-                  <th className={`px-2 py-1.5 text-left font-medium ${theme.textMuted} uppercase tracking-wide`}>Typ</th>
-                  <th className={`px-2 py-1.5 text-right font-medium ${theme.textMuted} uppercase tracking-wide`}>Status</th>
-                  <th className={`px-2 py-1.5 text-right font-medium ${theme.textMuted} uppercase tracking-wide`}>ms</th>
+                  <th scope="col" className={`px-2 py-1.5 text-left font-medium ${theme.textMuted} uppercase tracking-wide`}>Zeit</th>
+                  <th scope="col" className={`px-2 py-1.5 text-left font-medium ${theme.textMuted} uppercase tracking-wide`}>Turnier</th>
+                  <th scope="col" className={`px-2 py-1.5 text-left font-medium ${theme.textMuted} uppercase tracking-wide`}>Typ</th>
+                  <th scope="col" className={`px-2 py-1.5 text-right font-medium ${theme.textMuted} uppercase tracking-wide`}>Status</th>
+                  <th scope="col" className={`px-2 py-1.5 text-right font-medium ${theme.textMuted} uppercase tracking-wide`}>ms</th>
                 </tr>
               </thead>
               <tbody>

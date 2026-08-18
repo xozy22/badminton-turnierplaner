@@ -202,19 +202,19 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
           >
             <thead>
               <tr style={{ backgroundColor: c.accentLight, borderBottom: "2px solid #d1d5db" }}>
-                <th style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>#</th>
+                <th scope="col" style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>#</th>
                 {tournament.courts > 1 && (
-                  <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 50 }}>{t.common_field}</th>
+                  <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 50 }}>{t.common_field}</th>
                 )}
-                <th style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>{t.print_team1}</th>
-                <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, width: 30 }}></th>
-                <th style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>{t.print_team2}</th>
+                <th scope="col" style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>{t.print_team1}</th>
+                <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, width: 30 }}></th>
+                <th scope="col" style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>{t.print_team2}</th>
                 {Array.from({ length: maxSets }, (_, i) => (
-                  <th key={i} style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 60 }}>
+                  <th scope="col" key={i} style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 60 }}>
                     {t.print_set_n.replace("{n}", String(i + 1))}
                   </th>
                 ))}
-                <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 50 }}>
+                <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 50 }}>
                   {t.print_sets_label}
                 </th>
               </tr>
@@ -242,12 +242,12 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
         >
           <thead>
             <tr style={{ backgroundColor: c.accentLight, borderBottom: "2px solid #d1d5db" }}>
-              <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 40 }}>{t.print_rank}</th>
-              <th style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>{t.standings_player}</th>
-              <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 50 }}>{t.standings_wins}</th>
-              <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 60 }}>{t.print_defeats}</th>
-              <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 70 }}>{t.print_sets_label}</th>
-              <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 80 }}>{t.common_points}</th>
+              <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 40 }}>{t.print_rank}</th>
+              <th scope="col" style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>{t.standings_player}</th>
+              <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 50 }}>{t.standings_wins}</th>
+              <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 60 }}>{t.print_defeats}</th>
+              <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 70 }}>{t.print_sets_label}</th>
+              <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 80 }}>{t.common_points}</th>
             </tr>
           </thead>
           <tbody>
@@ -324,11 +324,11 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
                   <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #d1d5db", fontSize: 11, marginBottom: 4 }}>
                     <thead>
                       <tr style={{ backgroundColor: c.accentLight, borderBottom: "2px solid #d1d5db" }}>
-                        <th style={{ padding: "4px 8px", textAlign: "left", fontSize: 10, width: 30 }}>#</th>
-                        <th style={{ padding: "4px 8px", textAlign: "left", fontSize: 10 }}>{t.groups_team}</th>
-                        <th style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_wins_abbr}</th>
-                        <th style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_losses_abbr}</th>
-                        <th style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 60 }}>{t.common_points}</th>
+                        <th scope="col" style={{ padding: "4px 8px", textAlign: "left", fontSize: 10, width: 30 }}>#</th>
+                        <th scope="col" style={{ padding: "4px 8px", textAlign: "left", fontSize: 10 }}>{t.groups_team}</th>
+                        <th scope="col" style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_wins_abbr}</th>
+                        <th scope="col" style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_losses_abbr}</th>
+                        <th scope="col" style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 60 }}>{t.common_points}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -359,11 +359,11 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
                 <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #d1d5db", fontSize: 11, marginBottom: 4 }}>
                   <thead>
                     <tr style={{ backgroundColor: c.accentLight, borderBottom: "2px solid #d1d5db" }}>
-                      <th style={{ padding: "4px 8px", textAlign: "left", fontSize: 10, width: 30 }}>#</th>
-                      <th style={{ padding: "4px 8px", textAlign: "left", fontSize: 10 }}>{t.groups_player}</th>
-                      <th style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_wins_abbr}</th>
-                      <th style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_losses_abbr}</th>
-                      <th style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 60 }}>{t.common_points}</th>
+                      <th scope="col" style={{ padding: "4px 8px", textAlign: "left", fontSize: 10, width: 30 }}>#</th>
+                      <th scope="col" style={{ padding: "4px 8px", textAlign: "left", fontSize: 10 }}>{t.groups_player}</th>
+                      <th scope="col" style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_wins_abbr}</th>
+                      <th scope="col" style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_losses_abbr}</th>
+                      <th scope="col" style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 60 }}>{t.common_points}</th>
                     </tr>
                   </thead>
                   <tbody>

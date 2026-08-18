@@ -507,7 +507,7 @@ export default function Players() {
           <table className="w-full text-sm">
             <thead>
               <tr className={`border-b ${theme.cardBorder} ${theme.headerGradient}`}>
-                <th className="w-10 px-3 py-3 text-center align-middle">
+                <th scope="col" className="w-10 px-3 py-3 text-center align-middle">
                   <input
                     type="checkbox"
                     checked={allFilteredSelected}
@@ -516,31 +516,31 @@ export default function Players() {
                     title={t.players_select_all}
                   />
                 </th>
-                <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide align-middle`}>
+                <th scope="col" className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide align-middle`}>
                   #
                 </th>
-                <th
+                <th scope="col"
                   onClick={() => toggleSort("first_name")}
                   className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide cursor-pointer select-none hover:opacity-80`}
                 >
                   {t.common_first_name} {sortKey === "first_name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
                 </th>
-                <th
+                <th scope="col"
                   onClick={() => toggleSort("last_name")}
                   className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide cursor-pointer select-none hover:opacity-80`}
                 >
                   {t.common_last_name} {sortKey === "last_name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
                 </th>
-                <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                <th scope="col" className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
                   {t.common_gender}
                 </th>
-                <th className={`text-center px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                <th scope="col" className={`text-center px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
                   {t.common_age}
                 </th>
-                <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                <th scope="col" className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
                   {t.common_club}
                 </th>
-                <th className={`text-right px-5 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                <th scope="col" className={`text-right px-5 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
                   {t.common_actions}
                 </th>
               </tr>
