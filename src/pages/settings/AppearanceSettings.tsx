@@ -4,6 +4,7 @@
 // Extracted from the 1483-line Settings page (REVIEW-BACKLOG.md D5).
 
 import { useTheme } from "../../lib/ThemeContext";
+import Icon from "../../components/ui/Icon";
 import { useT } from "../../lib/I18nContext";
 import type { Lang } from "../../lib/I18nContext";
 import {
@@ -57,7 +58,7 @@ export function ThemeSelector() {
                 </div>
                 {isActive && (
                   <span className="ml-auto text-sm font-bold" style={{ color: id === "dark" ? "#10b981" : preview }}>
-                    <span aria-hidden="true">✓</span>
+                    <Icon name="check" />
                   </span>
                 )}
               </button>

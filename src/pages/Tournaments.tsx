@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import Icon from "../components/ui/Icon";
 import { Link, useNavigate } from "react-router-dom";
 import { getTournaments, deleteTournament, updateTournamentStatus, createTournament, createPlayer, getPlayers, addPlayerToTournament, updateTeamConfig, updateHallConfig, isTauri, getSportstaetten, createSportstaette, updateTournamentVenueId } from "../lib/db";
 import { hallConfigTotalCourts } from "../lib/types";
@@ -407,7 +408,7 @@ export default function Tournaments() {
                 className={`text-[10px] font-bold uppercase tracking-wide border px-2 py-0.5 rounded-full ${styled}`}
                 title={s.name + suffix}
               >
-                <span aria-hidden="true">🔗</span> {s.name}{suffix}
+                <Icon name="link" /> {s.name}{suffix}
               </span>
             );
           })()}
@@ -429,7 +430,7 @@ export default function Tournaments() {
             className="text-muted hover:text-phase-text text-sm transition-colors"
             title={t.tournaments_archive_button}
           >
-            <span aria-hidden="true">📦</span> {t.tournaments_archive_button}
+            <Icon name="archive" /> {t.tournaments_archive_button}
           </button>
         )}
         {tr.status === "archived" && (
@@ -446,7 +447,7 @@ export default function Tournaments() {
           className="text-muted hover:text-danger-text text-sm transition-colors"
           title={t.tournaments_delete_title}
         >
-          <span aria-hidden="true">🗑</span>
+          <Icon name="trash" />
         </button>
       </div>
     </div>
@@ -476,7 +477,7 @@ export default function Tournaments() {
                   : `${theme.cardBg} ${theme.cardBorder} ${theme.textSecondary} hover:border-phase`
               }`}
             >
-              <span aria-hidden="true">📦</span> {t.tournaments_archive} ({archivedTournaments.length})
+              <Icon name="archive" /> {t.tournaments_archive} ({archivedTournaments.length})
             </button>
           )}
           <input
@@ -490,14 +491,14 @@ export default function Tournaments() {
             onClick={handleImportTemplate}
             className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium`}
           >
-            <span aria-hidden="true">📋</span> {t.tournaments_import}
+            <Icon name="clipboard" /> {t.tournaments_import}
           </button>
           <button
             onClick={handleNewTournament}
             disabled={creating}
             className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all text-sm font-medium disabled:opacity-50`}
           >
-            <span aria-hidden="true">🏆</span> {t.tournaments_new}
+            <Icon name="trophy" /> {t.tournaments_new}
           </button>
         </div>
       </div>
@@ -518,7 +519,7 @@ export default function Tournaments() {
       {showArchive && archivedTournaments.length > 0 && (
         <div className="mt-8">
           <h2 className={`text-lg font-bold ${theme.textPrimary} mb-3 flex items-center gap-2`}>
-            <span aria-hidden="true">📦</span> {t.tournaments_archive}
+            <Icon name="archive" /> {t.tournaments_archive}
           </h2>
           <div className="space-y-3">
             {archivedTournaments.map((tr) => renderTournamentCard(tr, true))}

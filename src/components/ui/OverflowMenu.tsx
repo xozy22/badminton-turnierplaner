@@ -9,6 +9,7 @@
 // (REVIEW-BACKLOG.md F3).
 
 import { useEffect, useRef, useState } from "react";
+import Icon from "../../components/ui/Icon";
 import { useT } from "../../lib/I18nContext";
 
 export interface OverflowItem {
@@ -58,7 +59,7 @@ export default function OverflowMenu({ items }: { items: OverflowItem[] }) {
         aria-label={t.common_more_actions}
         className="rounded-xl border border-line bg-surface px-3 py-2.5 text-sm font-medium text-secondary transition-all hover:border-accent-border"
       >
-        <span aria-hidden="true">⋯</span>
+        <Icon name="more" />
       </button>
 
       {open && (

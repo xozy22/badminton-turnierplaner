@@ -1,4 +1,5 @@
 import { useTimer } from "../../hooks/useTimer";
+import Icon from "../../components/ui/Icon";
 import { useTheme } from "../../lib/ThemeContext";
 import { useT } from "../../lib/I18nContext";
 import { loadSettings } from "../../lib/appSettings";
@@ -46,7 +47,7 @@ export function CourtTimer({ assignedAt, completed }: Props) {
           : ""
       }`}
     >
-      <span aria-hidden="true">⏱</span> {display || "00:00"}
+      <Icon name="clock" /> {display || "00:00"}
     </span>
   );
 }

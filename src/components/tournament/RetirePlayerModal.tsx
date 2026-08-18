@@ -1,4 +1,5 @@
 import type { Player } from "../../lib/types";
+import Icon from "../../components/ui/Icon";
 import { playerDisplayName } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
 import Modal, { ModalCancelButton, ModalConfirmButton } from "../ui/Modal";
@@ -33,7 +34,7 @@ export default function RetirePlayerModal({
             }}
             tone="danger"
           >
-            <span aria-hidden="true">🏥</span> {t.retire_confirm}
+            <Icon name="medical" /> {t.retire_confirm}
           </ModalConfirmButton>
         </>
       }
@@ -49,7 +50,7 @@ export default function RetirePlayerModal({
           <p className="mt-2 text-xs text-muted">{t.retire_details}</p>
           {retireTarget.partnerNote && (
             <p className="mt-2 text-xs font-medium text-warning-text">
-              <span aria-hidden="true">⚠️</span> {retireTarget.partnerNote}
+              <Icon name="alert" /> {retireTarget.partnerNote}
             </p>
           )}
         </div>

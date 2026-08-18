@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Icon from "../components/ui/Icon";
 import { Link, useNavigate } from "react-router-dom";
 import { getTournaments, getPlayers, createTournament, getSportstaetten } from "../lib/db";
 import type { Tournament, Player } from "../lib/types";
@@ -101,7 +102,7 @@ export default function Home() {
           to="/players"
           className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textPrimary} px-5 py-2.5 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all duration-200 text-sm font-medium`}
         >
-          <span aria-hidden="true">👥</span> {t.home_manage_players}
+          <Icon name="users" /> {t.home_manage_players}
         </Link>
         <button
           onClick={async () => {
@@ -127,7 +128,7 @@ export default function Home() {
           disabled={creating}
           className={`${theme.primaryBg} ${theme.primaryText} px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all duration-200 text-sm font-medium disabled:opacity-50`}
         >
-          <span aria-hidden="true">🏆</span> {t.home_new_tournament}
+          <Icon name="trophy" /> {t.home_new_tournament}
         </button>
       </div>
     </div>

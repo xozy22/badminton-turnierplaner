@@ -10,6 +10,7 @@
 // the v2.7.5 directory split.
 
 import React, { useRef } from "react";
+import Icon from "../../../components/ui/Icon";
 import type { ConflictPlayer } from "../../../lib/courtConflicts";
 import { CourtTimer } from "../../../components/courts/CourtTimer";
 import RestIndicator from "../../../components/players/RestIndicator";
@@ -278,7 +279,7 @@ export default function MatchCard({
       {/* Not started hint */}
       {notStarted && (
         <div className="text-xs text-warning-text bg-warning-subtle border border-warning rounded-lg px-3 py-1.5 mb-3 inline-block">
-          <span aria-hidden="true">⏳</span> {t.tournament_view_assign_court_first}
+          <Icon name="hourglass" /> {t.tournament_view_assign_court_first}
         </div>
       )}
 

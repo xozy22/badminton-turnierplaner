@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import Icon from "../components/ui/Icon";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   getPlayers,
@@ -831,13 +832,13 @@ export default function TournamentCreate() {
                     </select>
                     {selectedVenueId === "" && (
                       <p className="text-xs text-danger-text mt-1 font-medium">
-                        <span aria-hidden="true">⚠</span> {t.tournament_venue_required}
+                        <Icon name="alert" /> {t.tournament_venue_required}
                       </p>
                     )}
                     {sportstaetten.length === 0 && (
                       <div className={`mt-2 ${theme.cardBg} border border-warning rounded-xl px-3 py-2 text-xs ${theme.textSecondary}`}>
                         <p className="font-medium text-warning-text mb-1">
-                          <span aria-hidden="true">⚠</span> {t.tournament_venue_no_venues_title}
+                          <Icon name="alert" /> {t.tournament_venue_no_venues_title}
                         </p>
                         <p>{t.tournament_venue_no_venues_message}</p>
                         <button
@@ -855,7 +856,7 @@ export default function TournamentCreate() {
                   {sessions.length > 0 && (
                     <div>
                       <label className={`block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`}>
-                        <span aria-hidden="true">🔗</span> {t.tournament_create_session_label}
+                        <Icon name="link" /> {t.tournament_create_session_label}
                       </label>
                       <select
                         value={selectedSessionId}
@@ -1057,7 +1058,7 @@ export default function TournamentCreate() {
                   className="rounded accent-emerald-600"
                 />
                 <div>
-                  <span className={`text-sm font-medium ${theme.textPrimary}`}><span aria-hidden="true">🎯</span> {t.tournament_seeding_enable}</span>
+                  <span className={`text-sm font-medium ${theme.textPrimary}`}><Icon name="target" /> {t.tournament_seeding_enable}</span>
                   <p className={`text-xs ${theme.textMuted}`}>{t.tournament_seeding_hint}</p>
                 </div>
               </div>
@@ -1088,7 +1089,7 @@ export default function TournamentCreate() {
                 className="rounded accent-emerald-600 mt-1"
               />
               <div className="flex-1">
-                <span className={`text-sm font-medium ${theme.textPrimary}`}><span aria-hidden="true">⏱️</span> {t.tournament_min_rest_enable}</span>
+                <span className={`text-sm font-medium ${theme.textPrimary}`}><Icon name="clock" /> {t.tournament_min_rest_enable}</span>
                 <p className={`text-xs ${theme.textMuted}`}>{t.tournament_min_rest_hint}</p>
                 {useMinRest && (
                   <div className="mt-3">
@@ -1184,7 +1185,7 @@ export default function TournamentCreate() {
                     onClick={() => setShowExcelImport(true)}
                     className={`${theme.primaryBg} text-white text-xs px-3 py-1.5 rounded-lg ${theme.primaryHoverBg} transition-colors font-medium`}
                   >
-                    <span aria-hidden="true">📥</span> {t.common_import}
+                    <Icon name="download" /> {t.common_import}
                   </button>
                   <button
                     onClick={selectAllFiltered}
@@ -1213,14 +1214,14 @@ export default function TournamentCreate() {
                     className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl pl-9 pr-4 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                   />
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm">
-                    <span aria-hidden="true">🔍</span>
+                    <Icon name="search" />
                   </span>
                   {search && (
                     <button
                       onClick={() => setSearch("")}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-secondary text-xs"
                     >
-                      <span aria-hidden="true">✕</span>
+                      <Icon name="x" />
                     </button>
                   )}
                 </div>
@@ -1465,7 +1466,7 @@ export default function TournamentCreate() {
                   const label = isFixed ? t.tournament_entry_fee_per_team : t.tournament_entry_fee_per_person;
                   return `${amount} EUR (${label.replace(" (EUR)", "")})`;
                 })() : "—"}</div>
-                <div><span className={`font-medium ${theme.textPrimary}`}><span aria-hidden="true">⏱️</span> {t.tournament_min_rest_label}:</span> {useMinRest && Number(minRestMinutes) > 0 ? `${Number(minRestMinutes) || 0} ${t.tournament_min_rest_unit}` : "—"}</div>
+                <div><span className={`font-medium ${theme.textPrimary}`}><Icon name="clock" /> {t.tournament_min_rest_label}:</span> {useMinRest && Number(minRestMinutes) > 0 ? `${Number(minRestMinutes) || 0} ${t.tournament_min_rest_unit}` : "—"}</div>
               </div>
             </div>
 

@@ -15,6 +15,7 @@
 // /sessions/:id/live route, parallel to /tv/:id).
 
 import { useEffect, useMemo, useState } from "react";
+import Icon from "../components/ui/Icon";
 import { formatDateTime } from "../lib/datetime";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getSession } from "../lib/sessions";
@@ -215,7 +216,7 @@ export default function SessionDashboard() {
       )}
       {session.status === "archived" && (
         <div className="bg-surface-sunken text-secondary border-b border-line-strong px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
-          <span aria-hidden="true">📦</span> {t.session_dashboard_archived_banner}
+          <Icon name="archive" /> {t.session_dashboard_archived_banner}
         </div>
       )}
 
@@ -231,10 +232,10 @@ export default function SessionDashboard() {
             </Link>
           </div>
           <h1 className="text-xl font-extrabold tracking-tight mt-1">
-            <span aria-hidden="true">🔗</span> {session.name}
+            <Icon name="link" /> {session.name}
           </h1>
           <p className="text-sm text-white/80">
-            <span aria-hidden="true">🏟️</span> {venue?.name ?? "—"} · {ctx.tournaments.length} {t.tournaments_title.toLowerCase()}
+            <Icon name="building" /> {venue?.name ?? "—"} · {ctx.tournaments.length} {t.tournaments_title.toLowerCase()}
           </p>
         </div>
         <div className="text-right">
@@ -320,7 +321,7 @@ export default function SessionDashboard() {
         <section>
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
             <h2 className={`text-lg font-bold ${theme.textPrimary}`}>
-              <span aria-hidden="true">⏳</span> {t.session_dashboard_queue_section} ({queue.length})
+              <Icon name="hourglass" /> {t.session_dashboard_queue_section} ({queue.length})
             </h2>
             <div className="flex flex-wrap gap-1.5">
               <button
@@ -365,7 +366,7 @@ export default function SessionDashboard() {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h3 className={`font-semibold text-sm ${theme.textPrimary}`}>
-                        <span aria-hidden="true">🏆</span> {tName}
+                        <Icon name="trophy" /> {tName}
                       </h3>
                       <span className={`text-xs ${theme.textMuted}`}>
                         {ms.length} wartend
@@ -403,7 +404,7 @@ export default function SessionDashboard() {
         {/* --- RECENT --- */}
         <section>
           <h2 className={`text-lg font-bold ${theme.textPrimary} mb-3`}>
-            <span aria-hidden="true">✓</span> {t.session_dashboard_recent_section}
+            <Icon name="check" /> {t.session_dashboard_recent_section}
           </h2>
           {recent.length === 0 ? (
             <p className={`text-sm ${theme.textMuted} italic`}>

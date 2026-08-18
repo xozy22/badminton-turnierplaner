@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Icon from "../components/ui/Icon";
 import { loadSettings, saveSettings, syncSettingsFromDb, type AppSettings } from "../lib/appSettings";
 import { wipeAllPlayers, wipeAllTournaments, wipeEntireDatabase, isTauri } from "../lib/db";
 import { useTheme } from "../lib/ThemeContext";
@@ -264,7 +265,7 @@ export default function Settings() {
               tournament now requires a venue, and halls come from there. */}
           <div>
             <label className={`block text-xs font-medium ${theme.textSecondary} mb-3 uppercase tracking-wide`}>
-              <span aria-hidden="true">⏱</span> {t.settings_timer_thresholds}
+              <Icon name="clock" /> {t.settings_timer_thresholds}
             </label>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -340,7 +341,7 @@ export default function Settings() {
                 onClick={handleOpenFolder}
                 className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium whitespace-nowrap`}
               >
-                <span aria-hidden="true">📂</span> {t.settings_db_open}
+                <Icon name="folder" /> {t.settings_db_open}
               </button>
             )}
           </div>
@@ -374,13 +375,13 @@ export default function Settings() {
                 onClick={handleBackup}
                 className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium"
               >
-                <span aria-hidden="true">💾</span> {t.settings_backup_create}
+                <Icon name="save" /> {t.settings_backup_create}
               </button>
               <button
                 onClick={handleRestore}
                 className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl hover:border-warning hover:text-warning-text transition-all text-sm font-medium`}
               >
-                <span aria-hidden="true">📥</span> {t.settings_backup_restore}
+                <Icon name="download" /> {t.settings_backup_restore}
               </button>
             </div>
             <div className="text-xs text-muted leading-relaxed">

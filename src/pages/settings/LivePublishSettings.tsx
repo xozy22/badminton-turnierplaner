@@ -4,6 +4,7 @@
 // Extracted from the 1483-line Settings page (REVIEW-BACKLOG.md D5).
 
 import { useEffect, useState } from "react";
+import Icon from "../../components/ui/Icon";
 import { usePolling } from "../../lib/usePolling";
 import { getAppSetting, setAppSetting } from "../../lib/db";
 import { useTheme } from "../../lib/ThemeContext";
@@ -181,9 +182,9 @@ export function LivePublishSettings() {
           </div>
           {statuses.length > 0 ? (
             <div className={`text-xs ${theme.textSecondary} mb-2`}>
-              {okCount > 0 && <span className="text-emerald-600"><span aria-hidden="true">✓</span> {okCount} OK</span>}
+              {okCount > 0 && <span className="text-emerald-600"><Icon name="check" /> {okCount} OK</span>}
               {okCount > 0 && errCount > 0 && <span> / </span>}
-              {errCount > 0 && <span className="text-danger-text"><span aria-hidden="true">✗</span> {errCount} Fehler</span>}
+              {errCount > 0 && <span className="text-danger-text"><Icon name="x" /> {errCount} Fehler</span>}
             </div>
           ) : (
             <div className={`text-xs ${theme.textMuted}`}>
@@ -309,10 +310,10 @@ export function PushLogPanel() {
                     </td>
                     <td className={`px-2 py-1 text-right font-mono`}>
                       {e.ok ? (
-                        <span className="text-emerald-600"><span aria-hidden="true">✓</span> {e.status ?? ""}</span>
+                        <span className="text-emerald-600"><Icon name="check" /> {e.status ?? ""}</span>
                       ) : (
                         <span className="text-danger-text" title={e.error}>
-                          <span aria-hidden="true">✗</span> {(e.error ?? "").slice(0, 30)}
+                          <Icon name="x" /> {(e.error ?? "").slice(0, 30)}
                         </span>
                       )}
                     </td>

@@ -4,6 +4,7 @@
 // Extracted from the 1483-line Settings page (REVIEW-BACKLOG.md D5).
 
 import { useState } from "react";
+import Icon from "../../components/ui/Icon";
 import { useTheme } from "../../lib/ThemeContext";
 import { useT } from "../../lib/I18nContext";
 
@@ -95,7 +96,7 @@ export function UpdateChecker() {
 
       {status === "uptodate" && (
         <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl px-4 py-3 text-sm">
-          <span aria-hidden="true">✅</span> {t.settings_up_to_date.replace("{version}", currentVersion)}
+          <Icon name="check" /> {t.settings_up_to_date.replace("{version}", currentVersion)}
         </div>
       )}
 

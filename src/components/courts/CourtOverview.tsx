@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import Icon from "../../components/ui/Icon";
 import type { Match, HallConfig, Round, TournamentStatus } from "../../lib/types";
 import { getCourtHallLabel } from "../../lib/types";
 import type { ConflictPlayer } from "../../lib/courtConflicts";
@@ -399,7 +400,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
               </span>
               {isBlocked && (
                 <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-danger-text">
-                  <span aria-hidden="true">🚫</span>
+                  <Icon name="ban" />
                   <span>{t.match_blocked_short}</span>
                 </div>
               )}
@@ -422,7 +423,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
                     .replace("{team2}", teamLabel(m.team2_p1, m.team2_p2))}
                   className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-lg border border-line-strong px-2 py-1 text-[10px] font-medium text-secondary transition-all hover:border-accent hover:text-accent"
                 >
-                  <span aria-hidden="true">⊕</span>
+                  <Icon name="plus" />
                   {t.court_assign}
                 </button>
               )}

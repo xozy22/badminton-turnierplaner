@@ -10,6 +10,7 @@
 // this modal is purely presentational over that pre-built data.
 
 import type { Round, TournamentPhase } from "../../../../lib/types";
+import Icon from "../../../../components/ui/Icon";
 import type { ThemeColors } from "../../../../lib/theme";
 import { useT } from "../../../../lib/I18nContext";
 
@@ -68,7 +69,7 @@ export default function UndoRoundModal({
             <li>• {t.tournament_view_undo_match_count.replace("{n}", String(target.matchCount))}</li>
             {target.completedCount > 0 && (
               <li className="text-warning-text dark:text-warning-text font-medium">
-                • {t.tournament_view_undo_completed_count.replace("{n}", String(target.completedCount))} <span aria-hidden="true">⚠</span>
+                • {t.tournament_view_undo_completed_count.replace("{n}", String(target.completedCount))} <Icon name="alert" />
               </li>
             )}
             {target.setCount > 0 && (
@@ -76,7 +77,7 @@ export default function UndoRoundModal({
             )}
             {target.activeOnCourtCount > 0 && (
               <li className="text-warning-text dark:text-warning-text font-medium">
-                • {t.tournament_view_undo_active_count.replace("{n}", String(target.activeOnCourtCount))} <span aria-hidden="true">⚠</span>
+                • {t.tournament_view_undo_active_count.replace("{n}", String(target.activeOnCourtCount))} <Icon name="alert" />
               </li>
             )}
           </ul>

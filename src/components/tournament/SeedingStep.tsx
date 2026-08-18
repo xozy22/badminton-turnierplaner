@@ -1,4 +1,5 @@
 import type { ThemeColors } from "../../lib/theme";
+import Icon from "../../components/ui/Icon";
 import type { Player } from "../../lib/types";
 import { playerDisplayName } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
@@ -59,7 +60,7 @@ export default function SeedingStep({
     <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 space-y-5`}>
       <div>
         <h2 className={`font-semibold ${theme.textPrimary} mb-1`}>
-          <span aria-hidden="true">🎯</span> {t.seeding_title}
+          <Icon name="target" /> {t.seeding_title}
         </h2>
         <p className={`text-xs ${theme.textMuted}`}>
           {t.seeding_description}

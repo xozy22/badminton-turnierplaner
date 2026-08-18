@@ -11,6 +11,7 @@
 // and multi-hall layout all stay in sync without re-implementing logic.
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import Icon from "../components/ui/Icon";
 import { onDataChanged } from "../lib/changeEvents";
 import { usePolling } from "../lib/usePolling";
 import { useParams } from "react-router-dom";
@@ -595,7 +596,7 @@ export default function TvMode() {
             )}
           </div>
           <span className="text-sm font-mono font-bold text-warning-text">
-            <span aria-hidden="true">⏱</span> {formatTimer(match.court_assigned_at)}
+            <Icon name="clock" /> {formatTimer(match.court_assigned_at)}
           </span>
         </div>
 

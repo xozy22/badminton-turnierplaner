@@ -737,24 +737,22 @@ Die Sidebar war bereits einklappbar; der TV-Modus bleibt eine eigene Ansicht, we
 
 ---
 
-### [~] F10 — Emojis als Icon-System — **Navigation auf SVG, Rest für Screenreader ausgeblendet**
-**Schwere:** niedrig · **Aufwand:** M · **Dateien:** `src/components/ui/Icon.tsx` (neu), `src/components/layout/Sidebar.tsx`, 30 weitere Dateien
+### [x] F10 — Emojis als Icon-System — **erledigt**
+**Schwere:** niedrig · **Aufwand:** M · **Dateien:** `src/components/ui/Icon.tsx` (neu), 32 weitere Dateien
 
 **Problem:** 66 verschiedene Emojis in 332 Vorkommen dienten als Icons. Darstellung, Größe und Grundlinie unterscheiden sich je nach Betriebssystem und Schriftart, Farbanpassung ans Theme ist unmöglich, und ein Screenreader liest sie mit — „Rakete Turnier starten".
 
 **Umgesetzt:**
 
-*Ein Icon-Set.* `src/components/ui/Icon.tsx` enthält 25 Symbole als Inline-SVG in der Lucide-Geometrie (24×24, 2 px Strich). Bewusst kein Icon-Paket: Die Formen kosten zusammen rund drei Kilobyte, nehmen über `currentColor` die Themefarbe an und ersparen einer Desktop-Anwendung eine weitere Abhängigkeit. Ohne `label` ist ein Icon automatisch `aria-hidden`; nur wenn es allein in einem Bedienelement steht, bekommt es über `label` einen Namen.
+*Ein Icon-Set.* `src/components/ui/Icon.tsx` enthält 34 Symbole als Inline-SVG in der Lucide-Geometrie (24×24, 2 px Strich). Bewusst kein Icon-Paket: Die Formen kosten zusammen wenige Kilobyte, nehmen über `currentColor` die Themefarbe an und ersparen einer Desktop-Anwendung eine weitere Abhängigkeit. Ohne `label` ist ein Icon automatisch `aria-hidden`; steht es allein in einem Bedienelement, gibt `label` ihm einen Namen.
 
-*Die Navigation* nutzt sie — sieben Einträge plus Einstellungen, jetzt mit einheitlicher Strichstärke und gemeinsamer Grundlinie, in der Farbe des jeweiligen Zustands.
+*230 Emojis ersetzt oder ausgeblendet* — 122 zuerst in `aria-hidden`-Elemente gefasst, davon 108 anschließend durch Icons ersetzt, verteilt über 32 Dateien: Navigation, Kopfleisten, Knöpfe, Menüeinträge, Statuszeilen.
 
-*122 dekorative Emojis* in 30 Dateien stehen jetzt in `aria-hidden`-Elementen. Ein Knopf heißt für den Screenreader „Turnier starten" statt „Rakete Turnier starten".
+*Was bewusst Emoji bleibt:* der Federball als Markenzeichen, Medaillen und Podestränge (dort trägt die Farbe die Bedeutung), die Geschlechtssymbole und die farbigen Statusquadrate. Ein einfarbiger Strich würde dort Information verlieren, nicht Klarheit gewinnen.
 
-**Dabei aufgefallen:** Vier Bedienelemente bestanden **nur** aus einem Emoji — drei Schließen-Knöpfe in Dialogen und die Dashboard-Verknüpfung auf der Sportstättenseite. Sie zu verbergen hätte sie namenlos gemacht; sie haben jetzt ein `aria-label`. Eine Prüfung über alle Seiten und den Quelltext bestätigt: kein Bedienelement ohne zugänglichen Namen.
+**Dabei aufgefallen:** Vier Bedienelemente bestanden **nur** aus einem Emoji — drei Schließen-Knöpfe in Dialogen und die Dashboard-Verknüpfung auf der Sportstättenseite. Sie zu verbergen hätte sie namenlos gemacht; sie haben jetzt ein `aria-label`. Über alle Seiten und im Quelltext geprüft: kein Bedienelement ohne zugänglichen Namen.
 
-**Was fehlt:** Die Emojis in den übrigen Knöpfen sind ausgeblendet, aber noch nicht durch SVG ersetzt. Für Screenreader ist das gelöst; die uneinheitliche Darstellung zwischen Betriebssystemen bleibt, bis die restlichen Knöpfe auf `Icon` umgestellt sind — mechanische Arbeit über rund 30 Dateien.
-
-**Fertig wenn:** Alle Knöpfe und Navigationselemente verwenden SVG-Icons; verbliebene Emojis sind für Screenreader ausgeblendet — der zweite Teil ist erfüllt, der erste für die Navigation.
+**Fertig wenn:** ~~Alle Knöpfe und Navigationselemente verwenden SVG-Icons; verbliebene Emojis sind für Screenreader ausgeblendet~~ — erfüllt. Startbundle unverändert bei 264 KB.
 
 ---
 

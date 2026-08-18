@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Icon from "../../components/ui/Icon";
 import type { ThemeColors } from "../../lib/theme";
 import type { Tournament, Player, Sportstaette, HallConfig } from "../../lib/types";
 import { playerDisplayName, parseHallConfig, hallConfigTotalCourts } from "../../lib/types";
@@ -84,20 +85,20 @@ export default function TemplateExportModal({
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
-        <h3 className={`text-lg font-bold ${theme.textPrimary} mb-4`}><span aria-hidden="true">📋</span> {t.template_export_title}</h3>
+        <h3 className={`text-lg font-bold ${theme.textPrimary} mb-4`}><Icon name="clipboard" /> {t.template_export_title}</h3>
         <p className={`text-sm ${theme.textSecondary} mb-4`}>{t.template_export_description}</p>
         <div className="space-y-3 mb-5">
           <label className={`flex items-center gap-3 p-3 rounded-xl border ${theme.cardBorder} ${templateInclude.settings ? theme.selectedBg : ''} cursor-pointer`}>
             <input type="checkbox" checked={templateInclude.settings} onChange={(e) => setTemplateInclude((p) => ({ ...p, settings: e.target.checked }))} className="rounded accent-emerald-600" />
             <div>
-              <div className={`text-sm font-medium ${theme.textPrimary}`}><span aria-hidden="true">⚙️</span> {t.template_settings}</div>
+              <div className={`text-sm font-medium ${theme.textPrimary}`}><Icon name="settings" /> {t.template_settings}</div>
               <div className={`text-xs ${theme.textMuted}`}>{t.template_settings_desc}</div>
             </div>
           </label>
           <label className={`flex items-center gap-3 p-3 rounded-xl border ${theme.cardBorder} ${templateInclude.players ? theme.selectedBg : ''} cursor-pointer`}>
             <input type="checkbox" checked={templateInclude.players} onChange={(e) => setTemplateInclude((p) => ({ ...p, players: e.target.checked, teams: e.target.checked ? p.teams : false }))} className="rounded accent-emerald-600" />
             <div>
-              <div className={`text-sm font-medium ${theme.textPrimary}`}><span aria-hidden="true">👥</span> {t.template_players.replace("{count}", String(players.length))}</div>
+              <div className={`text-sm font-medium ${theme.textPrimary}`}><Icon name="users" /> {t.template_players.replace("{count}", String(players.length))}</div>
               <div className={`text-xs ${theme.textMuted}`}>{t.template_players_desc}</div>
             </div>
           </label>
@@ -119,7 +120,7 @@ export default function TemplateExportModal({
         {templateInclude.settings && exportVenue && (
           <div className={`mb-5 px-3 py-2 rounded-xl border border-phase bg-phase-subtle`}>
             <div className="text-[10px] font-bold uppercase tracking-wide text-phase-text mb-0.5">
-              <span aria-hidden="true">🏟</span> {t.template_export_venue_label}
+              <Icon name="building" /> {t.template_export_venue_label}
             </div>
             <div className="text-sm font-medium text-violet-900 truncate">
               {exportVenue.name}
@@ -134,7 +135,7 @@ export default function TemplateExportModal({
         )}
         {templateInclude.settings && !exportVenue && (
           <div className={`mb-5 px-3 py-2 rounded-xl border border-warning bg-warning-subtle text-xs text-warning-text`}>
-            <span aria-hidden="true">⚠</span> {t.template_export_venue_missing}
+            <Icon name="alert" /> {t.template_export_venue_missing}
           </div>
         )}
         <div className="flex gap-3">
@@ -239,7 +240,7 @@ export default function TemplateExportModal({
             }}
             className={`flex-1 ${theme.primaryBg} text-white px-4 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium`}
           >
-            <span aria-hidden="true">📥</span> {t.template_export_button}
+            <Icon name="download" /> {t.template_export_button}
           </button>
         </div>
       </div>

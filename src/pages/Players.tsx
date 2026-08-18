@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import Icon from "../components/ui/Icon";
 import { getPlayers, createPlayer, updatePlayer, removePlayer, restorePlayer, isTauri } from "../lib/db";
 // exceljs is ~800 KB; it loads when someone actually exports
 // (REVIEW-BACKLOG.md E1).
@@ -323,13 +324,13 @@ export default function Players() {
             disabled={players.length === 0}
             className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed`}
           >
-            <span aria-hidden="true">📤</span> {t.common_export}
+            <Icon name="upload" /> {t.common_export}
           </button>
           <button
             onClick={() => setShowImport(true)}
             className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium`}
           >
-            <span aria-hidden="true">📥</span> {t.common_import}
+            <Icon name="download" /> {t.common_import}
           </button>
         </div>
       </div>
@@ -473,7 +474,7 @@ export default function Players() {
                 onClick={handleDeleteSelected}
                 className="bg-danger/10 text-danger-text border border-rose-500/20 px-3 py-1.5 rounded-lg hover:bg-danger/20 transition-all text-xs font-medium"
               >
-                <span aria-hidden="true">🗑</span> {t.players_delete_selected}
+                <Icon name="trash" /> {t.players_delete_selected}
               </button>
               <button
                 onClick={() => setSelectedIds(new Set())}

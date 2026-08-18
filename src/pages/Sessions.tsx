@@ -11,6 +11,7 @@
 // tournaments at that venue). Each row links to manage + dashboard.
 
 import { useEffect, useMemo, useState } from "react";
+import Icon from "../components/ui/Icon";
 import { formatDateTime } from "../lib/datetime";
 import { Link, useNavigate } from "react-router-dom";
 import { getSessions, createSession, updateSessionStatus, deleteSession, attachTournamentToSession, getSessionEndStats } from "../lib/sessions";
@@ -214,7 +215,7 @@ export default function Sessions() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className={`text-2xl font-extrabold ${theme.textPrimary} tracking-tight`}>
-            <span aria-hidden="true">🔗</span> {t.sessions_title}
+            <Icon name="link" /> {t.sessions_title}
           </h1>
           <p className={`text-sm ${theme.textSecondary} mt-0.5`}>
             {t.sessions_subtitle}
@@ -279,7 +280,7 @@ export default function Sessions() {
                     {s.name}
                   </h3>
                   <p className={`text-xs ${theme.textMuted} truncate`}>
-                    <span aria-hidden="true">🏟️</span> {venueName(s.venue_id)}
+                    <Icon name="building" /> {venueName(s.venue_id)}
                   </p>
                 </div>
                 <span
@@ -299,7 +300,7 @@ export default function Sessions() {
                   </div>
                 )}
                 <div>
-                  <span aria-hidden="true">🏆</span> {t.session_detail_attached_count.replace("{count}", String(tCount))}
+                  <Icon name="trophy" /> {t.session_detail_attached_count.replace("{count}", String(tCount))}
                 </div>
               </div>
 
@@ -308,13 +309,13 @@ export default function Sessions() {
                   to={`/sessions/${s.id}/live`}
                   className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-lg text-xs font-semibold transition-all`}
                 >
-                  <span aria-hidden="true">📺</span> {t.sessions_open_dashboard}
+                  <Icon name="monitor" /> {t.sessions_open_dashboard}
                 </Link>
                 <Link
                   to={`/sessions/${s.id}`}
                   className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} ${theme.cardHoverBorder} px-3 py-1.5 rounded-lg text-xs font-medium transition-all`}
                 >
-                  <span aria-hidden="true">⚙️</span> {t.sessions_manage}
+                  <Icon name="settings" /> {t.sessions_manage}
                 </Link>
                 {s.status === "active" && (
                   <button
@@ -353,7 +354,7 @@ export default function Sessions() {
                   className={`text-xs ${theme.textMuted} hover:text-danger-text px-2 py-1.5 transition-colors ml-auto`}
                   title={t.sessions_delete}
                 >
-                  <span aria-hidden="true">🗑</span>
+                  <Icon name="trash" />
                 </button>
               </div>
             </div>
@@ -533,16 +534,16 @@ export default function Sessions() {
               </p>
             ) : endStats.activeTournaments.length === 0 ? (
               <div className="border border-emerald-200 bg-emerald-50 rounded-xl px-3 py-2 mb-4 text-xs text-emerald-700">
-                <span aria-hidden="true">✓</span> {t.sessions_end_stats_none}
+                <Icon name="check" /> {t.sessions_end_stats_none}
               </div>
             ) : (
               <div className="border border-warning bg-warning-subtle rounded-xl px-3 py-2 mb-4">
                 <div className="text-[10px] font-bold uppercase tracking-wide text-warning-text mb-1">
-                  <span aria-hidden="true">⚠</span> {t.sessions_end_stats_title}
+                  <Icon name="alert" /> {t.sessions_end_stats_title}
                 </div>
                 <ul className="text-xs text-warning-text space-y-0.5 pl-1">
                   <li>
-                    <span aria-hidden="true">🏆</span> {t.sessions_end_stats_active_tournaments.replace("{count}", String(endStats.activeTournaments.length))}
+                    <Icon name="trophy" /> {t.sessions_end_stats_active_tournaments.replace("{count}", String(endStats.activeTournaments.length))}
                   </li>
                   <li>
                     <span aria-hidden="true">🟩</span> {t.sessions_end_stats_on_court.replace("{count}", String(endStats.matchesOnCourt))}

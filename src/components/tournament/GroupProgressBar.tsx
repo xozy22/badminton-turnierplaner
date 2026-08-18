@@ -14,6 +14,7 @@
 // from src/lib/groupProgress.ts.
 
 import { useT } from "../../lib/I18nContext";
+import Icon from "../../components/ui/Icon";
 import { useTheme } from "../../lib/ThemeContext";
 import type { GroupProgress, GroupRoundProgress } from "../../lib/groupProgress";
 
@@ -81,7 +82,7 @@ export default function GroupProgressBar({ progress }: Props) {
                       title={t.group_progress_behind_tooltip}
                       aria-label={t.group_progress_behind_tooltip}
                     >
-                      <span aria-hidden="true">⚠</span>
+                      <Icon name="alert" />
                     </span>
                   )}
                   {done && <span className="ml-1 text-emerald-600">✓</span>}

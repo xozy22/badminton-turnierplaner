@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import Icon from "../components/ui/Icon";
 import { getTournaments, getPlayers, getAllMatchesWithTournament, getAllSetsFlat } from "../lib/db";
 import { calculateTournamentStats, calculateMatchStats, calculateCourtStats, calculatePlayerDemographics, calculatePlayerRankings } from "../lib/stats";
 import type { TournamentStats, MatchStats, CourtStats, DemoStats, PlayerRankingEntry } from "../lib/stats";
@@ -91,7 +92,7 @@ export default function Statistics() {
       <div>
         <div className="mb-8">
           <h1 className={`text-3xl font-extrabold ${theme.textPrimary} tracking-tight`}>
-            {t.stats_title} <span aria-hidden="true">📊</span>
+            {t.stats_title} <Icon name="chart" />
           </h1>
           <p className={`${theme.textSecondary} mt-1`}>{t.stats_subtitle}</p>
         </div>
@@ -125,7 +126,7 @@ export default function Statistics() {
       <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <h1 className={`text-3xl font-extrabold ${theme.textPrimary} tracking-tight`}>
-            {t.stats_title} <span aria-hidden="true">📊</span>
+            {t.stats_title} <Icon name="chart" />
           </h1>
           <p className={`${theme.textSecondary} mt-1`}>{t.stats_subtitle}</p>
         </div>

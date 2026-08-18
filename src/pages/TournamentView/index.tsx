@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import Icon from "../../components/ui/Icon";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import PrintDialog from "../../components/print/PrintDialog";
 import OverflowMenu from "../../components/ui/OverflowMenu";
@@ -1412,13 +1413,13 @@ export default function TournamentView() {
         <div className={`mb-3 ${theme.cardBg} border ${theme.cardBorder} rounded-2xl px-4 py-2 flex items-center justify-between flex-wrap gap-2 shadow-sm`}>
           <div className="flex items-center gap-3 flex-wrap">
             <span className={`text-xs font-bold uppercase tracking-wide border px-2 py-0.5 rounded-full ${pillClass}`}>
-              <span aria-hidden="true">🔗</span> {t.session_pill_label}{statusSuffix}
+              <Icon name="link" /> {t.session_pill_label}{statusSuffix}
             </span>
             <span className={`text-sm font-semibold ${theme.textPrimary}`}>
               {sessionMeta.name}
             </span>
             <span className={`text-xs ${theme.textMuted}`}>
-              · {sessionCtx.tournaments.length} <span aria-hidden="true">🏆</span>
+              · {sessionCtx.tournaments.length} <Icon name="trophy" />
             </span>
             {sessionSiblings.length > 0 && (
               <div className="flex items-center gap-1 flex-wrap ml-2">
@@ -1442,7 +1443,7 @@ export default function TournamentView() {
             onClick={() => navigate(`/sessions/${tournament.session_id}/live`)}
             className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} text-xs font-semibold px-3 py-1.5 rounded-lg transition-all`}
           >
-            <span aria-hidden="true">📺</span> {t.session_pill_open_dashboard} →
+            <Icon name="monitor" /> {t.session_pill_open_dashboard} →
           </button>
         </div>
         );
@@ -1524,7 +1525,7 @@ export default function TournamentView() {
                 title={tournament.current_phase !== "ready" ? t.tournament_view_not_started_hint : t.tournament_view_start}
                 className={`${theme.primaryBg} ${theme.primaryText} px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none`}
               >
-                <span aria-hidden="true">🚀</span> {t.tournament_view_start}
+                <Icon name="play" /> {t.tournament_view_start}
               </button>
             </>
           )}
@@ -1537,7 +1538,7 @@ export default function TournamentView() {
               onClick={() => setShowStartKoModal(true)}
               className="bg-phase text-white px-5 py-2.5 rounded-xl hover:bg-phase shadow-sm hover:shadow-md transition-all text-sm font-medium"
             >
-              <span aria-hidden="true">🏆</span> {t.tournament_view_start_ko}
+              <Icon name="trophy" /> {t.tournament_view_start_ko}
             </button>
           )}
           {canAdvanceOther && (
@@ -1576,7 +1577,7 @@ export default function TournamentView() {
               onClick={() => setShowReopenConfirm(true)}
               className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-emerald-300 hover:text-emerald-600 transition-all text-sm font-medium`}
             >
-              <span aria-hidden="true">🔓</span> {t.tournament_view_reopen}
+              <Icon name="unlock" /> {t.tournament_view_reopen}
             </button>
           )}
           {tournament.status === "completed" && (
@@ -1584,7 +1585,7 @@ export default function TournamentView() {
               onClick={handleArchive}
               className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-phase hover:text-phase-text transition-all text-sm font-medium`}
             >
-              <span aria-hidden="true">📦</span> {t.tournament_view_archive}
+              <Icon name="archive" /> {t.tournament_view_archive}
             </button>
           )}
           {/* Per-tournament Live publishing controls. Three UI states:
@@ -1635,7 +1636,7 @@ export default function TournamentView() {
                       : "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-success-subtle dark:hover:bg-emerald-900/50"
                   } border px-4 py-2.5 rounded-xl transition-all text-sm font-medium disabled:opacity-50`}
                 >
-                  <span aria-hidden="true">📡</span> {livePaused ? t.tournament_live_publish_paused_label : t.tournament_live_publish_active}
+                  <Icon name="radio" /> {livePaused ? t.tournament_live_publish_paused_label : t.tournament_live_publish_active}
                   <span className={`ml-2 px-1.5 py-0.5 rounded-md ${livePaused ? "bg-warning-subtle dark:bg-warning-subtle border-warning dark:border-warning/50" : "bg-success-subtle dark:bg-success-subtle border-success dark:border-success"} border text-[11px] font-mono opacity-90`}>
                     ID: {tournamentId}
                   </span>

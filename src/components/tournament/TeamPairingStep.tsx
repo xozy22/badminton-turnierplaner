@@ -1,4 +1,5 @@
 import type { ThemeColors } from "../../lib/theme";
+import Icon from "../../components/ui/Icon";
 import type { Player, TournamentMode } from "../../lib/types";
 import { playerDisplayName } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
@@ -152,7 +153,7 @@ export default function TeamPairingStep({
                     className="opacity-0 group-hover:opacity-100 text-xs text-danger-text hover:text-danger-text transition-all ml-2"
                     title={t.teams_remove_title}
                   >
-                    <span aria-hidden="true">✕</span>
+                    <Icon name="x" />
                   </button>
                 </div>
               );
@@ -164,12 +165,12 @@ export default function TeamPairingStep({
       {/* Status */}
       {poolPlayers.length > 0 && poolPlayers.length < 2 && (
         <div className={`text-xs ${theme.textMuted} mt-3`}>
-          <span aria-hidden="true">⚠️</span> {t.teams_player_leftover}
+          <Icon name="alert" /> {t.teams_player_leftover}
         </div>
       )}
       {poolPlayers.length === 0 && manualTeams.length > 0 && (
         <div className={`text-xs text-green-600 mt-3`}>
-          <span aria-hidden="true">✓</span> {t.teams_all_assigned}
+          <Icon name="check" /> {t.teams_all_assigned}
         </div>
       )}
     </div>
