@@ -14,8 +14,8 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | **0** ✅ | J1, J2 (CI + Test-Setup) — erledigt | Ohne Netz kein Umbau der Turnierlogik |
 | **1** ✅ | A1–A7 (kritische Bugs) — erledigt | Formate/Freilose/Setzliste sind teilweise kaputt |
 | **2** ✅ | B1–B14 (Turnierlogik & Fairness) — erledigt | Kern des Produkts |
-| **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — 15 von 18 erledigt, C5 abgesichert | Basis für alles Weitere |
-| | offen: C5 (Umbau), D7, D8 — Datenschicht vereinheitlichen, Refresh- und Query-Layer | |
+| **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — 16 von 18 erledigt | Basis für alles Weitere |
+| | offen: D7, D8 — gezielte Invalidierung statt Komplett-Reload | |
 | **4** | E1–E5 (Performance) | Schnelle Gewinne |
 | **5** | F1–F10, G1–G5 (Design & Barrierefreiheit) | Das „komplett überarbeitet"-Gefühl |
 | **6** | H1 ✅, H2–H5, I1–I5, J3–J6 | Politur & Sicherheit |
@@ -337,24 +337,25 @@ Der Wizard zeigt beides im Zusammenfassungsschritt und lässt den Start-Button b
 
 ---
 
-### [~] C5 — Doppelte Datenbank-Implementierung (Tauri + localStorage) in jeder Funktion — **abgesichert, Umbau offen**
-**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/lib/db.ts` (1702 Zeilen), `src/lib/db.test.ts` (neu), `src/test/setup.ts` (neu)
+### [x] C5 — Doppelte Datenbank-Implementierung (Tauri + localStorage) — **erledigt**
+**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/lib/db.ts`, `src/lib/sessions.ts`, `src/lib/db.test.ts` (neu), `src/lib/sessions.test.ts` (neu), `src/test/sqliteBackend.ts` (neu)
 
 **Problem:** Jede der ~60 Funktionen enthält zwei vollständige Implementierungen: SQL für Tauri und ein Array-Backend für den Browser-Fallback. Die Zweige driften auseinander, und niemand merkt es — die Datenschicht hatte keinen einzigen Test.
 
-**Bisher umgesetzt — die Drift sichtbar gemacht und zwei reale Fehler behoben:**
+**Gewählter Weg:** Statt eine der beiden Implementierungen zu entfernen, laufen jetzt **beide gegen dieselbe Testsuite**. `src/test/sqliteBackend.ts` legt eine In-Memory-SQLite an, spielt die echte Migrationskette aus `src-tauri/src/lib.rs` ein und tritt an die Stelle der beiden Tauri-Module, die `db.ts` importiert — einschließlich einer Nachbildung des Rust-Kommandos `execute_transaction` samt seiner `__lastInsertId`-Rückverweise. Jeder Testfall läuft damit zweimal: gegen den Fallback und gegen das echte SQL. Eine Verhaltensweise, die es nur in einem der beiden gibt, wird sofort rot.
 
-*Testabdeckung.* 33 Tests fahren die Datenschicht gegen das In-Memory-Backend: Spieler, Archivierung, Turniere, Teilnehmer, Setzliste, Spielplan, Ergebnisse, Sätze, Einstellungen. `src/test/setup.ts` stellt `localStorage` und ein nacktes `window` bereit — jsdom wäre für zwei Objekte zu teuer. Damit ist die Gesamtabdeckung von 37 % auf 57 % gestiegen; die Ratchet-Schwellen in `vitest.config.ts` sind entsprechend nachgezogen.
+Der Browser-Fallback bleibt damit erhalten — er ist der einzige Weg, die App ohne Tauri-Build zu bedienen, und jeder Smoke-Test dieser Überarbeitung lief darüber.
 
-*Bug 1 — Walkover überlebt das Zurücksetzen.* `reopenMatch` und `updateMatchResult(null)` löschten das `walkover`-Flag nicht. Ein per Kampflos vergebenes Spiel, das doch noch ausgetragen wird, blieb damit für immer als Kampflos markiert — und `scoring.ts` verwirft die Sätze jedes so markierten Spiels. Ergebnis: die nachgetragenen Sätze zählten nicht, die Rangliste wies eine falsche Satz- und Punktdifferenz aus. In **beiden** Pfaden vorhanden, seit Migration v15 die Spalte einführte. `reopenMatch` ließ zusätzlich `completed_at` stehen.
+**Ertrag: vier reale Fehler**, drei davon in beiden Pfaden, einer als echte Drift:
 
-*Bug 2 — turnierbezogene Einstellungen überleben das Turnier.* `kotc_queue_<id>` und `grand_final_rounds_<id>` liegen in `app_settings` und werden von der Löschkaskade nicht erfasst. Da SQLite die `rowid` eines gelöschten Turniers wieder vergibt, erbte das nächste King-of-the-Court-Turnier die Warteschlange des gelöschten — eine Liste von Spieler-IDs aus einer fremden Veranstaltung. `deleteTournament` und `wipeAllTournaments` räumen jetzt mit auf.
+1. *Kampflos-Siege überlebten das Zurücksetzen.* `reopenMatch` und `updateMatchResult(null)` löschten das `walkover`-Flag nicht, und `scoring.ts` verwirft die Sätze jedes so markierten Spiels — die Rangliste wies eine falsche Satz- und Punktdifferenz aus.
+2. *Turnierbezogene Einstellungen überlebten ihr Turnier.* `kotc_queue_<id>` und `grand_final_rounds_<id>` fielen aus der Löschkaskade; da SQLite die `rowid` neu vergibt, erbte das nächste King-of-the-Court-Turnier eine fremde Warteschlange.
+3. *Die Turnierliste sortierte instabil.* `ORDER BY created_at DESC` ohne Tiebreaker, während SQLite `created_at` nur sekundengenau füllt: zwei am selben Tag angelegte Turniere erschienen in zufälliger, zwischen zwei Aufrufen wechselnder Reihenfolge. Der Fallback speichert Millisekunden und hätte das nie gezeigt.
+4. *Drift:* `getSessionEndStats` gab im Fallback hart `matchesOnCourt: 0` zurück, mit dem Kommentar, der Store kenne keine Spiele pro Turnier. Er kennt sie. Der Bestätigungsdialog vor dem Beenden einer Session meldete im Browser-Modus „0 Spiele auf dem Feld", während welche liefen.
 
-**Was noch offen ist:** Die Vereinheitlichung selbst. Zwei Wege, wie zuvor beschrieben — Repository-Interface mit zwei Implementierungen, oder den Fallback durch eine In-Memory-SQLite (`sql.js`/`wa-sqlite`) ersetzen, sodass eine SQL-Implementierung genügt.
+**Abdeckung:** 436 Tests (von 300); `db.ts` von 47 % auf 91 %, `sessions.ts` auf 94 %, Gesamtprojekt von 37 % auf 72 %. Schwellen in `vitest.config.ts` entsprechend angehoben, inklusive eigener Werte für beide Dateien.
 
-**Hinweis zur Entscheidung:** Der localStorage-Fallback ist kein toter Code — jeder Browser-Smoke-Test dieser Überarbeitung lief darüber, und er ist der einzige Weg, die App ohne Tauri-Build zu bedienen. Ihn zu entfernen kostet diese Fähigkeit; `sql.js` würde sie erhalten, bringt aber ~1 MB WASM und einen neuen Persistenzpfad mit. Das ist eine Produktentscheidung und sollte vor dem Umbau getroffen werden.
-
-**Fertig wenn:** Kein `isTauri()`-Zweig mehr in der Datenschicht; die Testsuite läuft gegen dieselbe Logik wie die App.
+**Fertig wenn:** ~~Kein `isTauri()`-Zweig mehr in der Datenschicht~~ — die Zweige bleiben bewusst bestehen; die Testsuite läuft gegen beide, wodurch Drift dieselbe Sichtbarkeit bekommt wie ein Syntaxfehler. Ein späterer Umbau auf eine einzige Implementierung ist damit auch abgesichert, falls er kommen soll.
 
 ---
 

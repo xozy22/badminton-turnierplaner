@@ -512,19 +512,36 @@ export async function getVenueUsage(id: number): Promise<VenueUsage> {
   return { activeTournaments: tournaments, activeSessions: sessions };
 }
 
+/**
+ * Thrown when a venue still has tournaments or sessions attached.
+ *
+ * Carries the blockers as data rather than as a sentence: the message used
+ * to be hard-coded German and was shown verbatim to English users
+ * (REVIEW-BACKLOG.md H1). It stays readable for logs, but the UI builds
+ * its own text from `tournaments` and `sessions`.
+ */
+export class VenueInUseError extends Error {
+  tournaments: { id: number; name: string; status: string }[];
+  sessions: { id: number; name: string }[];
+
+  constructor(
+    tournaments: { id: number; name: string; status: string }[],
+    sessions: { id: number; name: string }[],
+  ) {
+    const names = [...tournaments, ...sessions].map((x) => x.name).join(", ");
+    super(`Venue is still in use by: ${names}`);
+    this.name = "VenueInUseError";
+    this.tournaments = tournaments;
+    this.sessions = sessions;
+  }
+}
+
 export async function deleteSportstaette(id: number): Promise<void> {
   // Defense in depth: even if the UI somehow misses the guard, the DB
-  // layer throws a typed error so the caller can surface it. The error
-  // message intentionally enumerates the blockers — easier to debug
-  // than a vague "in use" string.
+  // layer throws a typed error so the caller can surface it.
   const usage = await getVenueUsage(id);
   if (usage.activeTournaments.length > 0 || usage.activeSessions.length > 0) {
-    const tNames = usage.activeTournaments.map((t) => t.name).join(", ");
-    const sNames = usage.activeSessions.map((s) => s.name).join(", ");
-    const parts: string[] = [];
-    if (tNames) parts.push(`Turniere: ${tNames}`);
-    if (sNames) parts.push(`Sessions: ${sNames}`);
-    throw new Error(`Sportstaette wird verwendet von ${parts.join(" / ")}`);
+    throw new VenueInUseError(usage.activeTournaments, usage.activeSessions);
   }
   if (isTauri()) {
     const d = await getTauriDb();
@@ -550,14 +567,21 @@ function normalizeTournament(t: Tournament): Tournament {
 }
 
 export async function getTournaments(): Promise<Tournament[]> {
+  // `id DESC` is the tie-breaker, not decoration: SQLite fills created_at
+  // from datetime('now'), which is only accurate to the second, so two
+  // tournaments created in the same second sort arbitrarily — and not even
+  // stably between two calls. The fallback stores milliseconds and would
+  // never have shown it (REVIEW-BACKLOG.md C5).
   if (isTauri()) {
     const d = await getTauriDb();
-    const rows: Tournament[] = await d.select("SELECT * FROM tournaments ORDER BY created_at DESC");
+    const rows: Tournament[] = await d.select(
+      "SELECT * FROM tournaments ORDER BY created_at DESC, id DESC",
+    );
     return rows.map(normalizeTournament);
   }
   const store = loadStore();
   return [...store.tournaments]
-    .sort((a, b) => byNewest(a.created_at, b.created_at))
+    .sort((a, b) => byNewest(a.created_at, b.created_at) || b.id - a.id)
     .map(normalizeTournament);
 }
 

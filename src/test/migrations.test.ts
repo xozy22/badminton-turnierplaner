@@ -11,56 +11,15 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import {
+  readMigrations,
+  DatabaseSync,
+  type SqliteDb,
+} from "./sqliteBackend";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const LIB_RS = resolve(here, "../../src-tauri/src/lib.rs");
 
-interface RustMigration {
-  version: number;
-  description: string;
-  sql: string;
-}
-
-/** Pulls the Migration{...} literals out of the Rust source. */
-function parseMigrations(source: string): RustMigration[] {
-  // Drop whole-line Rust comments first: they may sit between the struct
-  // fields. SQL comments inside the string literals use `--`, so a
-  // line-anchored `//` never matches migration SQL.
-  const stripped = source
-    .split("\n")
-    .filter((line) => !line.trimStart().startsWith("//"))
-    .join("\n");
-
-  const re = /version:\s*(\d+)\s*,\s*description:\s*"([^"]*)"\s*,\s*sql:\s*"([\s\S]*?)"\s*,\s*kind:/g;
-  const out: RustMigration[] = [];
-  for (const m of stripped.matchAll(re)) {
-    out.push({ version: Number(m[1]), description: m[2], sql: m[3] });
-  }
-  return out;
-}
-
-/**
- * node:sqlite is available from Node 22.5 (flagged) and unflagged from
- * Node 23.4. Skip rather than fail on older runtimes so the suite stays
- * usable everywhere; CI pins a version that has it.
- */
-let DatabaseSync: (new (path: string) => SqliteDb) | null = null;
-type SqliteDb = {
-  exec(sql: string): void;
-  prepare(sql: string): { run(...params: unknown[]): unknown; all(...params: unknown[]): unknown[] };
-  close(): void;
-};
-
-try {
-  ({ DatabaseSync } = (await import("node:sqlite")) as unknown as {
-    DatabaseSync: new (path: string) => SqliteDb;
-  });
-} catch {
-  DatabaseSync = null;
-}
-
-const source = readFileSync(LIB_RS, "utf8");
-const migrations = parseMigrations(source);
+const migrations = readMigrations();
 
 describe("migration chain (parsed from src-tauri/src/lib.rs)", () => {
   it("finds every migration", () => {

@@ -18,10 +18,10 @@ export default defineConfig({
         // Global floor = slightly below the current state, so it acts as a
         // ratchet: coverage may not drop. Raise it as logic moves out of
         // the views into testable modules (REVIEW-BACKLOG.md D1/D2).
-        lines: 55,
-        functions: 58,
-        branches: 50,
-        statements: 55,
+        lines: 72,
+        functions: 70,
+        branches: 62,
+        statements: 70,
         // Modules with a real suite are held to a high bar — these must not
         // regress while the rest of the app gets reworked.
         "**/lib/scoring.ts": { lines: 95, functions: 95, branches: 78, statements: 95 },
@@ -31,6 +31,10 @@ export default defineConfig({
         "**/lib/datetime.ts": { lines: 95, functions: 100, branches: 85, statements: 90 },
         "**/lib/doubleElimination.ts": { lines: 90, functions: 90, branches: 80, statements: 90 },
         "**/lib/tournamentValidation.ts": { lines: 95, functions: 95, branches: 85, statements: 95 },
+        // Both backends of the data layer run the same suite (C5), so the
+        // bar here covers SQL and fallback alike.
+        "**/lib/db.ts": { lines: 90, functions: 88, branches: 80, statements: 88 },
+        "**/lib/sessions.ts": { lines: 95, functions: 100, branches: 72, statements: 90 },
       },
     },
   },

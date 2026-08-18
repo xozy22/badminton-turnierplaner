@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { getSportstaetten, createSportstaette, updateSportstaette, deleteSportstaette, getVenueUsage, isTauri } from "../lib/db";
+import { getSportstaetten, createSportstaette, updateSportstaette, deleteSportstaette, getVenueUsage, isTauri, VenueInUseError } from "../lib/db";
+import { fill } from "../lib/i18n/format";
 import type { VenueUsage } from "../lib/db";
 import { getSessions } from "../lib/sessions";
 import type { Sportstaette, HallConfig, Session } from "../lib/types";
@@ -218,7 +219,12 @@ export default function Sportstaetten() {
       // The DB-layer guard surfaces here when something changed between
       // the pre-flight check and the actual delete (rare but possible).
       console.error("deleteSportstaette failed:", err);
-      showError(String(err));
+      if (err instanceof VenueInUseError) {
+        const names = [...err.tournaments, ...err.sessions].map((x) => x.name).join(", ");
+        showError(fill(t.sportstaetten_in_use_error, { names }));
+      } else {
+        showError(String(err));
+      }
       setDeleteTarget(null);
       load();
     }

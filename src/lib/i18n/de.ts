@@ -979,6 +979,7 @@ export const de: Translations = {
   tournament_create_session_label: "Session",
   tournament_create_session_none: "Keine Session",
   tournament_create_session_hint: "Optional - bindet das Turnier in einen Multi-Turnier-Workspace ein.",
+  sportstaetten_in_use_error: "Sportstätte wird noch verwendet von: {names}",
   sportstaetten_active_sessions: "Aktive Sessions an dieser Sportstätte",
   sportstaetten_no_active_sessions: "Keine aktiven Sessions.",
   sportstaetten_start_session: "Session starten",

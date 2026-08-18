@@ -1008,6 +1008,7 @@ export interface Translations {
   tournament_create_session_label: string;
   tournament_create_session_none: string;
   tournament_create_session_hint: string;
+  sportstaetten_in_use_error: string;
   sportstaetten_active_sessions: string;
   sportstaetten_no_active_sessions: string;
   sportstaetten_start_session: string;
