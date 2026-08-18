@@ -1819,7 +1819,6 @@ export default function TournamentView() {
       {retireTarget && (
         <RetirePlayerModal
           retireTarget={retireTarget}
-          theme={theme}
           onClose={() => setRetireTarget(null)}
           onConfirm={handlePlayerRetire}
         />
@@ -1829,7 +1828,6 @@ export default function TournamentView() {
       {removeTarget && (
         <RemovePlayerModal
           target={removeTarget}
-          theme={theme}
           onClose={() => setRemoveTarget(null)}
           onConfirm={confirmRemovePlayer}
         />
@@ -1837,7 +1835,6 @@ export default function TournamentView() {
 
       <RestWarningModal
         warning={restWarning}
-        theme={theme}
         onCancel={() => setRestWarning(null)}
         onConfirm={async () => {
           const w = restWarning;
@@ -1870,7 +1867,6 @@ export default function TournamentView() {
 
       <ReopenConfirmModal
         open={showReopenConfirm}
-        theme={theme}
         onCancel={() => setShowReopenConfirm(false)}
         onConfirm={handleReopenTournament}
       />
@@ -1878,7 +1874,6 @@ export default function TournamentView() {
       <UnpublishModal
         open={showUnpublishConfirm}
         tournamentName={tournament.name}
-        theme={theme}
         onClose={() => setShowUnpublishConfirm(false)}
         onConfirm={handleUnpublish}
       />

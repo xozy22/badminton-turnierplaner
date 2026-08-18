@@ -653,12 +653,18 @@ Der TV-Modus hat seine Vier-Themes-Tabelle verloren und nutzt `--accent-bright` 
 
 ---
 
-### [ ] F5 — Kein gemeinsames Modal-Fundament
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/components/tournament/*Modal.tsx`, `src/pages/TournamentView/components/modals/*`
+### [~] F5 — Kein gemeinsames Modal-Fundament — **Fundament steht, 5 von 13 umgestellt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/components/ui/Modal.tsx` (neu), fünf Modal-Dateien
 
-**Problem:** Zwölf Modals, jedes mit eigenem Overlay-Markup. Kein Fokus-Trap, kein Fokus-Rückgabe beim Schließen, kein `role="dialog"`/`aria-modal`, kein Scroll-Lock des Hintergrunds, Escape nur vereinzelt (CourtContextMenu, SessionDetail). Größe, Abstände und Knopfreihenfolge variieren.
+**Problem:** Dreizehn Modals, jedes mit eigenem Overlay-Markup. Kein Fokus-Trap, keine Fokus-Rückgabe beim Schließen, kein `role="dialog"`/`aria-modal`, kein Scroll-Sperre im Hintergrund, Escape nur vereinzelt. Ein Nutzer mit Tastatur konnte aus dem Dialog heraus in eine Seite tabben, die er nicht sieht.
 
-**Fix:** `<Modal>`-Basiskomponente (Portal, Overlay, Fokus-Trap, Escape, Scroll-Lock, ARIA, einheitlicher Footer mit Abbrechen/Bestätigen) und alle Modals darauf umstellen.
+**Umgesetzt:** `src/components/ui/Modal.tsx` bringt alles an einer Stelle mit — Portal, Overlay, `role="dialog"` mit `aria-modal` und `aria-labelledby`, Fokus in den Dialog beim Öffnen und zurück zum auslösenden Element beim Schließen, umlaufender Tab-Fokus, Escape, gezählte Scroll-Sperre (damit ein Dialog über einem Dialog die Seite nicht vorzeitig freigibt) und ein Fußbereich mit einheitlicher Knopfreihenfolge. Ein Klick auf den Hintergrund schließt nur dort, wo das ungefährlich ist; bei destruktiven Dialogen ist das abgeschaltet.
+
+Dazu `ModalCancelButton` und `ModalConfirmButton` mit den Tönen `accent`, `danger`, `warning` und `phase`, damit Knopfreihenfolge und Farbgebung nicht mehr je Dialog variieren.
+
+**Umgestellt:** `RemovePlayerModal`, `RetirePlayerModal`, `ReopenConfirmModal`, `UnpublishModal`, `RestWarningModal`. Alle fünf im Browser geprüft: Rolle und Beschriftung gesetzt, Fokus wandert hinein, Escape schließt, Fokus kehrt zum auslösenden Knopf zurück, Hintergrund wird gesperrt und wieder freigegeben.
+
+**Was fehlt:** Acht Dialoge mit eigenem Aufbau — `AttendanceCheckModal`, `DeleteTournamentModal`, `FormatInfoModal`, `TemplateExportModal`, `EditTournamentModal`, `PlayerConflictModal`, `StartKoModal`, `UndoRoundModal`. Sie tragen mehr Inhalt als eine Bestätigung; die Umstellung ist gleichartig, aber je Datei eigene Arbeit. Bis dahin bleiben sie ohne Fokus-Trap und ohne Escape.
 
 **Fertig wenn:** Jedes Modal schließt mit Escape, fängt den Tab-Fokus und gibt ihn beim Schließen an das auslösende Element zurück.
 
