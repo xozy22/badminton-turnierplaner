@@ -42,7 +42,7 @@ export default function GroupProgressBar({ progress }: Props) {
     if (rp.isComplete) {
       pillClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
     } else if (rp.isPartial) {
-      pillClass = "bg-amber-50 text-amber-700 border-amber-200";
+      pillClass = "bg-warning-subtle text-warning-text border-warning";
     } else {
       pillClass = `${theme.cardBg} ${theme.textMuted} ${theme.cardBorder}`;
     }
@@ -73,7 +73,7 @@ export default function GroupProgressBar({ progress }: Props) {
           return (
             <div key={p.group} className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className={`font-bold ${behind ? "text-rose-600" : theme.textPrimary}`}>
+                <span className={`font-bold ${behind ? "text-danger-text" : theme.textPrimary}`}>
                   {t.group_progress_label.replace("{n}", String(p.group))}
                   {behind && (
                     <span
@@ -97,7 +97,7 @@ export default function GroupProgressBar({ progress }: Props) {
                       ? "bg-emerald-500"
                       : behind
                       ? "bg-rose-400"
-                      : "bg-violet-500"
+                      : "bg-phase"
                   }`}
                   style={{ width: `${pct}%` }}
                 />

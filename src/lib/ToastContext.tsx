@@ -92,7 +92,7 @@ function ToastStack() {
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
   const palette: Record<ToastKind, { bg: string; icon: string }> = {
     success: { bg: "bg-emerald-600", icon: "✓" },
-    error: { bg: "bg-rose-600", icon: "✕" },
+    error: { bg: "bg-danger", icon: "✕" },
     info: { bg: "bg-sky-600", icon: "ℹ" },
   };
   const { bg, icon } = palette[toast.kind];

@@ -227,13 +227,13 @@ export default function FormatInfoModal({
             </ul>
           </div>
           <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-xl p-4`}>
-            <h4 className="text-xs font-semibold text-rose-500 uppercase tracking-wide mb-2">
+            <h4 className="text-xs font-semibold text-danger-text uppercase tracking-wide mb-2">
               {t.format_info_cons}
             </h4>
             <ul className="space-y-1">
               {consItems.map((item, i) => (
                 <li key={i} className={`text-sm ${theme.textSecondary} flex items-start gap-1.5`}>
-                  <span className="text-rose-500 mt-0.5 shrink-0">-</span>
+                  <span className="text-danger-text mt-0.5 shrink-0">-</span>
                   <span>{item}</span>
                 </li>
               ))}

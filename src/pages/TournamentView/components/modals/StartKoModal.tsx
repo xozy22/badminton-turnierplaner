@@ -126,7 +126,7 @@ export default function StartKoModal({
               useDifferent ? setsToWin : null,
               useDifferent ? scoringPreset.cap : null,
             )}
-            className="flex-1 bg-violet-600 text-white px-4 py-2.5 rounded-xl hover:bg-violet-700 shadow-sm transition-all text-sm font-medium"
+            className="flex-1 bg-phase text-white px-4 py-2.5 rounded-xl hover:bg-phase shadow-sm transition-all text-sm font-medium"
           >
             🏆 {t.ko_modal_start_button}
           </button>

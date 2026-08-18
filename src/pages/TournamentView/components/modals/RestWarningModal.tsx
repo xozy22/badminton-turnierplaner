@@ -42,7 +42,7 @@ export default function RestWarningModal({
         <ul className="mb-5 space-y-1.5 pl-1">
           {warning.players.map((p) => (
             <li key={p.id} className={`text-sm ${theme.textPrimary} flex items-start gap-2`}>
-              <span className="text-amber-500">•</span>
+              <span className="text-warning-text">•</span>
               <span>
                 {t.rest_warning_player_row
                   .replace("{player}", p.name)
@@ -60,7 +60,7 @@ export default function RestWarningModal({
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors"
+            className="px-4 py-2 rounded-xl bg-warning hover:bg-warning text-white text-sm font-medium transition-colors"
           >
             {t.rest_warning_confirm}
           </button>

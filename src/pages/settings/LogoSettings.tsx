@@ -330,7 +330,7 @@ export function LogoUploader() {
             {logo && (
               <button
                 onClick={handleRemove}
-                className="text-rose-500 hover:text-rose-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                className="text-danger-text hover:text-danger-text px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
               >
                 {t.settings_logo_remove}
               </button>

@@ -59,7 +59,7 @@ export default function RestIndicator({
 
   return (
     <span
-      className={`inline-flex items-center text-amber-500 text-xs ml-1 ${className ?? ""}`}
+      className={`inline-flex items-center text-warning-text text-xs ml-1 ${className ?? ""}`}
       title={tooltip}
       aria-label={tooltip}
     >

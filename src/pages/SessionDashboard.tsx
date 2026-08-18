@@ -209,12 +209,12 @@ export default function SessionDashboard() {
           color per status: amber for ended (recent winding-down), grey
           for archived (historical). */}
       {session.status === "ended" && (
-        <div className="bg-amber-100 text-amber-900 border-b border-amber-200 px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
+        <div className="bg-warning-subtle text-amber-900 border-b border-warning px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
           ⏹ {t.session_dashboard_ended_banner.replace("{date}", formatTimestamp(session.ended_at))}
         </div>
       )}
       {session.status === "archived" && (
-        <div className="bg-gray-100 text-gray-700 border-b border-gray-200 px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
+        <div className="bg-surface-sunken text-secondary border-b border-line-strong px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
           📦 {t.session_dashboard_archived_banner}
         </div>
       )}
@@ -415,7 +415,7 @@ export default function SessionDashboard() {
                 <button
                   key={m.id}
                   onClick={() => handleQueueClick(m)}
-                  className={`w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors`}
+                  className={`w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-surface-sunken transition-colors`}
                 >
                   <span className={`text-[10px] uppercase tracking-wide ${theme.textMuted} shrink-0`}>
                     {m.tournament_name}

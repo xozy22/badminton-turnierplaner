@@ -117,14 +117,14 @@ export default function TemplateExportModal({
             other side. Always rendered when settings are exported (v2.8.8
             guarantees a venue block). */}
         {templateInclude.settings && exportVenue && (
-          <div className={`mb-5 px-3 py-2 rounded-xl border border-violet-200 bg-violet-50`}>
-            <div className="text-[10px] font-bold uppercase tracking-wide text-violet-700 mb-0.5">
+          <div className={`mb-5 px-3 py-2 rounded-xl border border-phase bg-phase-subtle`}>
+            <div className="text-[10px] font-bold uppercase tracking-wide text-phase-text mb-0.5">
               🏟 {t.template_export_venue_label}
             </div>
             <div className="text-sm font-medium text-violet-900 truncate">
               {exportVenue.name}
             </div>
-            <div className="text-xs text-violet-700/80">
+            <div className="text-xs text-phase-text/80">
               {exportVenue.halls.length} {exportVenue.halls.length === 1 ? t.venues_hall_singular : t.venues_hall_plural}
               {" · "}
               {hallConfigTotalCourts(exportVenue.halls)} {t.common_fields}
@@ -133,7 +133,7 @@ export default function TemplateExportModal({
           </div>
         )}
         {templateInclude.settings && !exportVenue && (
-          <div className={`mb-5 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-xs text-amber-800`}>
+          <div className={`mb-5 px-3 py-2 rounded-xl border border-warning bg-warning-subtle text-xs text-warning-text`}>
             ⚠ {t.template_export_venue_missing}
           </div>
         )}

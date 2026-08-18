@@ -56,7 +56,7 @@ export default function RanglisteTab({ standings, theme }: RanglisteTabProps) {
               <tr
                 key={s.player.id}
                 className={`border-b ${theme.cardBorder} last:border-0 ${
-                  i < 3 && s.wins > 0 ? "bg-amber-500/10" : ""
+                  i < 3 && s.wins > 0 ? "bg-warning/10" : ""
                 }`}
               >
                 <td className={`px-3 py-2.5 text-center text-sm ${theme.textSecondary}`}>
@@ -68,7 +68,7 @@ export default function RanglisteTab({ standings, theme }: RanglisteTabProps) {
                 <td className={`px-3 py-2.5 text-center font-bold ${theme.activeBadgeText}`}>
                   {s.wins}
                 </td>
-                <td className="px-3 py-2.5 text-center text-rose-400">
+                <td className="px-3 py-2.5 text-center text-danger-text">
                   {s.losses}
                 </td>
                 <td className={`px-3 py-2.5 text-center font-mono ${theme.textSecondary}`}>

@@ -61,7 +61,7 @@ export default function RemovePlayerModal({
           <button
             onClick={() => doConfirm(target.id)}
             disabled={pending}
-            className="flex-1 bg-rose-600 text-white px-4 py-2.5 rounded-xl hover:bg-rose-700 transition-all text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger transition-all text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {pending ? `⏳ ${t.common_loading}` : t.management_remove_confirm_action}
           </button>

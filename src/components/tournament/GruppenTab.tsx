@@ -128,7 +128,7 @@ export default function GruppenTab({
             {isCompleted ? (
               <span className="font-bold">{t1Sets}:{t2Sets}</span>
             ) : isActive ? (
-              <span className="text-amber-600 text-[10px] font-semibold uppercase tracking-wide">
+              <span className="text-warning-text text-[10px] font-semibold uppercase tracking-wide">
                 {t.groups_match_in_progress}
               </span>
             ) : (
@@ -165,7 +165,7 @@ export default function GruppenTab({
             return (
               <div key={r.id}>
                 <div className={`flex items-center gap-2 px-5 py-1.5 ${theme.cardBg} border-t ${theme.cardBorder} ${idx === 0 ? "border-t-0" : ""}`}>
-                  <span className={`text-[11px] font-bold uppercase tracking-wide text-violet-600`}>
+                  <span className={`text-[11px] font-bold uppercase tracking-wide text-phase-text`}>
                     {t.tournament_view_round_label.replace("{n}", String(idx + 1))}
                   </span>
                   <span className={`text-[10px] font-mono ${theme.textMuted}`}>
@@ -265,7 +265,7 @@ export default function GruppenTab({
                     )}
                   </td>
                   <td className={`px-3 py-2 text-center font-bold ${theme.activeBadgeText}`}>{ts.wins}</td>
-                  <td className="px-3 py-2 text-center text-rose-400">{ts.losses}</td>
+                  <td className="px-3 py-2 text-center text-danger-text">{ts.losses}</td>
                   <td className={`px-3 py-2 text-center font-mono ${theme.textSecondary}`}>
                     {ts.pointsWon}:{ts.pointsLost}
                   </td>
@@ -325,7 +325,7 @@ export default function GruppenTab({
                   )}
                 </td>
                 <td className={`px-3 py-2 text-center font-bold ${theme.activeBadgeText}`}>{s.wins}</td>
-                <td className="px-3 py-2 text-center text-rose-400">{s.losses}</td>
+                <td className="px-3 py-2 text-center text-danger-text">{s.losses}</td>
                 <td className={`px-3 py-2 text-center font-mono ${theme.textSecondary}`}>
                   {s.pointsWon}:{s.pointsLost}
                 </td>

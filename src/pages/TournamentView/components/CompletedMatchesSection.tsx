@@ -197,7 +197,7 @@ export default function CompletedMatchesSection({
                 {isActive && (
                   <button
                     onClick={() => onReset(m.id)}
-                    className="text-xs text-amber-500 hover:text-amber-700 transition-colors"
+                    className="text-xs text-warning-text hover:text-warning-text transition-colors"
                   >
                     {t.tournament_view_edit_results}
                   </button>
@@ -208,7 +208,7 @@ export default function CompletedMatchesSection({
         };
 
         const groupHeader = (group: number, count: number) => (
-          <div className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide mb-1 mt-2 first:mt-0 text-violet-600`}>
+          <div className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide mb-1 mt-2 first:mt-0 text-phase-text`}>
             <span>{t.group_progress_label.replace("{n}", String(group))}</span>
             <span className={`font-mono font-normal ${theme.textMuted}`}>
               {t.groups_matches_count.replace("{count}", String(count))}

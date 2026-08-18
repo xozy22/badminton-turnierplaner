@@ -98,7 +98,7 @@ export default function VerwaltungTab({
                 {openAmount > 0 && (
                   <>
                     &nbsp;&middot;&nbsp;
-                    <span className="text-rose-500">{t.management_open_amount.replace("{amount}", String(openAmount))}</span>
+                    <span className="text-danger-text">{t.management_open_amount.replace("{amount}", String(openAmount))}</span>
                   </>
                 )}
               </span>
@@ -118,7 +118,7 @@ export default function VerwaltungTab({
       {/* Add Player Dropdown - only in draft */}
       {showAddPlayer && tournament.status === "draft" && (
         <div className={`p-3 border-b ${theme.cardBorder} ${theme.selectedBg}`}>
-          <div className="text-xs text-gray-500 mb-2 font-medium">{t.management_add_player_label}</div>
+          <div className="text-xs text-muted mb-2 font-medium">{t.management_add_player_label}</div>
           <div className="max-h-40 overflow-y-auto space-y-1">
             {allPlayers
               .filter((ap) => !players.some((p) => p.id === ap.id))
@@ -126,16 +126,16 @@ export default function VerwaltungTab({
                 <button
                   key={ap.id}
                   onClick={() => handleAddPlayer(ap.id)}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm hover:bg-gray-100 transition-colors text-left"
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm hover:bg-surface-sunken transition-colors text-left"
                 >
                   <span className={theme.textPrimary}>{playerDisplayName(ap)}</span>
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${ap.gender === "m" ? "bg-blue-50 text-blue-500" : "bg-pink-50 text-pink-500"}`}>
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${ap.gender === "m" ? "bg-info-subtle text-blue-500" : "bg-pink-50 text-pink-500"}`}>
                     {ap.gender === "m" ? t.common_gender_male_short : t.common_gender_female_short}
                   </span>
                 </button>
               ))}
             {allPlayers.filter((ap) => !players.some((p) => p.id === ap.id)).length === 0 && (
-              <div className="text-xs text-gray-400 py-2 text-center">{t.management_all_players_added}</div>
+              <div className="text-xs text-muted py-2 text-center">{t.management_all_players_added}</div>
             )}
           </div>
         </div>
@@ -282,10 +282,10 @@ export default function VerwaltungTab({
                           <td className={`px-3 py-2 pl-6 font-medium ${isRetired ? `${theme.textMuted} line-through` : theme.textPrimary}`}>
                             {playerDisplayName(pd.player)}
                             <SeedBadge rank={pd.seed_rank} />
-                            {isRetired && <span className="ml-1.5 text-[10px] text-rose-400 no-underline inline-block">{"\u{1F3E5}"}</span>}
+                            {isRetired && <span className="ml-1.5 text-[10px] text-danger-text no-underline inline-block">{"\u{1F3E5}"}</span>}
                           </td>
                           <td className="px-2 py-2 text-center">
-                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${pd.player.gender === "m" ? "bg-blue-50 text-blue-500" : "bg-pink-50 text-pink-500"}`}>
+                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${pd.player.gender === "m" ? "bg-info-subtle text-blue-500" : "bg-pink-50 text-pink-500"}`}>
                               {pd.player.gender === "m" ? t.common_gender_male_short : t.common_gender_female_short}
                             </span>
                           </td>
@@ -296,7 +296,7 @@ export default function VerwaltungTab({
                                 {(() => {
                                   const partnerPaidBy = pd.payment_status !== "paid" ? getPartnerPaidInfo(pd.player.id) : null;
                                   return partnerPaidBy ? (
-                                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600" title={partnerPaidBy}>
+                                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-info-text" title={partnerPaidBy}>
                                       ✓ {partnerPaidBy}
                                     </span>
                                   ) : (
@@ -363,7 +363,7 @@ export default function VerwaltungTab({
                                 <button
                                   onClick={() => handleRemovePlayer(pd.player.id)}
                                   title={t.management_remove_from_tournament}
-                                  className="text-xs text-rose-400 hover:text-rose-600 ml-1"
+                                  className="text-xs text-danger-text hover:text-danger-text ml-1"
                                 >
                                   {"\u2715"}
                                 </button>
@@ -385,7 +385,7 @@ export default function VerwaltungTab({
                                     setRetireTarget({ player: p, partnerNote });
                                   }}
                                   title={t.management_retire_title}
-                                  className="text-xs text-amber-500 hover:text-amber-700 ml-1"
+                                  className="text-xs text-warning-text hover:text-warning-text ml-1"
                                 >
                                   {"\u{1F3E5}"}
                                 </button>

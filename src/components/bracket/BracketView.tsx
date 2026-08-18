@@ -204,7 +204,7 @@ export default function BracketView({
             <div
               key={`header-${ci}`}
               className={`absolute text-xs font-bold uppercase tracking-wide ${
-                isFinal ? "text-amber-600" : isPlaceholder ? `${theme.textMuted}` : `${theme.textMuted}`
+                isFinal ? "text-warning-text" : isPlaceholder ? `${theme.textMuted}` : `${theme.textMuted}`
               }`}
               style={{ left: x, top: -2, width: MATCH_WIDTH }}
             >
@@ -216,7 +216,7 @@ export default function BracketView({
         {/* Winner header */}
         {finalMatch?.winner_team && finalPos && (
           <div
-            className="absolute text-xs font-bold uppercase tracking-wide text-amber-600"
+            className="absolute text-xs font-bold uppercase tracking-wide text-warning-text"
             style={{ left: totalColumns * (MATCH_WIDTH + ROUND_GAP), top: -2 }}
           >
             {t.bracket_winner}
@@ -322,9 +322,9 @@ export default function BracketView({
                 width: 150,
               }}
             >
-              <div className="bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-amber-300 rounded-xl px-3 py-2.5 text-center">
+              <div className="bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-warning rounded-xl px-3 py-2.5 text-center">
                 <div className="text-xl mb-0.5">🏆</div>
-                <div className="font-bold text-amber-800 text-xs leading-tight">
+                <div className="font-bold text-warning-text text-xs leading-tight">
                   {winnerLabel}
                 </div>
               </div>
@@ -393,7 +393,7 @@ export function BracketMatch({
       )}
       {p2 != null && (
         <>
-          <span className="mx-1 text-gray-400">/</span>
+          <span className="mx-1 text-muted">/</span>
           <span>{playerName(p2)}</span>
           {showRestIcons && (
             <RestIndicator
@@ -418,7 +418,7 @@ export function BracketMatch({
 
   const isCompleted = match.status === "completed";
   const borderColor = isFinal
-    ? "border-amber-300"
+    ? "border-warning"
     : isCompleted
     ? "border-emerald-300"
     : `${theme.cardBorder}`;

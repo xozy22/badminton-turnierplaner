@@ -367,9 +367,9 @@ export default function Tournaments() {
       case "completed":
         return `${theme.cardBg} ${theme.textMuted} border ${theme.cardBorder}`;
       case "archived":
-        return "bg-violet-100 text-violet-600";
+        return "bg-phase-subtle text-phase-text";
       default:
-        return "bg-amber-100 text-amber-700";
+        return "bg-warning-subtle text-warning-text";
     }
   };
 
@@ -392,10 +392,10 @@ export default function Tournaments() {
           {tr.session_id != null && sessionsById.has(tr.session_id) && (() => {
             const s = sessionsById.get(tr.session_id)!;
             const styled = s.status === "active"
-              ? "bg-violet-100 text-violet-700 border-violet-200"
+              ? "bg-phase-subtle text-phase-text border-phase"
               : s.status === "ended"
-                ? "bg-gray-100 text-gray-600 border-gray-200"
-                : "bg-gray-50 text-gray-500 border-gray-200";
+                ? "bg-surface-sunken text-secondary border-line-strong"
+                : "bg-surface-sunken text-muted border-line-strong";
             const suffix = s.status === "ended" ? ` ${t.session_pill_ended_suffix}`
               : s.status === "archived" ? ` ${t.session_pill_archived_suffix}`
                 : "";
@@ -423,7 +423,7 @@ export default function Tournaments() {
         {tr.status === "completed" && (
           <button
             onClick={() => handleArchive(tr.id)}
-            className="text-gray-400 hover:text-violet-600 text-sm transition-colors"
+            className="text-muted hover:text-phase-text text-sm transition-colors"
             title={t.tournaments_archive_button}
           >
             📦 {t.tournaments_archive_button}
@@ -432,7 +432,7 @@ export default function Tournaments() {
         {tr.status === "archived" && (
           <button
             onClick={() => handleUnarchive(tr.id)}
-            className="text-gray-400 hover:text-emerald-600 text-sm transition-colors"
+            className="text-muted hover:text-emerald-600 text-sm transition-colors"
             title={t.tournaments_unarchive}
           >
             ↩ {t.tournaments_unarchive}
@@ -440,7 +440,7 @@ export default function Tournaments() {
         )}
         <button
           onClick={() => setDeleteTarget(tr)}
-          className="text-gray-400 hover:text-rose-600 text-sm transition-colors"
+          className="text-muted hover:text-danger-text text-sm transition-colors"
           title={t.tournaments_delete_title}
         >
           🗑
@@ -469,8 +469,8 @@ export default function Tournaments() {
               onClick={() => setShowArchive(!showArchive)}
               className={`border px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 showArchive
-                  ? "bg-violet-50 border-violet-200 text-violet-700"
-                  : `${theme.cardBg} ${theme.cardBorder} ${theme.textSecondary} hover:border-violet-200`
+                  ? "bg-phase-subtle border-phase text-phase-text"
+                  : `${theme.cardBg} ${theme.cardBorder} ${theme.textSecondary} hover:border-phase`
               }`}
             >
               📦 {t.tournaments_archive} ({archivedTournaments.length})
@@ -503,7 +503,7 @@ export default function Tournaments() {
       {activeTournaments.length === 0 && !showArchive ? (
         <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-12 text-center`}>
           <div className="text-4xl mb-3">🏸</div>
-          <div className="text-gray-400">{t.tournaments_none_yet}</div>
+          <div className="text-muted">{t.tournaments_none_yet}</div>
         </div>
       ) : (
         <div className="space-y-3">
@@ -544,7 +544,7 @@ export default function Tournaments() {
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="flex-1 bg-rose-600 text-white px-4 py-2.5 rounded-xl hover:bg-rose-700 transition-all text-sm font-medium"
+                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger transition-all text-sm font-medium"
               >
                 {t.common_delete_permanently}
               </button>

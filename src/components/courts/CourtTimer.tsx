@@ -28,9 +28,9 @@ export function CourtTimer({ assignedAt, completed }: Props) {
   // Use distinct colors that work across all themes (incl. Bernstein/Orange)
   let colorClass: string;
   if (completed) {
-    colorClass = "bg-gray-100 text-gray-500";
+    colorClass = "bg-surface-sunken text-muted";
   } else if (elapsedMin >= thresholds.dangerMin) {
-    colorClass = "bg-rose-600 text-white animate-pulse";
+    colorClass = "bg-danger text-white animate-pulse";
   } else if (elapsedMin >= thresholds.warningMin) {
     colorClass = "bg-yellow-400 text-yellow-900 animate-pulse";
   } else {

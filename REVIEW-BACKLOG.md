@@ -610,14 +610,24 @@ Das Polling bleibt als Sicherheitsnetz — für Änderungen, die ohne Meldung pa
 
 ---
 
-### [ ] F2 — Hartcodierte Farben umgehen das Theme
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/TournamentView/index.tsx` (Header-Knöpfe), `src/pages/TvMode.tsx:67-71`, viele Komponenten
+### [x] F2 — Hartcodierte Farben umgehen das Theme — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** 40 Dateien in `src/pages` und `src/components`, `src/index.css`
 
-**Problem:** Neben dem Theme existieren feste Klassen: `bg-amber-500`, `bg-violet-600`, `text-rose-400`, `bg-gray-100 text-gray-500`, `bg-amber-50 text-amber-700`. Im Dark-Theme entstehen dadurch Kontrastbrüche (heller Badge auf dunklem Grund und umgekehrt). Der TV-Modus pflegt zusätzlich eine eigene, parallele Farbtabelle.
+**Problem:** Neben dem Theme existierten feste Klassen: `bg-amber-500`, `bg-violet-600`, `text-rose-400`, `bg-gray-100`. Im dunklen Theme entstanden dadurch Kontrastbrüche, und der TV-Modus pflegte eine eigene, parallele Farbtabelle.
 
-**Fix:** Nach F1 alle festen Farben auf semantische Tokens abbilden (`--accent-secondary` für „nächste Runde", `--danger` für destruktiv, `--info` für KO-Phase). TV-Accents aus denselben Tokens ableiten.
+**Umgesetzt:** 384 Klassen in 40 Dateien auf semantische Tokens abgebildet — Grautöne auf Flächen, Linien und Textstufen; Rosé auf `danger`, Bernstein auf `warning`, Blau auf `info`. Für die K.-o.-Phase gibt es ein eigenes Token `--phase`, statt sie mit „Information" zu vermischen: Violett kennzeichnet sie in dieser Anwendung seit jeher, und als eigenes Token bleibt sie unterscheidbar und trotzdem themefähig.
 
-**Fertig wenn:** Eine Suche nach `bg-amber-|bg-violet-|text-rose-|bg-gray-1` in `src/pages` und `src/components` liefert keine Treffer mehr (außer in der Token-Definition).
+Der TV-Modus hat seine Vier-Themes-Tabelle verloren und nutzt `--accent-bright` — den hellen Akzent, den jedes Theme für dunkle Flächen ohnehin definiert. Auf dem Beamerhintergrund sind das 10,5:1 (grün), 7,9:1 (blau) und 8,9:1 (orange), alle über AAA.
+
+**Zwei Fehler, die dabei ans Licht kamen:**
+
+*Weiße Schrift auf `bg-amber-600` liegt bei 3,19:1* und verfehlt AA — das ist der „Nächste Runde"-Knopf, eines der meistbenutzten Bedienelemente im laufenden Turnier. Er steht jetzt auf `--warning` (amber-700) mit 5,02:1.
+
+*Die 19 `dark:`-Klassen im Code waren an die Systemeinstellung gekoppelt, nicht an das gewählte Theme.* Tailwind v4 setzt die `dark:`-Variante standardmäßig auf `prefers-color-scheme`, und das Projekt hatte nichts anderes konfiguriert. Wer sein Betriebssystem dunkel gestellt und in der App das helle Theme gewählt hatte, bekam an diesen Stellen dunkle Farben auf hellen Flächen — und umgekehrt blieben sie im dunklen Theme aus, wenn das System hell stand. Eine `@custom-variant`-Regel bindet `dark:` jetzt an `[data-theme="dark"]`.
+
+**Was bewusst stehen bleibt:** 190 Farbliterale, die kategorisch statt semantisch sind — Geschlechts-Badges, Medaillenränge, die dekorativen Statistikkarten und der Bronze-Akzent des Spiels um Platz 3. Sie tragen Bedeutung, die kein Theme ändern soll. Der Druck (`src/components/print/`) behält ebenfalls feste Farben: Papier ist immer weiß.
+
+**Fertig wenn:** ~~Eine Suche nach `bg-amber-|bg-violet-|text-rose-|bg-gray-1` liefert keine Treffer mehr~~ — 0 Treffer. CSS-Bündel bei 64 KB (von 145 KB).
 
 ---
 

@@ -39,7 +39,7 @@ export default function PlayerConflictModal({
         <ul className="mb-5 space-y-1.5 pl-1">
           {conflict.players.map((p) => (
             <li key={p.id} className={`text-sm ${theme.textPrimary} flex items-start gap-2`}>
-              <span className="text-rose-500">•</span>
+              <span className="text-danger-text">•</span>
               <span>
                 {t.player_conflict_row
                   .replace("{player}", p.name)
@@ -51,7 +51,7 @@ export default function PlayerConflictModal({
         <div className="flex gap-2 justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium transition-colors"
+            className="px-4 py-2 rounded-xl bg-danger hover:bg-danger text-white text-sm font-medium transition-colors"
           >
             {t.common_close}
           </button>

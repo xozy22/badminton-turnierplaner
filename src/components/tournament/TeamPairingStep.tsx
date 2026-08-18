@@ -47,7 +47,7 @@ export default function TeamPairingStep({
           isFirst
             ? `${theme.primaryBg} text-white shadow-md`
             : isMixedBlocked
-            ? `${theme.cardBg} ${theme.textMuted} border-gray-200 opacity-30 cursor-not-allowed`
+            ? `${theme.cardBg} ${theme.textMuted} border-line-strong opacity-30 cursor-not-allowed`
             : `${theme.cardBg} ${theme.textPrimary} ${theme.cardBorder} ${theme.cardHoverBorder} hover:shadow-sm cursor-pointer`
         }`}
       >
@@ -86,7 +86,7 @@ export default function TeamPairingStep({
           {manualTeams.length > 0 && (
             <button
               onClick={onClearAll}
-              className={`text-xs ${theme.textMuted} hover:text-rose-600 transition-colors`}
+              className={`text-xs ${theme.textMuted} hover:text-danger-text transition-colors`}
             >
               {t.teams_clear_all}
             </button>
@@ -149,7 +149,7 @@ export default function TeamPairingStep({
                   </div>
                   <button
                     onClick={() => onRemoveTeam(idx)}
-                    className="opacity-0 group-hover:opacity-100 text-xs text-rose-400 hover:text-rose-600 transition-all ml-2"
+                    className="opacity-0 group-hover:opacity-100 text-xs text-danger-text hover:text-danger-text transition-all ml-2"
                     title={t.teams_remove_title}
                   >
                     ✕

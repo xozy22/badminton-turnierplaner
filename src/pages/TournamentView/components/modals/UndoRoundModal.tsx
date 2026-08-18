@@ -62,12 +62,12 @@ export default function UndoRoundModal({
           {t.tournament_view_undo_target_label}
         </p>
 
-        <div className={`rounded-xl border-2 ${dangerous ? "border-amber-300 bg-amber-50/50 dark:bg-amber-900/20" : `${theme.cardBorder} ${theme.cardBg}`} p-4 mb-4`}>
+        <div className={`rounded-xl border-2 ${dangerous ? "border-warning bg-warning-subtle/50 dark:bg-warning-subtle" : `${theme.cardBorder} ${theme.cardBg}`} p-4 mb-4`}>
           <div className={`font-semibold ${theme.textPrimary} mb-2`}>{target.label}</div>
           <ul className={`text-sm space-y-1 ${theme.textSecondary}`}>
             <li>• {t.tournament_view_undo_match_count.replace("{n}", String(target.matchCount))}</li>
             {target.completedCount > 0 && (
-              <li className="text-amber-700 dark:text-amber-300 font-medium">
+              <li className="text-warning-text dark:text-warning-text font-medium">
                 • {t.tournament_view_undo_completed_count.replace("{n}", String(target.completedCount))} ⚠
               </li>
             )}
@@ -75,7 +75,7 @@ export default function UndoRoundModal({
               <li>• {t.tournament_view_undo_set_count.replace("{n}", String(target.setCount))}</li>
             )}
             {target.activeOnCourtCount > 0 && (
-              <li className="text-amber-700 dark:text-amber-300 font-medium">
+              <li className="text-warning-text dark:text-warning-text font-medium">
                 • {t.tournament_view_undo_active_count.replace("{n}", String(target.activeOnCourtCount))} ⚠
               </li>
             )}
@@ -99,8 +99,8 @@ export default function UndoRoundModal({
             onClick={onConfirm}
             className={`${
               dangerous
-                ? "bg-rose-600 hover:bg-rose-700"
-                : "bg-amber-500 hover:bg-amber-600"
+                ? "bg-danger hover:bg-danger"
+                : "bg-warning hover:bg-warning"
             } text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors`}
           >
             {t.tournament_view_undo_confirm}

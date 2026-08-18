@@ -820,7 +820,7 @@ export default function TournamentCreate() {
                         }
                       }}
                       required
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${selectedVenueId === "" ? "border-rose-300" : theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${selectedVenueId === "" ? "border-danger" : theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
                       <option value="">{t.tournament_venue_pick_placeholder}</option>
                       {sportstaetten.map((s) => (
@@ -830,13 +830,13 @@ export default function TournamentCreate() {
                       ))}
                     </select>
                     {selectedVenueId === "" && (
-                      <p className="text-xs text-rose-600 mt-1 font-medium">
+                      <p className="text-xs text-danger-text mt-1 font-medium">
                         ⚠ {t.tournament_venue_required}
                       </p>
                     )}
                     {sportstaetten.length === 0 && (
-                      <div className={`mt-2 ${theme.cardBg} border border-amber-200 rounded-xl px-3 py-2 text-xs ${theme.textSecondary}`}>
-                        <p className="font-medium text-amber-700 mb-1">
+                      <div className={`mt-2 ${theme.cardBg} border border-warning rounded-xl px-3 py-2 text-xs ${theme.textSecondary}`}>
+                        <p className="font-medium text-warning-text mb-1">
                           ⚠ {t.tournament_venue_no_venues_title}
                         </p>
                         <p>{t.tournament_venue_no_venues_message}</p>
@@ -1194,7 +1194,7 @@ export default function TournamentCreate() {
                   </button>
                   <button
                     onClick={selectNoneFiltered}
-                    className="text-gray-400 hover:text-gray-600 text-sm"
+                    className="text-muted hover:text-secondary text-sm"
                   >
                     {genderFilter !== "all" || clubFilter !== "all" || search ? t.tournament_deselect_filtered : t.tournament_deselect_all}
                   </button>
@@ -1212,13 +1212,13 @@ export default function TournamentCreate() {
                     placeholder={t.players_search_placeholder}
                     className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl pl-9 pr-4 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm">
                     🔍
                   </span>
                   {search && (
                     <button
                       onClick={() => setSearch("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-secondary text-xs"
                     >
                       ✕
                     </button>
@@ -1260,7 +1260,7 @@ export default function TournamentCreate() {
 
               {/* Info bar */}
               {(genderFilter !== "all" || clubFilter !== "all" || search) && (
-                <div className="text-xs text-gray-400 mb-2">
+                <div className="text-xs text-muted mb-2">
                   {t.tournament_players_shown.replace("{shown}", String(filteredPlayers.length)).replace("{total}", String(players.length))}
                   {filteredSelectedCount > 0 && (
                     <span className={`${theme.activeBadgeText} ml-1`}>
@@ -1278,7 +1278,7 @@ export default function TournamentCreate() {
                       key={p.id}
                       onClick={() => togglePlayer(p.id)}
                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:opacity-80 ${
-                        p.gender === "m" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+                        p.gender === "m" ? "bg-info-subtle text-info-text" : "bg-pink-100 text-pink-700"
                       }`}
                     >
                       {playerDisplayName(p)}
@@ -1290,11 +1290,11 @@ export default function TournamentCreate() {
 
               {/* Player List */}
               {players.length === 0 ? (
-                <p className="text-gray-400 text-sm py-4">
+                <p className="text-muted text-sm py-4">
                   {t.tournament_no_players_yet}
                 </p>
               ) : filteredPlayers.length === 0 ? (
-                <p className="text-gray-400 text-sm py-4">
+                <p className="text-muted text-sm py-4">
                   {t.tournament_no_filter_results}
                 </p>
               ) : (
@@ -1325,7 +1325,7 @@ export default function TournamentCreate() {
                       <span
                         className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
                           p.gender === "m"
-                            ? "bg-blue-50 text-blue-500"
+                            ? "bg-info-subtle text-blue-500"
                             : "bg-pink-50 text-pink-500"
                         }`}
                       >
@@ -1428,13 +1428,13 @@ export default function TournamentCreate() {
                 {/* Format-specific findings: errors block the start button,
                     warnings are informational (REVIEW-BACKLOG.md B13). */}
                 {validationErrors.length > 0 && (
-                  <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-rose-700">
+                  <div className="mt-3 rounded-xl border border-danger bg-danger-subtle px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-danger-text">
                       {t.validation_errors_title}
                     </div>
                     <ul className="mt-1 space-y-0.5">
                       {validationErrors.map((issue, i) => (
-                        <li key={`${issue.key}-${i}`} className="text-sm text-rose-700">
+                        <li key={`${issue.key}-${i}`} className="text-sm text-danger-text">
                           · {formatIssue(issue)}
                         </li>
                       ))}
@@ -1442,13 +1442,13 @@ export default function TournamentCreate() {
                   </div>
                 )}
                 {validationWarnings.length > 0 && (
-                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                  <div className="mt-3 rounded-xl border border-warning bg-warning-subtle px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-warning-text">
                       {t.validation_warnings_title}
                     </div>
                     <ul className="mt-1 space-y-0.5">
                       {validationWarnings.map((issue, i) => (
-                        <li key={`${issue.key}-${i}`} className="text-sm text-amber-700">
+                        <li key={`${issue.key}-${i}`} className="text-sm text-warning-text">
                           · {formatIssue(issue)}
                         </li>
                       ))}
@@ -1474,7 +1474,7 @@ export default function TournamentCreate() {
               onClick={handleCreate}
               disabled={creating || selectedVenueId === "" || selectedPlayerIds.size < minPlayers || !canStart(validationIssues) || (needsTeamPairing && poolPlayers.length >= 2)}
               title={selectedVenueId === "" ? t.tournament_venue_required : undefined}
-              className={`w-full ${theme.primaryBg} text-white px-5 py-3.5 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-lg transition-all disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none font-semibold text-base`}
+              className={`w-full ${theme.primaryBg} text-white px-5 py-3.5 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-lg transition-all disabled:bg-line-strong disabled:text-muted disabled:cursor-not-allowed disabled:shadow-none font-semibold text-base`}
             >
               {creating
                 ? `⏳ ${t.common_saving}`

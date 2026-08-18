@@ -92,8 +92,8 @@ export default function SeedingStep({
                   onDragLeave={() => onDragLeave(idx)}
                   onDrop={(e) => { e.preventDefault(); onSeedDrop(idx); }}
                   className={`flex items-center gap-3 px-4 py-2.5 text-sm cursor-grab active:cursor-grabbing select-none transition-all ${
-                    idx > 0 ? "border-t border-gray-50" : ""
-                  } ${isDragging ? "opacity-40 bg-gray-50" : ""} ${
+                    idx > 0 ? "border-t border-line" : ""
+                  } ${isDragging ? "opacity-40 bg-surface-sunken" : ""} ${
                     isOver && !isDragging ? "border-t-2 border-t-emerald-400" : ""
                   }`}
                 >
@@ -109,12 +109,12 @@ export default function SeedingStep({
                   <span className="text-gray-300 text-xs cursor-grab" draggable={false}>⠿</span>
                   <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                     idx === 0
-                      ? "bg-amber-100 text-amber-700"
+                      ? "bg-warning-subtle text-warning-text"
                       : idx === 1
-                      ? "bg-gray-200 text-gray-600"
+                      ? "bg-line-strong text-secondary"
                       : idx === 2
                       ? "bg-orange-100 text-orange-700"
-                      : "bg-gray-100 text-gray-500"
+                      : "bg-surface-sunken text-muted"
                   }`}>
                     {idx + 1}
                   </span>
@@ -124,7 +124,7 @@ export default function SeedingStep({
                   <span
                     className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
                       p.gender === "m"
-                        ? "bg-blue-50 text-blue-500"
+                        ? "bg-info-subtle text-blue-500"
                         : "bg-pink-50 text-pink-500"
                     }`}
                   >
@@ -135,7 +135,7 @@ export default function SeedingStep({
                       draggable={false}
                       onClick={() => onMoveSeed(idx, -1)}
                       disabled={idx === 0}
-                      className="text-gray-400 hover:text-emerald-600 disabled:opacity-20 disabled:cursor-default text-xs leading-none"
+                      className="text-muted hover:text-emerald-600 disabled:opacity-20 disabled:cursor-default text-xs leading-none"
                       title={t.seeding_move_up}
                     >
                       ▲
@@ -144,7 +144,7 @@ export default function SeedingStep({
                       draggable={false}
                       onClick={() => onMoveSeed(idx, 1)}
                       disabled={idx === seededList.length - 1}
-                      className="text-gray-400 hover:text-emerald-600 disabled:opacity-20 disabled:cursor-default text-xs leading-none"
+                      className="text-muted hover:text-emerald-600 disabled:opacity-20 disabled:cursor-default text-xs leading-none"
                       title={t.seeding_move_down}
                     >
                       ▼
@@ -174,7 +174,7 @@ export default function SeedingStep({
                 <div
                   key={p.id}
                   className={`flex items-center gap-3 px-4 py-2.5 text-sm select-none ${
-                    idx > 0 ? "border-t border-gray-50" : ""
+                    idx > 0 ? "border-t border-line" : ""
                   }`}
                 >
                   <input
@@ -190,7 +190,7 @@ export default function SeedingStep({
                   <span
                     className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
                       p.gender === "m"
-                        ? "bg-blue-50 text-blue-500"
+                        ? "bg-info-subtle text-blue-500"
                         : "bg-pink-50 text-pink-500"
                     }`}
                   >

@@ -101,7 +101,7 @@ export default function CourtContextMenu({ x, y, courtLabel, onUnassign, onClose
         type="button"
         role="menuitem"
         onClick={() => { onUnassign(); onClose(); }}
-        className={`w-full text-left px-3 py-2 text-sm ${theme.textPrimary} hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-2`}
+        className={`w-full text-left px-3 py-2 text-sm ${theme.textPrimary} hover:bg-warning-subtle hover:text-warning-text transition-colors flex items-center gap-2`}
       >
         {t.court_context_menu_unassign}
       </button>

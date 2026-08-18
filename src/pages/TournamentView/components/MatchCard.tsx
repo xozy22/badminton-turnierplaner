@@ -129,7 +129,7 @@ export default function MatchCard({
       )}
       {p2 != null && (
         <>
-          <span className="mx-1 text-gray-400">/</span>
+          <span className="mx-1 text-muted">/</span>
           <span>{playerName(p2)}</span>
           {showRestIcons && (
             <RestIndicator
@@ -193,7 +193,7 @@ export default function MatchCard({
                   onChange={(e) =>
                     onCourtChange(match.id, e.target.value ? Number(e.target.value) : null)
                   }
-                  className="text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-amber-100 transition-colors"
+                  className="text-xs font-bold bg-warning-subtle text-warning-text border border-warning rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-warning-subtle transition-colors"
                   title={t.court_choose_court}
                 >
                   <option value="">{t.tournament_view_court_question}</option>
@@ -212,7 +212,7 @@ export default function MatchCard({
                   })()}
                 </select>
               ) : match.court ? (
-                <span className="text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-lg">
+                <span className="text-xs font-bold bg-warning-subtle text-warning-text border border-warning px-2.5 py-1 rounded-lg">
                   {t.common_field} {match.court}
                 </span>
               ) : null}
@@ -256,7 +256,7 @@ export default function MatchCard({
           {isActive && match.status === "completed" && (
             <button
               onClick={() => onReset(match.id)}
-              className="text-xs text-amber-500 hover:text-amber-700 font-medium transition-colors"
+              className="text-xs text-warning-text hover:text-warning-text font-medium transition-colors"
               title={t.tournament_view_edit_results}
             >
               {t.tournament_view_edit_results}
@@ -266,7 +266,7 @@ export default function MatchCard({
           {isActive && match.court && match.status !== "completed" && onAnnounce && (
             <button
               onClick={() => onAnnounce(match.court!, team1Label, team2Label)}
-              className="text-xs text-gray-400 hover:text-amber-600 font-medium transition-colors"
+              className="text-xs text-muted hover:text-warning-text font-medium transition-colors"
               title={t.tournament_view_announce_title}
             >
               📢
@@ -277,7 +277,7 @@ export default function MatchCard({
 
       {/* Not started hint */}
       {notStarted && (
-        <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 mb-3 inline-block">
+        <div className="text-xs text-warning-text bg-warning-subtle border border-warning rounded-lg px-3 py-1.5 mb-3 inline-block">
           ⏳ {t.tournament_view_assign_court_first}
         </div>
       )}
@@ -353,7 +353,7 @@ export default function MatchCard({
 
           return (
             <div key={setNum} className="text-center">
-              <div className="text-[11px] font-medium text-gray-400 mb-1.5 uppercase tracking-wide">
+              <div className="text-[11px] font-medium text-muted mb-1.5 uppercase tracking-wide">
                 {t.common_set} {setNum}
                 {complete && (
                   <span className="text-emerald-500 ml-1">✓</span>
@@ -380,7 +380,7 @@ export default function MatchCard({
                   disabled={inputsDisabled}
                   className={`w-14 h-10 border-2 rounded-xl text-center text-base font-mono font-bold ${theme.inputBg} ${theme.inputText} disabled:opacity-60 outline-none transition-all ${
                     !validation.valid
-                      ? "border-rose-300 bg-rose-50 text-rose-600"
+                      ? "border-danger bg-danger-subtle text-danger-text"
                       : complete && score1 > score2
                       ? "border-emerald-300 bg-emerald-50 text-emerald-700"
                       : `${theme.inputBorder} ${theme.focusBorder} focus:ring-2 ${theme.focusRing}`
@@ -407,7 +407,7 @@ export default function MatchCard({
                   disabled={inputsDisabled}
                   className={`w-14 h-10 border-2 rounded-xl text-center text-base font-mono font-bold ${theme.inputBg} ${theme.inputText} disabled:opacity-60 outline-none transition-all ${
                     !validation.valid
-                      ? "border-rose-300 bg-rose-50 text-rose-600"
+                      ? "border-danger bg-danger-subtle text-danger-text"
                       : complete && score2 > score1
                       ? "border-emerald-300 bg-emerald-50 text-emerald-700"
                       : `${theme.inputBorder} ${theme.focusBorder} focus:ring-2 ${theme.focusRing}`
@@ -415,7 +415,7 @@ export default function MatchCard({
                 />
               </div>
               {!validation.valid && (
-                <div className="text-[10px] text-rose-500 mt-1 max-w-[130px]">
+                <div className="text-[10px] text-danger-text mt-1 max-w-[130px]">
                   {validation.error && fill(t[validation.error], validation.params)}
                 </div>
               )}

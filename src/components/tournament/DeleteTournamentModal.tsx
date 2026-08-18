@@ -45,7 +45,7 @@ export default function DeleteTournamentModal({
           <button
             onClick={doConfirm}
             disabled={deleting}
-            className="flex-1 bg-rose-600 text-white px-4 py-2.5 rounded-xl hover:bg-rose-700 shadow-sm transition-all text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger shadow-sm transition-all text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {deleting ? `⏳ ${t.common_loading}` : t.common_delete_permanently}
           </button>

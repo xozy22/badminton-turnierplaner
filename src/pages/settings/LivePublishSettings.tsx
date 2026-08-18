@@ -183,7 +183,7 @@ export function LivePublishSettings() {
             <div className={`text-xs ${theme.textSecondary} mb-2`}>
               {okCount > 0 && <span className="text-emerald-600">✓ {okCount} OK</span>}
               {okCount > 0 && errCount > 0 && <span> / </span>}
-              {errCount > 0 && <span className="text-rose-600">✗ {errCount} Fehler</span>}
+              {errCount > 0 && <span className="text-danger-text">✗ {errCount} Fehler</span>}
             </div>
           ) : (
             <div className={`text-xs ${theme.textMuted}`}>
@@ -193,7 +193,7 @@ export function LivePublishSettings() {
           <ul className="space-y-1 mt-2">
             {statuses.map((s) => (
               <li key={s.tournamentId} className={`text-xs ${theme.textSecondary} font-mono flex items-center gap-2`}>
-                <span className={s.lastError ? "text-rose-600" : "text-emerald-600"}>
+                <span className={s.lastError ? "text-danger-text" : "text-emerald-600"}>
                   {s.lastError ? "✗" : "✓"}
                 </span>
                 <span className="flex-1">{s.tournamentName}</span>
@@ -272,7 +272,7 @@ export function PushLogPanel() {
         {entries.length > 0 && (
           <button
             onClick={handleClear}
-            className={`text-[11px] ${theme.textMuted} hover:text-rose-500 transition-colors`}
+            className={`text-[11px] ${theme.textMuted} hover:text-danger-text transition-colors`}
           >
             {t.settings_live_publish_log_clear}
           </button>
@@ -311,7 +311,7 @@ export function PushLogPanel() {
                       {e.ok ? (
                         <span className="text-emerald-600">✓ {e.status ?? ""}</span>
                       ) : (
-                        <span className="text-rose-600" title={e.error}>
+                        <span className="text-danger-text" title={e.error}>
                           ✗ {(e.error ?? "").slice(0, 30)}
                         </span>
                       )}

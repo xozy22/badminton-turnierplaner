@@ -60,12 +60,12 @@ export class ErrorBoundary extends Component<Props, State> {
       .join("\n\n");
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="max-w-2xl w-full bg-white border border-rose-200 rounded-2xl shadow-sm p-6">
-          <h1 className="text-lg font-bold text-rose-700">
+      <div className="min-h-screen flex items-center justify-center bg-surface-sunken p-6">
+        <div className="max-w-2xl w-full bg-white border border-danger rounded-2xl shadow-sm p-6">
+          <h1 className="text-lg font-bold text-danger-text">
             {this.props.title ?? "Da ist etwas schiefgelaufen"}
           </h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-secondary">
             {this.props.hint ??
               "Deine Daten sind gespeichert. Lade die Ansicht neu, um weiterzuarbeiten."}
           </p>
@@ -73,23 +73,23 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="mt-4 flex gap-2">
             <button
               onClick={this.handleReload}
-              className="bg-rose-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-rose-700 transition-colors"
+              className="bg-danger text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-danger transition-colors"
             >
               {this.props.reloadLabel ?? "Neu laden"}
             </button>
             <button
               onClick={() => navigator.clipboard?.writeText(details)}
-              className="border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm font-medium hover:border-gray-300 transition-colors"
+              className="border border-line-strong text-secondary px-4 py-2 rounded-xl text-sm font-medium hover:border-line-strong transition-colors"
             >
               {this.props.detailsLabel ?? "Details kopieren"}
             </button>
           </div>
 
           <details className="mt-4">
-            <summary className="text-xs uppercase tracking-wide text-gray-400 cursor-pointer">
+            <summary className="text-xs uppercase tracking-wide text-muted cursor-pointer">
               Technische Details
             </summary>
-            <pre className="mt-2 text-xs text-gray-600 bg-gray-50 rounded-xl p-3 overflow-auto max-h-64 whitespace-pre-wrap">
+            <pre className="mt-2 text-xs text-secondary bg-surface-sunken rounded-xl p-3 overflow-auto max-h-64 whitespace-pre-wrap">
               {details}
             </pre>
           </details>

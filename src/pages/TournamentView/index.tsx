@@ -1164,8 +1164,8 @@ export default function TournamentView() {
     tournament?.format === "elimination" ||
     tournament?.format === "group_ko" ||
     tournament?.format === "double_elimination"
-      ? "bg-violet-600 hover:bg-violet-700"
-      : "bg-amber-500 hover:bg-amber-600";
+      ? "bg-phase hover:bg-phase"
+      : "bg-warning hover:bg-warning";
 
   const isElimination = tournament?.format === "elimination";
   const isDoubleElimination = tournament?.format === "double_elimination";
@@ -1363,10 +1363,10 @@ export default function TournamentView() {
     tournament.status === "active"
       ? `${theme.activeBadgeBg} ${theme.activeBadgeText}`
       : tournament.status === "completed"
-      ? "bg-gray-100 text-gray-500"
+      ? "bg-surface-sunken text-muted"
       : tournament.status === "archived"
-      ? "bg-violet-100 text-violet-600"
-      : "bg-amber-100 text-amber-700";
+      ? "bg-phase-subtle text-phase-text"
+      : "bg-warning-subtle text-warning-text";
 
   return (
     <div>
@@ -1378,8 +1378,8 @@ export default function TournamentView() {
       {tournament.session_id != null && sessionMeta && (() => {
         const isActive = sessionMeta.status === "active";
         const pillClass = isActive
-          ? "bg-violet-100 text-violet-700 border-violet-200"
-          : "bg-gray-100 text-gray-600 border-gray-200";
+          ? "bg-phase-subtle text-phase-text border-phase"
+          : "bg-surface-sunken text-secondary border-line-strong";
         const statusSuffix = sessionMeta.status === "ended" ? ` ${t.session_pill_ended_suffix}`
           : sessionMeta.status === "archived" ? ` ${t.session_pill_archived_suffix}`
             : "";
@@ -1442,19 +1442,19 @@ export default function TournamentView() {
                 : getScoringDescription(tournament.points_per_set, tournament.cap, { ext: t.scoring_description_ext, hard: t.scoring_description_hard })}
             </span>
             {isGroupKo && tournament.ko_points_per_set != null && (
-              <span className={`text-xs font-medium bg-violet-100 text-violet-700 border border-violet-200 px-2.5 py-1 rounded-full`}>
+              <span className={`text-xs font-medium bg-phase-subtle text-phase-text border border-phase px-2.5 py-1 rounded-full`}>
                 KO: {getScoringDescription(tournament.ko_points_per_set, tournament.ko_cap, { ext: t.scoring_description_ext, hard: t.scoring_description_hard })}
               </span>
             )}
             {tournament.courts > 1 && (
-              <span className="text-xs font-medium bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">
+              <span className="text-xs font-medium bg-warning-subtle text-warning-text px-2.5 py-1 rounded-full">
                 {tournament.courts} {t.common_fields}
               </span>
             )}
             {isGroupKo && (
               <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                 tournament.current_phase === "ko"
-                  ? "bg-violet-100 text-violet-700"
+                  ? "bg-phase-subtle text-phase-text"
                   : `${theme.activeBadgeBg} ${theme.activeBadgeText}`
               }`}>
                 {tournament.current_phase === "ko" ? t.tournament_view_ko_phase : t.tournament_view_groups_label.replace("{count}", String(tournament.num_groups))}
@@ -1468,7 +1468,7 @@ export default function TournamentView() {
               </span>
             )}
             {isDoubleElimination && (
-              <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-violet-100 text-violet-700">
+              <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-phase-subtle text-phase-text">
                 {t.format_double_elimination}
               </span>
             )}
@@ -1496,7 +1496,7 @@ export default function TournamentView() {
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-rose-300 hover:text-rose-600 transition-all text-sm font-medium`}
+                className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-danger hover:text-danger-text transition-all text-sm font-medium`}
               >
                 🗑️ {t.tournament_view_delete}
               </button>
@@ -1517,7 +1517,7 @@ export default function TournamentView() {
           {canStartKo && (
             <button
               onClick={() => setShowStartKoModal(true)}
-              className="bg-violet-600 text-white px-5 py-2.5 rounded-xl hover:bg-violet-700 shadow-sm hover:shadow-md transition-all text-sm font-medium"
+              className="bg-phase text-white px-5 py-2.5 rounded-xl hover:bg-phase shadow-sm hover:shadow-md transition-all text-sm font-medium"
             >
               🏆 {t.tournament_view_start_ko}
             </button>
@@ -1534,7 +1534,7 @@ export default function TournamentView() {
             <button
               onClick={() => setShowUndoRound(true)}
               disabled={!undoTarget}
-              className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-amber-300 hover:text-amber-600 transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-warning hover:text-warning-text transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               ↩️ {t.tournament_view_undo_round}
             </button>
@@ -1547,7 +1547,7 @@ export default function TournamentView() {
               className={`px-4 py-2.5 rounded-xl transition-all text-sm font-medium ${
                 hasOpenMatches
                   ? `${theme.cardBg} border ${theme.cardBorder} ${theme.textMuted} cursor-not-allowed opacity-50`
-                  : `${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} hover:border-rose-300 hover:text-rose-600`
+                  : `${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} hover:border-danger hover:text-danger-text`
               }`}
             >
               {t.tournament_view_end}
@@ -1564,7 +1564,7 @@ export default function TournamentView() {
           {tournament.status === "completed" && (
             <button
               onClick={handleArchive}
-              className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-violet-300 hover:text-violet-600 transition-all text-sm font-medium`}
+              className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-phase hover:text-phase-text transition-all text-sm font-medium`}
             >
               📦 {t.tournament_view_archive}
             </button>
@@ -1651,12 +1651,12 @@ export default function TournamentView() {
                   disabled={liveBusy}
                   className={`${
                     livePaused
-                      ? "bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50"
-                      : "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+                      ? "bg-warning-subtle dark:bg-warning-subtle/30 border-warning dark:border-warning text-warning-text dark:text-warning-text hover:bg-warning-subtle dark:hover:bg-warning-subtle/50"
+                      : "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-success-subtle dark:hover:bg-emerald-900/50"
                   } border px-4 py-2.5 rounded-xl transition-all text-sm font-medium disabled:opacity-50`}
                 >
                   📡 {livePaused ? t.tournament_live_publish_paused_label : t.tournament_live_publish_active}
-                  <span className={`ml-2 px-1.5 py-0.5 rounded-md ${livePaused ? "bg-amber-100 dark:bg-amber-800/40 border-amber-200 dark:border-amber-700/50" : "bg-emerald-100 dark:bg-emerald-800/40 border-emerald-200 dark:border-emerald-700/50"} border text-[11px] font-mono opacity-90`}>
+                  <span className={`ml-2 px-1.5 py-0.5 rounded-md ${livePaused ? "bg-warning-subtle dark:bg-warning-subtle border-warning dark:border-warning/50" : "bg-success-subtle dark:bg-success-subtle border-success dark:border-success"} border text-[11px] font-mono opacity-90`}>
                     ID: {tournamentId}
                   </span>
                 </button>
@@ -1666,7 +1666,7 @@ export default function TournamentView() {
                   disabled={liveBusy}
                   title={livePaused ? t.tournament_live_publish_resume : t.tournament_live_publish_pause}
                   aria-label={livePaused ? t.tournament_live_publish_resume : t.tournament_live_publish_pause}
-                  className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} w-8 h-8 flex items-center justify-center rounded-lg hover:border-amber-300 hover:text-amber-600 transition-all text-sm disabled:opacity-50`}
+                  className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} w-8 h-8 flex items-center justify-center rounded-lg hover:border-warning hover:text-warning-text transition-all text-sm disabled:opacity-50`}
                 >
                   {livePaused ? "▶️" : "⏸️"}
                 </button>
@@ -1938,12 +1938,12 @@ export default function TournamentView() {
               </div>
             </div>
             {players.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="mt-4 pt-3 border-t border-line-strong dark:border-line-strong">
                 <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.management_participants.replace("{count}", String(players.length))}</span>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {players.map(p => (
                     <span key={p.id} className={`text-xs px-2 py-0.5 rounded-full ${
-                      p.gender === "m" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+                      p.gender === "m" ? "bg-info-subtle text-info-text" : "bg-pink-100 text-pink-700"
                     }`}>
                       {playerDisplayName(p)}
                     </span>
@@ -1985,7 +1985,7 @@ export default function TournamentView() {
               {viewTab === tab.key ? (
                 <span className={`absolute bottom-0 left-0 right-0 h-[3px] ${theme.primaryBg} rounded-t-full`} />
               ) : (
-                <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-transparent group-hover:bg-gray-200 rounded-t-full transition-all" />
+                <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-transparent group-hover:bg-line-strong rounded-t-full transition-all" />
               )}
             </button>
           ))}
@@ -2010,11 +2010,11 @@ export default function TournamentView() {
               {/* KO rounds */}
               {koRounds.length > 0 && (
                 <div className="flex gap-2 flex-wrap items-center">
-                  <span className="text-xs font-bold text-violet-400 uppercase tracking-wide w-8">KO</span>
+                  <span className="text-xs font-bold text-phase-text uppercase tracking-wide w-8">KO</span>
                   {koRounds.map((r) => {
                     const colorClass = activeRound === r.id
-                      ? "bg-violet-600 text-white shadow-md"
-                      : `${theme.cardBg} text-violet-600 hover:bg-violet-500/10 border border-violet-500/30 hover:border-violet-400`;
+                      ? "bg-phase text-white shadow-md"
+                      : `${theme.cardBg} text-phase-text hover:bg-phase/10 border border-phase/30 hover:border-phase`;
                     return (
                       <button
                         key={r.id}
@@ -2053,11 +2053,11 @@ export default function TournamentView() {
                   )}
                   {losersRounds.length > 0 && (
                     <div className="flex gap-2 flex-wrap items-center">
-                      <span className="text-xs font-bold text-rose-400 uppercase tracking-wide w-8">L</span>
+                      <span className="text-xs font-bold text-danger-text uppercase tracking-wide w-8">L</span>
                       {losersRounds.map((r, idx) => {
                         const colorClass = activeRound === r.id
-                          ? "bg-rose-600 text-white shadow-md"
-                          : `${theme.cardBg} text-rose-600 hover:bg-rose-500/10 border border-rose-500/30 hover:border-rose-400`;
+                          ? "bg-danger text-white shadow-md"
+                          : `${theme.cardBg} text-danger-text hover:bg-danger/10 border border-rose-500/30 hover:border-rose-400`;
                         return (
                           <button
                             key={r.id}

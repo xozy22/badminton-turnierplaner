@@ -269,7 +269,7 @@ export default function Settings() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="w-3 h-3 rounded-full bg-amber-400 shrink-0"></span>
+                  <span className="w-3 h-3 rounded-full bg-warning shrink-0"></span>
                   <span className={`text-xs font-medium ${theme.textSecondary}`}>{t.settings_timer_warning}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -285,12 +285,12 @@ export default function Settings() {
                     }}
                     className={`w-20 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-3 py-2 text-sm text-center ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                   />
-                  <span className="text-xs text-gray-400">{t.settings_timer_minutes}</span>
+                  <span className="text-xs text-muted">{t.settings_timer_minutes}</span>
                 </div>
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="w-3 h-3 rounded-full bg-rose-500 shrink-0"></span>
+                  <span className="w-3 h-3 rounded-full bg-danger shrink-0"></span>
                   <span className={`text-xs font-medium ${theme.textSecondary}`}>{t.settings_timer_critical}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -306,11 +306,11 @@ export default function Settings() {
                     }}
                     className={`w-20 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-3 py-2 text-sm text-center ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                   />
-                  <span className="text-xs text-gray-400">{t.settings_timer_minutes}</span>
+                  <span className="text-xs text-muted">{t.settings_timer_minutes}</span>
                 </div>
               </div>
             </div>
-            <div className="text-xs text-gray-400 mt-2">
+            <div className="text-xs text-muted mt-2">
               {t.settings_timer_hint}
             </div>
           </div>
@@ -378,12 +378,12 @@ export default function Settings() {
               </button>
               <button
                 onClick={handleRestore}
-                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl hover:border-amber-300 hover:text-amber-700 transition-all text-sm font-medium`}
+                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl hover:border-warning hover:text-warning-text transition-all text-sm font-medium`}
               >
                 📥 {t.settings_backup_restore}
               </button>
             </div>
-            <div className="text-xs text-gray-400 leading-relaxed">
+            <div className="text-xs text-muted leading-relaxed">
               {t.settings_backup_hint}
             </div>
           </div>
@@ -391,42 +391,42 @@ export default function Settings() {
 
         {/* Danger Zone */}
         <div className={`pt-4 border-t ${theme.cardBorder}`}>
-          <h3 className="text-sm font-medium text-rose-600 mb-3">
+          <h3 className="text-sm font-medium text-danger-text mb-3">
             {t.settings_danger_zone}
           </h3>
           <div className="space-y-2">
-            <div className={`flex items-center justify-between bg-rose-500/10 rounded-xl p-3 border border-rose-500/20`}>
+            <div className={`flex items-center justify-between bg-danger/10 rounded-xl p-3 border border-rose-500/20`}>
               <div>
                 <div className={`text-sm font-medium ${theme.textPrimary}`}>{t.settings_delete_all_players}</div>
-                <div className="text-xs text-gray-400">{t.settings_delete_all_players_hint}</div>
+                <div className="text-xs text-muted">{t.settings_delete_all_players_hint}</div>
               </div>
               <button
                 onClick={() => { setConfirmTarget("players"); setConfirmText(""); }}
-                className={`${theme.cardBg} border border-rose-500/30 text-rose-500 px-3 py-1.5 rounded-lg hover:bg-rose-500/10 transition-all text-xs font-medium whitespace-nowrap ml-3`}
+                className={`${theme.cardBg} border border-rose-500/30 text-danger-text px-3 py-1.5 rounded-lg hover:bg-danger/10 transition-all text-xs font-medium whitespace-nowrap ml-3`}
               >
                 {t.common_delete}
               </button>
             </div>
-            <div className={`flex items-center justify-between bg-rose-500/10 rounded-xl p-3 border border-rose-500/20`}>
+            <div className={`flex items-center justify-between bg-danger/10 rounded-xl p-3 border border-rose-500/20`}>
               <div>
                 <div className={`text-sm font-medium ${theme.textPrimary}`}>{t.settings_delete_all_tournaments}</div>
-                <div className="text-xs text-gray-400">{t.settings_delete_all_tournaments_hint}</div>
+                <div className="text-xs text-muted">{t.settings_delete_all_tournaments_hint}</div>
               </div>
               <button
                 onClick={() => { setConfirmTarget("tournaments"); setConfirmText(""); }}
-                className={`${theme.cardBg} border border-rose-500/30 text-rose-500 px-3 py-1.5 rounded-lg hover:bg-rose-500/10 transition-all text-xs font-medium whitespace-nowrap ml-3`}
+                className={`${theme.cardBg} border border-rose-500/30 text-danger-text px-3 py-1.5 rounded-lg hover:bg-danger/10 transition-all text-xs font-medium whitespace-nowrap ml-3`}
               >
                 {t.common_delete}
               </button>
             </div>
-            <div className={`flex items-center justify-between bg-rose-500/20 rounded-xl p-3 border border-rose-500/30`}>
+            <div className={`flex items-center justify-between bg-danger/20 rounded-xl p-3 border border-rose-500/30`}>
               <div>
-                <div className={`text-sm font-medium text-rose-600`}>{t.settings_wipe_database}</div>
-                <div className="text-xs text-rose-400">{t.settings_wipe_database_hint}</div>
+                <div className={`text-sm font-medium text-danger-text`}>{t.settings_wipe_database}</div>
+                <div className="text-xs text-danger-text">{t.settings_wipe_database_hint}</div>
               </div>
               <button
                 onClick={() => { setConfirmTarget("wipe"); setConfirmText(""); }}
-                className="bg-rose-600 text-white px-3 py-1.5 rounded-lg hover:bg-rose-700 transition-all text-xs font-medium whitespace-nowrap ml-3"
+                className="bg-danger text-white px-3 py-1.5 rounded-lg hover:bg-danger transition-all text-xs font-medium whitespace-nowrap ml-3"
               >
                 RESET
               </button>
@@ -465,7 +465,7 @@ export default function Settings() {
             </div>
             <div className="mb-5">
               <label className={`block text-xs font-medium ${theme.textSecondary} mb-1.5`}>
-                {t.common_confirm_type.replace("{word}", "").trim()} <span className="font-bold text-rose-600">{CONFIRM_WORD}</span>
+                {t.common_confirm_type.replace("{word}", "").trim()} <span className="font-bold text-danger-text">{CONFIRM_WORD}</span>
               </label>
               <input
                 type="text"
@@ -486,7 +486,7 @@ export default function Settings() {
               <button
                 onClick={handleWipeConfirm}
                 disabled={confirmText !== CONFIRM_WORD || wiping}
-                className="flex-1 bg-rose-600 text-white px-4 py-2.5 rounded-xl hover:bg-rose-700 transition-all text-sm font-medium disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger transition-all text-sm font-medium disabled:bg-line-strong disabled:text-muted disabled:cursor-not-allowed"
               >
                 {wiping ? `⏳ ${t.common_loading}` : t.common_delete_permanently}
               </button>

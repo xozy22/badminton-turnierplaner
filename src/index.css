@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* `dark:` follows the theme the user picked in the app, not the operating
+   system. Tailwind v4 defaults this variant to `prefers-color-scheme`, so
+   the nineteen `dark:` classes in the codebase were keyed to the OS: with a
+   dark system and the light app theme they painted dark colours onto light
+   surfaces, and with a light system the dark theme never got them
+   (REVIEW-BACKLOG.md F2). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* ===========================================================================
    Design tokens (REVIEW-BACKLOG.md F1)
    ---------------------------------------------------------------------------
@@ -67,6 +75,17 @@
   --success: #047857;
   --success-subtle: #ecfdf5;
   --success-text: #065f46;
+  --warning-fg: #ffffff;      /* 5.02:1 on --warning; amber-600 was 3.19:1 */
+  --info-fg: #ffffff;         /* 6.70:1 on --info */
+
+  /* The knockout phase has been violet throughout the app since long before
+     these tokens; keeping it as its own name means the KO controls stay
+     distinct from ordinary information, and a theme can still move it. */
+  --phase: #6d28d9;           /* white on it: 7.10:1 */
+  --phase-hover: #5b21b6;
+  --phase-fg: #ffffff;
+  --phase-subtle: #f5f3ff;
+  --phase-text: #5b21b6;      /* 8.49:1 on --phase-subtle */
 
   /* Stat cards on the home page */
   --stat-1: linear-gradient(to bottom right, #047857, #064e3b);
@@ -75,6 +94,8 @@
 
   /* Header strips behind table headings */
   --header-wash: linear-gradient(to right, #ecfdf5, transparent);
+  /* The TV display is always dark; only its accent follows the theme. */
+  --tv-bg: linear-gradient(to bottom, #030712, #022c22, #030712);
 
   --scrollbar-thumb: #a7f3d0;
   --scrollbar-thumb-hover: #6ee7b7;
@@ -97,6 +118,7 @@
   --sidebar-accent: #60a5fa;
   --stat-1: linear-gradient(to bottom right, #1d4ed8, #1e3a8a);
   --header-wash: linear-gradient(to right, #eff6ff, transparent);
+  --tv-bg: linear-gradient(to bottom, #030712, #172554, #030712);
   --scrollbar-thumb: #bfdbfe;
   --scrollbar-thumb-hover: #93c5fd;
 }
@@ -117,6 +139,7 @@
   --sidebar-accent: #fb923c;
   --stat-1: linear-gradient(to bottom right, #c2410c, #7c2d12);
   --header-wash: linear-gradient(to right, #fff7ed, transparent);
+  --tv-bg: linear-gradient(to bottom, #030712, #431407, #030712);
   --scrollbar-thumb: #fed7aa;
   --scrollbar-thumb-hover: #fdba74;
 }
@@ -160,11 +183,14 @@
   --info-text: #93c5fd;
   --success-subtle: #022c22;
   --success-text: #6ee7b7;
+  --phase-subtle: #2e1065;
+  --phase-text: #c4b5fd;
 
   --stat-1: linear-gradient(to bottom right, #065f46, #022c22);
   --stat-2: linear-gradient(to bottom right, #92400e, #451a03);
   --stat-3: linear-gradient(to bottom right, #5b21b6, #2e1065);
   --header-wash: linear-gradient(to right, #1f2937, transparent);
+  --tv-bg: linear-gradient(to bottom, #030712, #111827, #030712);
 
   --scrollbar-thumb: #374151;
   --scrollbar-thumb-hover: #4b5563;
@@ -213,6 +239,13 @@
   --color-success: var(--success);
   --color-success-subtle: var(--success-subtle);
   --color-success-text: var(--success-text);
+  --color-warning-fg: var(--warning-fg);
+  --color-info-fg: var(--info-fg);
+  --color-phase: var(--phase);
+  --color-phase-hover: var(--phase-hover);
+  --color-phase-fg: var(--phase-fg);
+  --color-phase-subtle: var(--phase-subtle);
+  --color-phase-text: var(--phase-text);
 }
 
 /* Gradients cannot be expressed as a Tailwind colour, so they get utilities
@@ -222,6 +255,9 @@
 }
 @utility bg-sidebar {
   background: var(--sidebar-bg);
+}
+@utility bg-tv {
+  background: var(--tv-bg);
 }
 @utility bg-header-wash {
   background: var(--header-wash);

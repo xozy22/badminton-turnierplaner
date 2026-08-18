@@ -82,7 +82,7 @@ export default function AttendanceCheckModal({
 
         {/* Counter + quick buttons */}
         <div className={`px-5 py-3 border-b ${theme.cardBorder} ${theme.headerGradient} flex items-center justify-between gap-3`}>
-          <span className={`text-sm font-medium ${canStart ? theme.activeBadgeText : "text-rose-500"}`}>
+          <span className={`text-sm font-medium ${canStart ? theme.activeBadgeText : "text-danger-text"}`}>
             {t.attendance_present_count
               .replace("{count}", String(presentCount))
               .replace("{total}", String(players.length))}
@@ -161,7 +161,7 @@ export default function AttendanceCheckModal({
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
                         player.gender === "m"
-                          ? "bg-blue-500/20 text-blue-600"
+                          ? "bg-blue-500/20 text-info-text"
                           : "bg-pink-500/20 text-pink-600"
                       }`}
                     >
@@ -191,7 +191,7 @@ export default function AttendanceCheckModal({
           </button>
           <div className="flex flex-col items-end gap-1">
             {!canStart && (
-              <span className="text-xs text-rose-500">
+              <span className="text-xs text-danger-text">
                 {t.attendance_min_players.replace("{count}", String(minPlayers))}
               </span>
             )}

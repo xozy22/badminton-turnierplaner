@@ -126,7 +126,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
         )}
         {p2 != null && (
           <>
-            <span className="mx-1 text-gray-400">/</span>
+            <span className="mx-1 text-muted">/</span>
             <span>{playerName(p2)}</span>
             {wantIcons && (
               <RestIndicator
@@ -279,7 +279,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
         title={match ? t.court_double_click_jump : undefined}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+          <span className="text-xs font-bold text-warning-text bg-warning-subtle px-2 py-0.5 rounded-md">
             {getCourtLabel(courtNum)}
           </span>
           {match && (
@@ -377,7 +377,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
               className={`${theme.cardBg} border rounded-xl px-3 py-2 text-xs select-none relative transition-all duration-200 ${
                 isBlocked
                   ? "border-rose-400 ring-1 ring-rose-300 opacity-70 cursor-not-allowed"
-                  : `${theme.cardBorder} cursor-grab active:cursor-grabbing hover:border-amber-300 hover:shadow-md`
+                  : `${theme.cardBorder} cursor-grab active:cursor-grabbing hover:border-warning hover:shadow-md`
               } ${courtPickerMatchId === m.id ? "z-40" : ""}`}
               title={blockedTitle}
             >
@@ -392,7 +392,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
                 {renderTeam(m.team2_p1, m.team2_p2, m)}
               </span>
               {isBlocked && (
-                <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-rose-600">
+                <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-danger-text">
                   <span>🚫</span>
                   <span>{t.match_blocked_short}</span>
                 </div>
@@ -456,14 +456,14 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
                 just structured. */}
             {unassigned.length > 0 && (
               <div className="mt-3">
-                <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-1.5">
+                <div className="text-[11px] font-medium text-muted uppercase tracking-wide mb-1.5">
                   {t.court_waiting.replace("{count}", String(unassigned.length))}
                 </div>
                 {unassignedGroups && unassignedGroups.length > 0 ? (
                   <div className="space-y-2">
                     {unassignedGroups.map(({ group, matches: groupMatches }) => (
                       <div key={group}>
-                        <div className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide mb-1 text-violet-600`}>
+                        <div className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide mb-1 text-phase-text`}>
                           <span>{t.group_progress_label.replace("{n}", String(group))}</span>
                           <span className={`font-mono font-normal ${theme.textMuted}`}>
                             {t.court_waiting_count.replace("{count}", String(groupMatches.length))}

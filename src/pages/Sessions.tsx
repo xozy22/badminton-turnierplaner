@@ -205,8 +205,8 @@ export default function Sessions() {
 
   const statusBadgeClass = (s: SessionStatus): string =>
     s === "active" ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-      : s === "ended" ? "bg-amber-100 text-amber-700 border-amber-200"
-        : "bg-gray-100 text-gray-600 border-gray-200";
+      : s === "ended" ? "bg-warning-subtle text-warning-text border-warning"
+        : "bg-surface-sunken text-secondary border-line-strong";
 
   return (
     <div>
@@ -319,7 +319,7 @@ export default function Sessions() {
                 {s.status === "active" && (
                   <button
                     onClick={() => handleEnd(s)}
-                    className={`${theme.cardBg} border border-amber-200 text-amber-700 hover:bg-amber-50 px-3 py-1.5 rounded-lg text-xs font-medium transition-all`}
+                    className={`${theme.cardBg} border border-warning text-warning-text hover:bg-warning-subtle px-3 py-1.5 rounded-lg text-xs font-medium transition-all`}
                   >
                     {t.sessions_end}
                   </button>
@@ -350,7 +350,7 @@ export default function Sessions() {
                 )}
                 <button
                   onClick={() => setDeleteTarget(s)}
-                  className={`text-xs ${theme.textMuted} hover:text-rose-500 px-2 py-1.5 transition-colors ml-auto`}
+                  className={`text-xs ${theme.textMuted} hover:text-danger-text px-2 py-1.5 transition-colors ml-auto`}
                   title={t.sessions_delete}
                 >
                   🗑
@@ -426,7 +426,7 @@ export default function Sessions() {
                     {attachCandidates.map((tt) => (
                       <label
                         key={tt.id}
-                        className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50`}
+                        className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-surface-sunken`}
                       >
                         <input
                           type="checkbox"
@@ -497,7 +497,7 @@ export default function Sessions() {
               </button>
               <button
                 onClick={handleDelete}
-                className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                className="bg-danger hover:bg-danger text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
               >
                 {t.sessions_delete}
               </button>
@@ -536,11 +536,11 @@ export default function Sessions() {
                 ✓ {t.sessions_end_stats_none}
               </div>
             ) : (
-              <div className="border border-amber-200 bg-amber-50 rounded-xl px-3 py-2 mb-4">
-                <div className="text-[10px] font-bold uppercase tracking-wide text-amber-700 mb-1">
+              <div className="border border-warning bg-warning-subtle rounded-xl px-3 py-2 mb-4">
+                <div className="text-[10px] font-bold uppercase tracking-wide text-warning-text mb-1">
                   ⚠ {t.sessions_end_stats_title}
                 </div>
-                <ul className="text-xs text-amber-800 space-y-0.5 pl-1">
+                <ul className="text-xs text-warning-text space-y-0.5 pl-1">
                   <li>
                     🏆 {t.sessions_end_stats_active_tournaments.replace("{count}", String(endStats.activeTournaments.length))}
                   </li>
@@ -560,7 +560,7 @@ export default function Sessions() {
               </button>
               <button
                 onClick={confirmEnd}
-                className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
               >
                 {t.sessions_end}
               </button>

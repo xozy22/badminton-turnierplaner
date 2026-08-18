@@ -37,13 +37,13 @@ function ClubInput({ value, onChange, onKeyDown, className, placeholder, clubs }
         autoComplete="off"
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-surface-raised border border-line-strong dark:border-line-strong rounded-xl shadow-lg max-h-40 overflow-y-auto">
           {filtered.slice(0, 8).map(c => (
             <button
               key={c}
               type="button"
               onMouseDown={(e) => { e.preventDefault(); onChange(c); setOpen(false); }}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-surface-sunken dark:hover:bg-surface-raised transition-colors"
             >
               {c}
             </button>
@@ -471,7 +471,7 @@ export default function Players() {
               </span>
               <button
                 onClick={handleDeleteSelected}
-                className="bg-rose-500/10 text-rose-600 border border-rose-500/20 px-3 py-1.5 rounded-lg hover:bg-rose-500/20 transition-all text-xs font-medium"
+                className="bg-danger/10 text-danger-text border border-rose-500/20 px-3 py-1.5 rounded-lg hover:bg-danger/20 transition-all text-xs font-medium"
               >
                 🗑 {t.players_delete_selected}
               </button>
@@ -680,7 +680,7 @@ export default function Players() {
                             </button>
                             <button
                               onClick={() => handleDeleteSingle(p)}
-                              className={`${theme.textMuted} hover:text-rose-600 text-sm transition-colors`}
+                              className={`${theme.textMuted} hover:text-danger-text text-sm transition-colors`}
                             >
                               {t.common_delete}
                             </button>
@@ -751,7 +751,7 @@ export default function Players() {
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="flex-1 bg-rose-600 text-white px-4 py-2.5 rounded-xl hover:bg-rose-700 transition-all text-sm font-medium"
+                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger transition-all text-sm font-medium"
               >
                 {deleteTarget.ids.length === 1 ? t.common_delete : t.players_delete_confirm_multi.replace("{count}", String(deleteTarget.ids.length))}
               </button>

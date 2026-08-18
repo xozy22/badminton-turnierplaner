@@ -57,7 +57,7 @@ function HallEditor({
           {halls.length > 1 && (
             <button
               onClick={() => onChange(halls.filter((_, i) => i !== idx))}
-              className={`${theme.textMuted} hover:text-rose-500 text-sm transition-colors px-0.5 shrink-0`}
+              className={`${theme.textMuted} hover:text-danger-text text-sm transition-colors px-0.5 shrink-0`}
             >
               ✕
             </button>
@@ -604,7 +604,7 @@ export default function Sportstaetten() {
                       </button>
                       <button
                         onClick={() => handleDeleteSingle(s)}
-                        className={`${theme.textMuted} hover:text-rose-600 text-sm transition-colors`}
+                        className={`${theme.textMuted} hover:text-danger-text text-sm transition-colors`}
                       >
                         {t.common_delete}
                       </button>
@@ -657,7 +657,7 @@ export default function Sportstaetten() {
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="flex-1 bg-rose-600 text-white px-4 py-2.5 rounded-xl hover:bg-rose-700 transition-all text-sm font-medium"
+                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger transition-all text-sm font-medium"
               >
                 {t.common_delete}
               </button>
@@ -694,7 +694,7 @@ export default function Sportstaetten() {
                     {deleteBlocked.usage.activeTournaments.map((tt) => (
                       <li key={`t-${tt.id}`} className="flex items-center gap-2">
                         <span className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${
-                          tt.status === "active" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-blue-100 text-blue-700 border-blue-200"
+                          tt.status === "active" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-info-subtle text-info-text border-info"
                         }`}>
                           {tt.status}
                         </span>

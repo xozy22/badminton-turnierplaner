@@ -35,7 +35,7 @@ export default function RetirePlayerModal({
             {t.retire_details}
           </p>
           {retireTarget.partnerNote && (
-            <p className="text-xs text-amber-500 mt-2 font-medium">
+            <p className="text-xs text-warning-text mt-2 font-medium">
               ⚠️ {retireTarget.partnerNote}
             </p>
           )}
@@ -52,7 +52,7 @@ export default function RetirePlayerModal({
               onConfirm(retireTarget.player.id);
               onClose();
             }}
-            className="flex-1 bg-rose-600 text-white px-4 py-2.5 rounded-xl hover:bg-rose-700 transition-all text-sm font-medium"
+            className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger transition-all text-sm font-medium"
           >
             🏥 {t.retire_confirm}
           </button>

@@ -80,7 +80,7 @@ export function UpdateChecker() {
           <div className={`text-sm font-medium ${theme.textPrimary}`}>
             {t.settings_current_version} <span className="font-mono">{currentVersion}</span>
           </div>
-          <div className="text-xs text-gray-400 mt-0.5">
+          <div className="text-xs text-muted mt-0.5">
             {t.settings_check_updates_hint}
           </div>
         </div>
@@ -112,15 +112,15 @@ export function UpdateChecker() {
           {downloading ? (
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="flex-1 h-2 bg-line-strong rounded-full overflow-hidden">
                   <div
                     className="h-full bg-emerald-500 rounded-full transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <span className="text-xs font-mono text-gray-500">{progress}%</span>
+                <span className="text-xs font-mono text-muted">{progress}%</span>
               </div>
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-muted">
                 {t.settings_downloading}
               </div>
             </div>
@@ -136,7 +136,7 @@ export function UpdateChecker() {
       )}
 
       {status === "error" && (
-        <div className="bg-rose-50 text-rose-700 border border-rose-200 rounded-xl px-4 py-3 text-sm">
+        <div className="bg-danger-subtle text-danger-text border border-danger rounded-xl px-4 py-3 text-sm">
           ❌ {errorMsg || t.settings_update_failed}
         </div>
       )}

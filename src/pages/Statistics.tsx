@@ -394,7 +394,7 @@ export default function Statistics() {
               </thead>
               <tbody>
                 {rankings.slice(0, 15).map((entry, idx) => {
-                  const winRateColor = entry.winRate > 60 ? "text-emerald-500" : entry.winRate >= 40 ? "text-yellow-500" : "text-rose-500";
+                  const winRateColor = entry.winRate > 60 ? "text-emerald-500" : entry.winRate >= 40 ? "text-yellow-500" : "text-danger-text";
                   return (
                     <tr key={entry.player.id} className={`border-t ${theme.cardBorder} ${idx < 3 ? theme.headerGradient : ""}`}>
                       <td className={`px-4 py-2.5 font-bold ${theme.textSecondary}`}>
@@ -403,7 +403,7 @@ export default function Statistics() {
                       <td className={`px-4 py-2.5 font-medium ${theme.textPrimary}`}>{playerDisplayName(entry.player)}</td>
                       <td className={`px-4 py-2.5 text-center ${theme.textSecondary}`}>{entry.totalMatches}</td>
                       <td className="px-4 py-2.5 text-center font-semibold text-emerald-500">{entry.wins}</td>
-                      <td className="px-4 py-2.5 text-center font-semibold text-rose-500">{entry.losses}</td>
+                      <td className="px-4 py-2.5 text-center font-semibold text-danger-text">{entry.losses}</td>
                       <td className={`px-4 py-2.5 text-center font-bold ${winRateColor}`}>{entry.winRate.toFixed(0)}%</td>
                       <td className={`px-4 py-2.5 text-center ${theme.textSecondary}`}>{entry.avgPointsPerMatch.toFixed(1)}</td>
                     </tr>

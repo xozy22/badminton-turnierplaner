@@ -184,9 +184,9 @@ export default function SessionDetail() {
   const tournamentStatusBadge = (s: Tournament["status"]): string => {
     switch (s) {
       case "active": return "bg-emerald-100 text-emerald-700 border-emerald-200";
-      case "draft": return "bg-blue-100 text-blue-700 border-blue-200";
-      case "completed": return "bg-gray-100 text-gray-600 border-gray-200";
-      case "archived": return "bg-gray-100 text-gray-500 border-gray-200";
+      case "draft": return "bg-info-subtle text-info-text border-info";
+      case "completed": return "bg-surface-sunken text-secondary border-line-strong";
+      case "archived": return "bg-surface-sunken text-muted border-line-strong";
     }
   };
 
@@ -271,7 +271,7 @@ export default function SessionDetail() {
           {session.status === "active" && (
             <button
               onClick={() => handleStatusChange("ended")}
-              className="border border-amber-200 text-amber-700 hover:bg-amber-50 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+              className="border border-warning text-warning-text hover:bg-warning-subtle px-4 py-2 rounded-xl text-sm font-medium transition-all"
             >
               {t.sessions_end}
             </button>
@@ -364,7 +364,7 @@ export default function SessionDetail() {
                 </Link>
                 <button
                   onClick={() => handleDetach(tt.id)}
-                  className={`text-xs ${theme.textMuted} hover:text-rose-500 px-2 transition-colors`}
+                  className={`text-xs ${theme.textMuted} hover:text-danger-text px-2 transition-colors`}
                   title={t.session_detail_detach}
                 >
                   ✕
@@ -461,11 +461,11 @@ export default function SessionDetail() {
                 ✓ {t.sessions_end_stats_none}
               </div>
             ) : (
-              <div className="border border-amber-200 bg-amber-50 rounded-xl px-3 py-2 mb-4">
-                <div className="text-[10px] font-bold uppercase tracking-wide text-amber-700 mb-1">
+              <div className="border border-warning bg-warning-subtle rounded-xl px-3 py-2 mb-4">
+                <div className="text-[10px] font-bold uppercase tracking-wide text-warning-text mb-1">
                   ⚠ {t.sessions_end_stats_title}
                 </div>
-                <ul className="text-xs text-amber-800 space-y-0.5 pl-1">
+                <ul className="text-xs text-warning-text space-y-0.5 pl-1">
                   <li>
                     🏆 {t.sessions_end_stats_active_tournaments.replace("{count}", String(endStats.activeTournaments.length))}
                   </li>
@@ -485,7 +485,7 @@ export default function SessionDetail() {
               </button>
               <button
                 onClick={confirmEnd}
-                className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
               >
                 {t.sessions_end}
               </button>
