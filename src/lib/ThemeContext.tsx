@@ -47,18 +47,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const theme = THEMES[themeId].colors;
   const isDark = themeId === "dark";
 
-  // Apply scrollbar colors via CSS custom properties
+  // The whole palette hangs off this one attribute: index.css defines the
+  // tokens for each value, and every component reads them through Tailwind
+  // utilities. Scrollbars and the dark colour-scheme come along with it
+  // (REVIEW-BACKLOG.md F1).
   useEffect(() => {
-    document.documentElement.style.setProperty("--scrollbar-thumb", theme.scrollbarThumb);
-    document.documentElement.style.setProperty("--scrollbar-thumb-hover", theme.scrollbarThumbHover);
-
-    // Toggle dark class on body for global dark mode styles
-    if (isDark) {
-      document.documentElement.classList.add("dark-mode");
-    } else {
-      document.documentElement.classList.remove("dark-mode");
-    }
-  }, [themeId, theme, isDark]);
+    document.documentElement.setAttribute("data-theme", themeId);
+  }, [themeId]);
 
   // Apply font size
   useEffect(() => {

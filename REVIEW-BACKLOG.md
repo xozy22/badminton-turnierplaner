@@ -595,14 +595,18 @@ Das Polling bleibt als Sicherheitsnetz — für Änderungen, die ohne Meldung pa
 
 # F · Design & Bedienung
 
-### [ ] F1 — Theme-System aus vier handgepflegten Klassen-Tabellen
-**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/lib/theme.ts` (356 Zeilen), alle Komponenten
+### [x] F1 — Theme-System aus vier handgepflegten Klassen-Tabellen — **erledigt**
+**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/index.css`, `src/lib/theme.ts`, `src/lib/ThemeContext.tsx`
 
-**Problem:** Vier Themes × ~50 Schlüssel als Tailwind-Klassenstrings, die jede Komponente per `theme.cardBg` durchreichen muss. Dark Mode ist ein separates Theme statt einer Variante — jede neue Komponente muss alle vier Themes manuell bedienen, was systematisch vergessen wird (siehe F2). Das ist auch die Ursache für E5 und für Bugs wie „WP plugin row-hover too dark in dark mode".
+**Problem:** Vier Themes × ~50 Schlüssel als Tailwind-Klassenstrings, die jede Komponente per `theme.cardBg` durchreichen musste. Dark Mode war ein eigener Farbsatz statt einer Variante — jede neue Komponente musste alle vier Themes bedienen, was systematisch vergessen wurde.
 
-**Fix:** Auf Design-Tokens umstellen: semantische CSS-Variablen (`--surface`, `--surface-raised`, `--border`, `--text-primary`, `--text-muted`, `--accent`, `--accent-contrast`, `--success`, `--warning`, `--danger`) auf `:root`, pro Theme überschrieben über ein `data-theme`-Attribut; in Tailwind v4 per `@theme` als Utilities verfügbar machen. Komponenten nutzen dann `bg-surface text-primary` statt `theme.cardBg`. Dark Mode wird ein Wert des Attributs, nicht ein eigener Farbsatz.
+**Umgesetzt:** Jede Farbe hat jetzt einen semantischen Namen als CSS-Variable in `src/index.css`. `:root` trägt die hellen Flächen und den grünen Akzent; ein Theme überschreibt nur, was abweicht — Blau und Orange ändern sechs Akzentwerte und sonst nichts, Dunkel tauscht die Flächen und lässt den Akzent stehen. `@theme inline` macht die Tokens als Tailwind-Utilities verfügbar (`bg-surface`, `text-muted`, `border-line`), Verläufe als eigene `@utility`-Regeln.
 
-**Fertig wenn:** `theme.ts` ist auf eine Token-Definition geschrumpft; keine Komponente erhält Farben mehr als Prop; ein neues Theme entsteht durch Hinzufügen eines Variablensatzes.
+`theme.ts` ist von 356 auf 265 Zeilen geschrumpft: statt vier Tabellen genau eine, deren Werte auf die Tokens zeigen. Ein Theme besteht damit aus einem Variablenblock und einem Eintrag mit Name und Farbtupfer. Das Umschalten passiert über ein `data-theme`-Attribut am Wurzelelement.
+
+**Was das mitgelöst hat:** Die im Backlog erwähnte Ursache für Fehler wie „WP-Plugin-Zeile im Dark Mode zu dunkel" — es gibt keinen zweiten Farbsatz mehr, der auseinanderlaufen könnte.
+
+**Fertig wenn:** ~~`theme.ts` ist auf eine Token-Definition geschrumpft; ein neues Theme entsteht durch Hinzufügen eines Variablensatzes~~ — erfüllt. Der dritte Teil („keine Komponente erhält Farben mehr als Prop") ist die Aufräumarbeit von F2: Die Komponenten lesen weiterhin `theme.x`, bekommen darüber aber ausschließlich Token-Utilities. In allen vier Themes im Browser gegengeprüft.
 
 ---
 
@@ -729,14 +733,27 @@ Das Polling bleibt als Sicherheitsnetz — für Änderungen, die ohne Meldung pa
 
 ---
 
-### [ ] G3 — Farbkontraste nicht geprüft
-**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/theme.ts`, Komponenten
+### [x] G3 — Farbkontraste nicht geprüft — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/index.css`, `scripts/check-contrast.mjs` (neu), `docs/contrast.md` (neu)
 
-**Problem:** `textMuted: "text-gray-400"` auf weißem Grund erreicht etwa 2,8:1 und verfehlt WCAG AA (4,5:1) deutlich; ähnliche Zweifel bestehen bei `text-rose-400`, `bg-amber-50/text-amber-700` und den Sidebar-Texten mit `/70`-Transparenz. In der Halle (helles Umgebungslicht, Beamer, TV) ist Kontrast besonders wichtig.
+**Problem:** `textMuted: "text-gray-400"` auf weißem Grund erreichte etwa 2,8:1 und verfehlte WCAG AA deutlich; bei weiteren Paaren bestand derselbe Verdacht.
 
-**Fix:** Bei der Token-Definition (F1) jede Text-/Hintergrund-Kombination gegen AA prüfen und Werte anpassen; TV-Modus gegen AAA prüfen (Betrachtungsabstand).
+**Umgesetzt:** Bei der Token-Definition (F1) wurde jedes Text-/Hintergrund-Paar durchgerechnet. Vier Verstöße kamen heraus, drei davon schwerer als vermutet:
 
-**Fertig wenn:** Alle Text-/Hintergrund-Paare erreichen mindestens 4,5:1 (großer Text 3:1), dokumentiert in einer Kontrasttabelle.
+| Paar | vorher | jetzt |
+|---|---|---|
+| Gedämpfter Text auf Weiß | **2,54:1** | 4,83:1 |
+| Gedämpfter Text auf dunkler Fläche | **3,67:1** | 6,99:1 |
+| Weiß auf grünem Primärknopf | **3,77:1** | 5,48:1 |
+| Weiß auf orangem Primärknopf | **3,56:1** | 5,18:1 |
+
+Die beiden letzten betreffen den wichtigsten Knopf der Anwendung: Grün und Orange lagen auf der 600er-Stufe, auf der weiße Schrift AA nicht erreicht. Beide stehen jetzt auf 700.
+
+Im dunklen Theme wird der Akzent **nicht** überschrieben. Emerald-600 wirkt auf dunklem Grund gefälliger, trägt aber nur 3,77:1 mit weißer Schrift; emerald-700 hält 5,48:1 für die Beschriftung und hebt sich mit 3,23:1 von der Fläche ab — über den 3:1, die ein gefülltes Bedienelement braucht.
+
+**Dauerhaft abgesichert:** `scripts/check-contrast.mjs` liest die Tokens direkt aus `index.css` und prüft 51 Paare über alle vier Themes; `--table` erzeugt `docs/contrast.md`. Wer einen Wert über die Grenze schiebt, bekommt einen Fehler statt einer stillen Verschlechterung. Das Skript hat sich sofort bewährt — es fand einen Verstoß, den ich selbst gerade erst eingebaut hatte.
+
+**Fertig wenn:** ~~Alle Text-/Hintergrund-Paare erreichen mindestens 4,5:1, dokumentiert in einer Kontrasttabelle~~ — 51 von 51 bestehen; Tabelle in `docs/contrast.md`.
 
 ---
 
@@ -751,14 +768,12 @@ Das Polling bleibt als Sicherheitsnetz — für Änderungen, die ohne Meldung pa
 
 ---
 
-### [ ] G5 — Bewegungsreduzierung nicht berücksichtigt
+### [x] G5 — Bewegungsreduzierung nicht berücksichtigt — **erledigt**
 **Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `src/index.css`
 
-**Problem:** `transition-all` ist praktisch überall gesetzt, dazu Auto-Rotation und Einblendungen im TV-Modus. `prefers-reduced-motion` wird nirgends ausgewertet.
+**Umgesetzt:** Eine `@media (prefers-reduced-motion: reduce)`-Regel setzt Animations- und Übergangsdauern global auf 0,01 ms und schaltet weiches Scrollen ab. Bewusst nicht auf `none`: Eine derart kurze Dauer lässt Übergänge trotzdem zu Ende laufen und ihre `transitionend`-Rückrufe auslösen, auf die einzelne Komponenten sich verlassen.
 
-**Fix:** Globale Media-Query, die Übergänge und Animationen auf nahezu 0 setzt, wenn der Nutzer Bewegungsreduzierung aktiviert hat.
-
-**Fertig wenn:** Bei aktivierter Systemeinstellung laufen keine Animationen mehr.
+**Fertig wenn:** ~~Bei aktivierter Systemeinstellung laufen keine Animationen mehr~~ — erfüllt.
 
 ---
 
