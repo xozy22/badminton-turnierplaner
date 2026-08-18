@@ -17,8 +17,8 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — C-Reihe erledigt, D1/D2/D5 teilweise | Basis für alles Weitere |
 | | offen: Ansichten in Komponenten zerlegen (D1), Anzeige-Eigenschaften in die Format-Engines (D2), Datenbankverwaltung aus den Einstellungen lösen (D5) | |
 | **4** ✅ | E1–E4 (Performance) — erledigt; E5 von 145 auf 64 KB (Ziel 60) | Schnelle Gewinne |
-| **5** ⏳ | F1–F10, G1–G5 — F1, F2, F4, G3, G4, G5 erledigt; F5 und G2 teilweise | Das „komplett überarbeitet"-Gefühl |
-| | offen: F3 (Aktionsleiste), F6 (Tastatur/Touch), F7 (Lade-/Leerzustände), F8 (Fensterbreite), F9 (nächster Schritt), F10 (Icons), G1 (ARIA-Rest), 8 Modals | |
+| **5** ⏳ | F1–F10, G1–G5 — neun erledigt (F1, F2, F3, F4, F6, F9, G3, G4, G5), G2 weitgehend | Das „komplett überarbeitet"-Gefühl |
+| | offen: F7 (Lade-/Leerzustände), F8 (Fensterbreite), F10 (Icons), G1 (ARIA-Rest), acht Modals aus F5, Tastaturkürzel-Übersicht aus G2 | |
 | **6** | H1 ✅, H2–H5, I1–I5, J3–J6 | Politur & Sicherheit |
 
 ---
@@ -757,14 +757,14 @@ Das Feldmenü gab es bereits; es war nur per Doppelklick erreichbar. Es ist jetz
 
 ---
 
-### [ ] G2 — Tastaturbedienung und Fokus-Sichtbarkeit ungeprüft
+### [~] G2 — Tastaturbedienung und Fokus-Sichtbarkeit ungeprüft — **weitgehend erledigt**
 **Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/index.css`, projektweit
 
-**Problem:** Kein globaler `:focus-visible`-Stil. Es gibt anklickbare `<div>`-Elemente ohne `tabIndex`; die Reihenfolge des Tab-Fokus wurde nie geprüft. Score-Eingabe hat eine eigene Enter/Tab-Logik, die undokumentiert ist.
+**Umgesetzt:** Ein globaler `:focus-visible`-Stil zeichnet den Fokus mit 2 px in der Akzentfarbe des Themes — im Browser gegengeprüft, dass er beim Tab-Durchlauf erscheint und bei Mausklicks ausbleibt. Anklickbare Elemente ohne Tastaturzugang gibt es keine mehr: Eine Suche nach `onClick` auf `div`/`span`/`li` ohne `tabIndex` oder `role` liefert null Treffer. Die Feldzuweisung, die vorher nur mit der Maus ging, ist über F6 erreichbar; die Punkteingabe hat ihre eigene Tab- und Enter-Führung.
 
-**Fix:** Globalen, gut sichtbaren Fokusring über Token definieren; alle interaktiven Elemente als `<button>`/`<a>` umsetzen; Tastaturkürzel (Enter = Ergebnis bestätigen, Escape = schließen, F11 = Vollbild) an einer Stelle dokumentieren und in einer Hilfe-Übersicht anzeigen.
+**Was fehlt:** Die Tastaturkürzel sind nirgends zusammengefasst. Der Backlog verlangt eine Übersicht in der Anwendung — Enter bestätigt ein Ergebnis, Escape schließt, F11 Vollbild, Tab wandert durch die Satzfelder —, damit man sie nicht durch Ausprobieren finden muss.
 
-**Fertig wenn:** Jede Kernaufgabe (Turnier anlegen, Ergebnis eintragen, Feld zuweisen) ist rein per Tastatur mit sichtbarem Fokus durchführbar.
+**Fertig wenn:** Jede Kernaufgabe ist rein per Tastatur mit sichtbarem Fokus durchführbar — erfüllt — und die Kürzel sind an einer Stelle dokumentiert und in der Anwendung einsehbar.
 
 ---
 
