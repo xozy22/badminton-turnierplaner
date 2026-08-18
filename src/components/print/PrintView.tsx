@@ -78,9 +78,9 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
               {MODE_LABELS[tournament.mode]} &middot;{" "}
               {FORMAT_LABELS[tournament.format]} &middot; Best of{" "}
               {tournament.sets_to_win * 2 - 1} &middot;{" "}
-              {getScoringDescription(tournament.points_per_set, tournament.cap)}
+              {getScoringDescription(tournament.points_per_set, tournament.cap, { ext: t.scoring_description_ext, hard: t.scoring_description_hard })}
               {tournament.format === "group_ko" && tournament.ko_points_per_set != null && (
-                <> &middot; KO: {getScoringDescription(tournament.ko_points_per_set, tournament.ko_cap)}</>
+                <> &middot; KO: {getScoringDescription(tournament.ko_points_per_set, tournament.ko_cap, { ext: t.scoring_description_ext, hard: t.scoring_description_hard })}</>
               )}
             </div>
           </div>

@@ -57,6 +57,58 @@ function extractKeysFromTranslationFile(src) {
   return keys;
 }
 
+function extractPlaceholderKeys(src) {
+  // key: "text with {name}" -> [key, [name, ...]]
+  const out = new Map();
+  const re = /^\s+([a-z][a-zA-Z0-9_]*)\s*:\s*"((?:[^"\\]|\\.)*)"/gm;
+  let m;
+  while ((m = re.exec(src)) !== null) {
+    const names = [...m[2].matchAll(/\{(\w+)\}/g)].map((x) => x[1]);
+    if (names.length > 0) out.set(m[1], names);
+  }
+  return out;
+}
+
+// German words that legitimately contain "ae"/"oe"/"ue"/"ss", plus the
+// English terms the UI keeps untranslated. Everything else matching those
+// pairs in de.ts is an ASCII stand-in for an umlaut.
+const ALLOWED_ASCII = new Set([
+  "aktuell", "aktuelle", "aktuellem", "aktuellen", "aktueller", "aktuelles",
+  "dauer", "dauerspiel", "dauerhaft", "dauert", "turnierdauer",
+  "manuell", "manuelle", "manuellen",
+  "neu", "neue", "neuen", "neuer", "neues", "neueste",
+  "zuerst", "genaueste", "individuelle",
+  "abschluss", "abgeschlossen", "abgeschlossene", "abgeschlossenen",
+  "adresse", "ausscheiden", "ausschnitt", "dass", "muss", "musst",
+  "ergebnisse", "ergebnissen", "gelegenheitsspieler", "passenden",
+  "stattdessen", "verlassen", "voraussetzung", "wiederholungsspiele",
+  "wiederholungsspielen", "zusammenfassung",
+  // English, deliberately left as it is
+  "venue", "venues", "queue", "continue", "question", "session", "sessions",
+  "swiss", "boss", "wordpress", "fairness", "progress", "success", "message",
+  "missing", "losses", "assign", "unassign", "assigned", "address",
+]);
+
+function findAsciiUmlauts(src) {
+  const hits = new Map();
+  // Only inside string literals — keys and comments are not shown to users.
+  const strings = src.match(/"(?:[^"\\]|\\.)*"/g) || [];
+  for (const literal of strings) {
+    // Escapes such as \n are separators, not letters: without this the "n"
+    // of "\nDauerhaft" glues itself to the following word.
+    const words = literal.replace(/\\./g, " ").match(/[A-Za-zÄÖÜäöüß]+/g) || [];
+    for (const word of words) {
+      if (!/ae|oe|ue|ss/i.test(word)) continue;
+      // A word that already carries an umlaut is spelled the way it should
+      // be; the "ss" in "müssen" is a real double s.
+      if (/[ÄÖÜäöüß]/.test(word)) continue;
+      if (ALLOWED_ASCII.has(word.toLowerCase())) continue;
+      hits.set(word, (hits.get(word) || 0) + 1);
+    }
+  }
+  return hits;
+}
+
 // ---- main ----------------------------------------------------------------
 
 const typesSrc = readFileSync(TYPES_FILE, "utf8");
@@ -92,6 +144,23 @@ for (const key of declaredKeys) {
 }
 unused.sort();
 
+// German text must be spelled with real umlauts (REVIEW-BACKLOG.md H1).
+const asciiUmlauts = [...findAsciiUmlauts(deSrc).entries()]
+  .map(([word, n]) => `${word} (${n}x)`)
+  .sort();
+
+// Keys whose text contains a {placeholder} must never be rendered raw.
+// `{t.some_key}` in JSX prints the placeholder verbatim — that shipped twice
+// (REVIEW-BACKLOG.md H1), so it is checked from here on.
+const placeholderKeys = extractPlaceholderKeys(enSrc);
+const rawPlaceholders = [];
+for (const [key, names] of placeholderKeys) {
+  // `{t.key}` with nothing following it — no .replace, no template call.
+  const raw = new RegExp(`\\{\\s*t\\.${key}\\s*\\}`);
+  if (raw.test(haystack)) rawPlaceholders.push(`${key} {${names.join(", ")}}`);
+}
+rawPlaceholders.sort();
+
 const missingInEn = [...declaredKeys].filter((k) => !enKeys.has(k)).sort();
 const missingInDe = [...declaredKeys].filter((k) => !deKeys.has(k)).sort();
 const extraInEn = [...enKeys].filter((k) => !declaredKeys.has(k)).sort();
@@ -109,6 +178,20 @@ if (unused.length > 0) {
   failed = true;
   console.log(`⚠ Unused keys (${unused.length}):`);
   for (const k of unused) console.log(`   ${k}`);
+  console.log();
+}
+
+if (asciiUmlauts.length > 0) {
+  failed = true;
+  console.log(`✗ ASCII stand-ins for umlauts in de.ts (${asciiUmlauts.length}):`);
+  for (const w of asciiUmlauts) console.log(`   ${w}`);
+  console.log();
+}
+
+if (rawPlaceholders.length > 0) {
+  failed = true;
+  console.log(`✗ Placeholders rendered raw (${rawPlaceholders.length}):`);
+  for (const k of rawPlaceholders) console.log(`   ${k}`);
   console.log();
 }
 
@@ -146,7 +229,8 @@ if (!failed) {
 console.log(
   `Summary: ${unused.length} unused, ` +
     `${missingInEn.length} missing EN, ${missingInDe.length} missing DE, ` +
-    `${extraInEn.length} extra EN, ${extraInDe.length} extra DE.`
+    `${extraInEn.length} extra EN, ${extraInDe.length} extra DE, ` +
+    `${rawPlaceholders.length} raw placeholders, ${asciiUmlauts.length} ASCII umlauts.`
 );
 console.log(`Scanned from: ${relative(repoRoot, srcDir)}`);
 process.exit(1);

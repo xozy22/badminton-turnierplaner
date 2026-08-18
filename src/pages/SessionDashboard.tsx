@@ -389,7 +389,7 @@ export default function SessionDashboard() {
                           to={`/tournaments/${tid}`}
                           className={`text-xs ${theme.textSecondary} px-3 py-2 italic hover:underline self-center`}
                         >
-                          + {ms.length - 9} {t.tv_more}
+                          {t.tv_more.replace("{count}", String(ms.length - 9))}
                         </Link>
                       )}
                     </div>

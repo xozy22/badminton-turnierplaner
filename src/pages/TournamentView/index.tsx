@@ -224,21 +224,25 @@ export default function TournamentView() {
     : { pointsPerSet: 21, setsToWin: 2, cap: 30 };
 
   const loadAll = useCallback(async () => {
-    const td = await getTournament(tournamentId);
+    // Every action in this view ends here, so the round trips add up
+    // (REVIEW-BACKLOG.md D7). None of these seven queries depends on
+    // another, so they go out together instead of one after the next —
+    // over Tauri's IPC each one is a serialise/deserialise hop.
+    const [td, ap, p, r, allMatches, allSets, retiredIds, pd] = await Promise.all([
+      getTournament(tournamentId),
+      getPlayers(),
+      getTournamentPlayers(tournamentId),
+      getRounds(tournamentId),
+      getAllMatchesByTournament(tournamentId),
+      getAllSetsByTournament(tournamentId),
+      getRetiredPlayerIds(tournamentId),
+      getTournamentPlayersDetailed(tournamentId),
+    ]);
+
     setTournament(td);
-
-    const ap = await getPlayers();
     setAllPlayers(ap);
-
-    const p = await getTournamentPlayers(tournamentId);
     setPlayers(p);
-
-    const r = await getRounds(tournamentId);
     setRounds(r);
-
-    // Bulk-load all matches and sets in 2 queries instead of N+1
-    const allMatches = await getAllMatchesByTournament(tournamentId);
-    const allSets = await getAllSetsByTournament(tournamentId);
 
     // Group matches by round
     const mbr = new Map<number, Match[]>();
@@ -260,6 +264,7 @@ export default function TournamentView() {
     setSetsByMatch(sbm);
     setAllMatches(allMatches);
 
+    // These two need td.format, so they cannot join the batch above.
     if (td.format === "double_elimination") {
       setGrandFinalRoundIds(new Set(await getGrandFinalRounds(tournamentId)));
     }
@@ -267,10 +272,7 @@ export default function TournamentView() {
       setKotcQueue(await getKingOfCourtQueue(tournamentId));
     }
 
-    const retiredIds = await getRetiredPlayerIds(tournamentId);
     setRetiredPlayerIds(new Set(retiredIds));
-
-    const pd = await getTournamentPlayersDetailed(tournamentId);
     setPaymentData(pd);
 
     // Swiss and Monrad award byes as wins and rank by Buchholz.
@@ -1390,12 +1392,12 @@ export default function TournamentView() {
             </span>
             <span className={`text-xs font-medium ${theme.cardBg} ${theme.textSecondary} border ${theme.cardBorder} px-2.5 py-1 rounded-full`}>
               {isGroupKo && tournament.ko_points_per_set != null
-                ? `${t.ko_modal_group_phase_scoring}: ${getScoringDescription(tournament.points_per_set, tournament.cap)}`
-                : getScoringDescription(tournament.points_per_set, tournament.cap)}
+                ? `${t.ko_modal_group_phase_scoring}: ${getScoringDescription(tournament.points_per_set, tournament.cap, { ext: t.scoring_description_ext, hard: t.scoring_description_hard })}`
+                : getScoringDescription(tournament.points_per_set, tournament.cap, { ext: t.scoring_description_ext, hard: t.scoring_description_hard })}
             </span>
             {isGroupKo && tournament.ko_points_per_set != null && (
               <span className={`text-xs font-medium bg-violet-100 text-violet-700 border border-violet-200 px-2.5 py-1 rounded-full`}>
-                KO: {getScoringDescription(tournament.ko_points_per_set, tournament.ko_cap)}
+                KO: {getScoringDescription(tournament.ko_points_per_set, tournament.ko_cap, { ext: t.scoring_description_ext, hard: t.scoring_description_hard })}
               </span>
             )}
             {tournament.courts > 1 && (
@@ -1874,7 +1876,7 @@ export default function TournamentView() {
               </div>
               <div>
                 <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.tournament_sets_to_win}</span>
-                <div className={`font-medium ${theme.textPrimary} mt-0.5`}>Best of {tournament.sets_to_win * 2 - 1}</div>
+                <div className={`font-medium ${theme.textPrimary} mt-0.5`}>{t.tournaments_best_of.replace("{count}", String(tournament.sets_to_win * 2 - 1))}</div>
               </div>
               <div>
                 <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.tournament_points_per_set}</span>

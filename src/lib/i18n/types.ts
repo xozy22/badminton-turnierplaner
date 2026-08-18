@@ -137,6 +137,15 @@ export interface Translations {
   tournament_format: string;
   tournament_sets_to_win: string;
   tournament_points_per_set: string;
+  score_error_negative: string;
+  score_error_max: string;
+  score_error_draw: string;
+  score_error_ext_min: string;
+  score_error_ext_diff: string;
+  score_error_cap: string;
+  score_error_tie_impossible: string;
+  scoring_description_ext: string;
+  scoring_description_hard: string;
   scoring_mode: string;
   scoring_mode_11_hard: string;
   scoring_mode_11_ext: string;

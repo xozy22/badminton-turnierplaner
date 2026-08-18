@@ -18,7 +18,7 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | | offen: C5 (Umbau), D7, D8 — Datenschicht vereinheitlichen, Refresh- und Query-Layer | |
 | **4** | E1–E5 (Performance) | Schnelle Gewinne |
 | **5** | F1–F10, G1–G5 (Design & Barrierefreiheit) | Das „komplett überarbeitet"-Gefühl |
-| **6** | H1–H5, I1–I5, J3–J6 | Politur & Sicherheit |
+| **6** | H1 ✅, H2–H5, I1–I5, J3–J6 | Politur & Sicherheit |
 
 ---
 
@@ -722,14 +722,24 @@ Die Coverage-Schwellen in `vitest.config.ts` sind eine Ratsche: pro Modul hoch, 
 
 # H · Sprache & Texte
 
-### [ ] H1 — Die deutsche Oberfläche verwendet durchgehend keine Umlaute
-**Schwere:** hoch (Wahrnehmung) · **Aufwand:** S · **Dateien:** `src/lib/i18n/de.ts` (246 Ersatzschreibungen, nur 9 echte Umlaute), `src/lib/types.ts:120`, `src/lib/db.ts:392`, `src-tauri/src/lib.rs`, `README.md`
+### [x] H1 — Die deutsche Oberfläche verwendet durchgehend keine Umlaute — **erledigt**
+**Schwere:** hoch (Wahrnehmung) · **Aufwand:** S · **Dateien:** `src/lib/i18n/de.ts`, `src/lib/i18n/format.ts` (neu), `src/lib/scoring.ts`, `scripts/check-i18n-keys.mjs`
 
-**Problem:** Die Anwendung zeigt „Sportstaetten", „fuer den Verein", „ausgewaehlt", „Verlaengerung", „zurueck", „Ueberweisung". Für eine deutschsprachige Vereinssoftware ist das der auffälligste Qualitätsmangel überhaupt — er betrifft jeden Bildschirm. Vermutlich eine Encoding-Vorsichtsmaßnahme aus der Anfangszeit; die Dateien sind heute UTF-8, echte Umlaute funktionieren nachweislich (9 kommen bereits vor).
+**Umgesetzt:** `de.ts` ist vollständig auf korrekte Rechtschreibung umgestellt — rund 250 Ersatzschreibungen, einschließlich der ß-Fälle („Größe", „Schließen", „Straße", „großen"). Der Turnierleiter liest jetzt „Verlängerung", „Sportstätte", „Löschen", „zurück", „Überweisung".
 
-**Fix:** `de.ts` vollständig auf korrekte Rechtschreibung umstellen (ä, ö, ü, ß), ebenso die fest verdrahteten deutschen Strings in `types.ts`, `db.ts` und den Rust-Fehlermeldungen sowie die deutschen Abschnitte im README. Kodierung der Dateien auf UTF-8 ohne BOM sicherstellen und einen Lint-Test ergänzen, der `ae|oe|ue|ss`-Ersatzschreibungen in `de.ts` meldet.
+**Dabei aufgefallen und mitbehoben — drei Fehler, die den Text kaputt gemacht haben:**
 
-**Fertig wenn:** Kein Ersatzschreibungs-Treffer mehr in `de.ts`; die Anwendung zeigt in allen Ansichten korrekte Umlaute.
+*Deutscher Text in der englischen Oberfläche.* `getScoringDescription` in `scoring.ts` und die sieben Fehlermeldungen von `isScoreValid` waren fest verdrahtetes Deutsch. Wer die App auf Englisch stellte, bekam trotzdem „Rallypoint bis 21, Verlaengerung bei 20:20" und „Bei 30 muss der Gegner mind. 28 haben". Beide Funktionen geben jetzt Übersetzungsschlüssel plus Parameter zurück; die Ansicht setzt sie ein.
+
+*Rohe Platzhalter auf dem Bildschirm.* Es gibt keinen Interpolationshelfer — jede Stelle schrieb ihr eigenes `.replace("{count}", …)`, und zwei vergaßen es: die Kopfzeile zeigte „Gewinnsätze (Best of {count})" und das Sitzungs-Dashboard „+ 3 +{count} weitere". Neu ist `src/lib/i18n/format.ts` mit `fill(template, params)` und sechs Tests.
+
+*„Best of 3" war unübersetzbar* — hart kodiertes Englisch mitten in der deutschen Ansicht, obwohl der Schlüssel dafür existierte.
+
+**Wächter gegen Rückfälle:** `check-i18n-keys.mjs` prüft jetzt zusätzlich (a) ASCII-Ersatzschreibungen in `de.ts`, mit Positivliste für „aktuell", „Dauer", „neue", „zuerst" und die englischen Fachbegriffe, und (b) Schlüssel mit Platzhaltern, die als `{t.key}` roh gerendert werden. Beide Prüfungen wurden gegen die tatsächlichen Fehler gegengeprüft: absichtlich zurückgedreht, Meldung erschien, wieder behoben.
+
+**Nicht angetastet:** `PaymentMethod = "ueberweisung"` in `types.ts` ist ein gespeicherter Datenbankwert, kein Anzeigetext — eine Umbenennung bräuchte eine Migration ohne sichtbaren Gewinn, da die Anzeige ohnehin über die Übersetzung läuft.
+
+**Fertig wenn:** ~~Kein Ersatzschreibungs-Treffer mehr in `de.ts`~~ — 0 Treffer, im Browser auf Deutsch und Englisch gegengeprüft.
 
 ---
 

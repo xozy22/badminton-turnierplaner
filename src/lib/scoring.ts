@@ -1,4 +1,5 @@
 import type { Player, Match, GameSet, StandingEntry, TeamStandingEntry } from "./types";
+import type { Translations } from "./i18n/types";
 
 /**
  * 5 Punktemodi (unabhaengig von Gewinnsaetzen):
@@ -79,15 +80,29 @@ export function isSetComplete(s: GameSet, pointsPerSet: number, cap?: number | n
   );
 }
 
+/**
+ * Ergebnis einer Punktpruefung.
+ *
+ * `error` ist ein Uebersetzungsschluessel, kein fertiger Satz — die
+ * Meldungen standen frueher als deutscher Text in dieser Datei und
+ * erschienen damit auch in der englischen Oberflaeche
+ * (REVIEW-BACKLOG.md H1). `params` fuellt die Platzhalter des Schluessels.
+ */
+export interface ScoreValidation {
+  valid: boolean;
+  error?: Extract<keyof Translations, string>;
+  params?: Record<string, number>;
+}
+
 /** Prueft ob ein eingegebener Score gueltig ist (zur Validierung) */
 export function isScoreValid(
   score1: number,
   score2: number,
   pointsPerSet: number,
   cap: number | null
-): { valid: boolean; error?: string } {
+): ScoreValidation {
   if (score1 < 0 || score2 < 0) {
-    return { valid: false, error: "Punkte duerfen nicht negativ sein" };
+    return { valid: false, error: "score_error_negative" };
   }
 
   const maxAllowed = cap !== null ? cap : pointsPerSet;
@@ -95,7 +110,8 @@ export function isScoreValid(
   if (score1 > maxAllowed || score2 > maxAllowed) {
     return {
       valid: false,
-      error: `Maximale Punktzahl ist ${maxAllowed}`,
+      error: "score_error_max",
+      params: { max: maxAllowed },
     };
   }
 
@@ -118,14 +134,15 @@ export function isScoreValid(
 
     // Gleichstand auf oder ueber Zielpunktzahl: kein Unentschieden
     if (high >= pointsPerSet && diff === 0) {
-      return { valid: false, error: "Unentschieden nicht moeglich" };
+      return { valid: false, error: "score_error_draw" };
     }
 
     // Verlaengerung: Beide muessen mindestens extStart (z.B. 20, 10, 14) haben
     if (high > pointsPerSet && low < extStart) {
       return {
         valid: false,
-        error: `Bei ${high} muss der Gegner mind. ${high - 2} haben`,
+        error: "score_error_ext_min",
+        params: { high, min: high - 2 },
       };
     }
 
@@ -133,7 +150,7 @@ export function isScoreValid(
     if (high > pointsPerSet && high < cap && diff !== 2) {
       return {
         valid: false,
-        error: "Verlaengerung: genau 2 Punkte Differenz noetig",
+        error: "score_error_ext_diff",
       };
     }
 
@@ -141,13 +158,14 @@ export function isScoreValid(
     if (high === cap && low < cap - 2) {
       return {
         valid: false,
-        error: `Bei ${cap} muss der Gegner ${cap - 2} oder ${cap - 1} haben`,
+        error: "score_error_cap",
+        params: { cap, low: cap - 2, high: cap - 1 },
       };
     }
 
     // cap:cap geht nicht
     if (score1 === cap && score2 === cap) {
-      return { valid: false, error: `${cap}:${cap} ist nicht moeglich` };
+      return { valid: false, error: "score_error_tie_impossible", params: { score: cap } };
     }
   } else {
     // Modi OHNE Verlaengerung (11_1, 15_1): first-to-N
@@ -160,7 +178,7 @@ export function isScoreValid(
 
     // Gleichstand auf Zielpunktzahl: unmoeoglich
     if (score1 === pointsPerSet && score2 === pointsPerSet) {
-      return { valid: false, error: `${pointsPerSet}:${pointsPerSet} ist nicht moeglich` };
+      return { valid: false, error: "score_error_tie_impossible", params: { score: pointsPerSet } };
     }
 
     // Verlierer darf nicht auch Zielpunktzahl haben
@@ -224,12 +242,25 @@ export function getMaxScore(pointsPerSet: number, cap: number | null): number {
   return cap !== null ? cap : pointsPerSet;
 }
 
-/** Beschreibt das Zaehsystem als Text */
-export function getScoringDescription(pointsPerSet: number, cap: number | null): string {
+/**
+ * Beschreibt das Zaehlsystem als Text.
+ *
+ * Die beiden Vorlagen kommen von aussen — vorher stand hier deutscher
+ * Text fest verdrahtet, der auch in der englischen Oberflaeche erschien
+ * (REVIEW-BACKLOG.md H1).
+ */
+export function getScoringDescription(
+  pointsPerSet: number,
+  cap: number | null,
+  texts: { ext: string; hard: string },
+): string {
   if (cap !== null) {
-    return `Rallypoint bis ${pointsPerSet}, Verlaengerung bei ${pointsPerSet - 1}:${pointsPerSet - 1} (max. ${cap})`;
+    return texts.ext
+      .replace(/\{points\}/g, String(pointsPerSet))
+      .replace(/\{ext\}/g, String(pointsPerSet - 1))
+      .replace(/\{cap\}/g, String(cap));
   }
-  return `Erster bis ${pointsPerSet} Punkte (kein Ext.)`;
+  return texts.hard.replace(/\{points\}/g, String(pointsPerSet));
 }
 
 

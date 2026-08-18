@@ -17,6 +17,7 @@ import { getMaxScore, isScoreValid, isSetComplete } from "../../../lib/scoring";
 import type { Match, GameSet } from "../../../lib/types";
 import type { ThemeColors } from "../../../lib/theme";
 import { useT } from "../../../lib/I18nContext";
+import { fill } from "../../../lib/i18n/format";
 
 export default function MatchCard({
   match,
@@ -415,7 +416,7 @@ export default function MatchCard({
               </div>
               {!validation.valid && (
                 <div className="text-[10px] text-rose-500 mt-1 max-w-[130px]">
-                  {validation.error}
+                  {validation.error && fill(t[validation.error], validation.params)}
                 </div>
               )}
             </div>
