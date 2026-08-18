@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import PrintDialog from "../../components/print/PrintDialog";
 import OverflowMenu from "../../components/ui/OverflowMenu";
+import NextStepBar from "../../components/tournament/NextStepBar";
 import { useTheme } from "../../lib/ThemeContext";
 import TemplateExportModal from "../../components/tournament/TemplateExportModal";
 import DeleteTournamentModal from "../../components/tournament/DeleteTournamentModal";
@@ -1936,6 +1937,24 @@ export default function TournamentView() {
           </div>
         </div>
       )}
+
+      {/* One sentence naming what to do next (REVIEW-BACKLOG.md F9). */}
+      <NextStepBar
+        status={tournament.status}
+        roundCount={rounds.length}
+        plannedRounds={tournament.planned_rounds}
+        openMatches={allMatches.filter((m) => m.status !== "completed" && m.court !== null).length}
+        matchesWithoutCourt={
+          allMatches.filter((m) => m.status !== "completed" && m.court === null && m.team2_p1 !== null).length
+        }
+        freeCourts={Math.max(
+          (tournament.courts || 1) -
+            allMatches.filter((m) => m.status !== "completed" && m.court !== null).length,
+          0,
+        )}
+        canAdvance={canAdvanceFormat}
+        advanceLabel={advanceButtonLabel}
+      />
 
       {/* View Tabs */}
       {rounds.length > 0 && (

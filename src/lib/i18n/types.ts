@@ -139,6 +139,15 @@ export interface Translations {
   tournament_format: string;
   tournament_sets_to_win: string;
   tournament_points_per_set: string;
+  next_step_label: string;
+  next_step_start: string;
+  next_step_done: string;
+  next_step_assign_court: string;
+  next_step_enter_results: string;
+  next_step_advance: string;
+  next_step_finish: string;
+  next_step_round: string;
+  next_step_round_of: string;
   score_input_label: string;
   score_error_negative: string;
   score_error_max: string;

@@ -720,14 +720,16 @@ Das Feldmenü gab es bereits; es war nur per Doppelklick erreichbar. Es ist jetz
 
 ---
 
-### [ ] F9 — Der nächste Schritt ist nicht erkennbar
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/TournamentView/index.tsx`, `src/pages/Home.tsx`
+### [x] F9 — Der nächste Schritt ist nicht erkennbar — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/components/tournament/NextStepBar.tsx` (neu), `src/pages/TournamentView/index.tsx`
 
-**Problem:** Ob als Nächstes ausgelost, gestartet, ein Feld zugewiesen, die KO-Phase begonnen oder das Turnier beendet werden muss, erschließt sich nur daraus, welcher Knopf gerade sichtbar ist. Für einen Turnierleiter unter Zeitdruck ist das zu implizit — besonders bei den mehrphasigen Formaten.
+**Problem:** Ob als Nächstes ausgelost, gestartet, ein Feld zugewiesen, die KO-Phase begonnen oder das Turnier beendet werden musste, erschloss sich nur daraus, welcher Knopf gerade sichtbar war.
 
-**Fix:** Statusleiste unter dem Header: „Phase X von Y · N Spiele offen · Nächster Schritt: …" mit direkter Aktion. Kombinierbar mit dem bestehenden `GroupProgressBar`.
+**Umgesetzt:** Eine Leiste unter dem Kopfbereich nennt den Rundenstand und in einem Satz, was jetzt zu tun ist. Die Reihenfolge folgt dem Ablauf eines laufenden Turniers — wartende Spiele auf freie Felder, dann Ergebnisse der laufenden Spiele, dann die nächste Runde, dann beenden —, und was davon zuerst zutrifft, steht dort. Die Leiste ist eine `aria-live`-Region, wird also auch vorgelesen, wenn sich der Zustand ändert.
 
-**Fertig wenn:** In jedem Turnierzustand benennt die Oberfläche den nächsten Schritt in einem Satz.
+**Beim Formulieren aufgefallen:** Steht eine Zahl direkt vor einem Substantiv, muss Deutsch flektieren — „1 Felder frei" ist falsch, und eine Pluralregel wäre für zwei Sätze unverhältnismäßig. Die Texte nennen die Zahlen deshalb nach einem Doppelpunkt („offen: 9, freie Felder: 1"), was für jeden Wert stimmt.
+
+**Fertig wenn:** ~~In jedem Turnierzustand benennt die Oberfläche den nächsten Schritt in einem Satz~~ — im Browser über mehrere Zustände geprüft: „Wartende Spiele einem Feld zuweisen — offen: 9, freie Felder: 1" und „Ergebnisse der laufenden Spiele eintragen (2)".
 
 ---
 
