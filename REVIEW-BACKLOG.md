@@ -14,7 +14,8 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | **0** ✅ | J1, J2 (CI + Test-Setup) — erledigt | Ohne Netz kein Umbau der Turnierlogik |
 | **1** ✅ | A1–A7 (kritische Bugs) — erledigt | Formate/Freilose/Setzliste sind teilweise kaputt |
 | **2** ✅ | B1–B14 (Turnierlogik & Fairness) — erledigt | Kern des Produkts |
-| **3** ✅ | C1–C9, D1–D9 (Daten & Architektur) — erledigt | Basis für alles Weitere |
+| **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — C-Reihe erledigt, D1/D2/D5 teilweise | Basis für alles Weitere |
+| | offen: Ansichten in Komponenten zerlegen (D1), Anzeige-Eigenschaften in die Format-Engines (D2), Datenbankverwaltung aus den Einstellungen lösen (D5) | |
 | **4** ✅ | E1–E4 (Performance) — erledigt; E5 wartet auf F1 | Schnelle Gewinne |
 | **5** | F1–F10, G1–G5 (Design & Barrierefreiheit) | Das „komplett überarbeitet"-Gefühl |
 | **6** | H1 ✅, H2–H5, I1–I5, J3–J6 | Politur & Sicherheit |
@@ -401,25 +402,29 @@ Trennzeichen ist das Semikolon und die Datei beginnt mit einem BOM, damit Excel 
 
 # D · Architektur & Code-Qualität
 
-### [ ] D1 — `TournamentView/index.tsx` ist mit 3052 Zeilen unwartbar
+### [~] D1 — `TournamentView/index.tsx` ist mit 3052 Zeilen unwartbar — **verkleinert, Ziel nicht erreicht**
 **Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/pages/TournamentView/index.tsx`
 
-**Problem:** Eine Komponente enthält: Datenladen, neun Format-Engines, Score-Eingabe, Feldzuweisung, Konfliktprüfung, Live-Publishing-Steuerung, Session-Integration, Undo, Aufgabe/Reaktivierung, sämtliche Modals, Header, Tabs und Rendering. ~30 `useState`, mehrere `useMemo`-Ketten, Funktionen die 200+ Zeilen lang sind.
+**Problem:** Eine Datei mit 3052 Zeilen, die Zustand, Datenzugriff, Formatlogik, Drag-and-drop und das gesamte Markup vereint.
 
-**Fix:** Schrittweise zerlegen — `useTournamentData()` (Laden/Reload), `useMatchScoring()`, `useCourtAssignment()`, `useLiveControls()`, `useTournamentActions()`; Format-Logik nach D2 auslagern; Header und Tab-Leiste als eigene Komponenten. Ziel: Datei unter 400 Zeilen, reine Orchestrierung.
+**Bisher umgesetzt:** Die Formatlogik ist nach `src/lib/formats/` gewandert (siehe D2), die Ergebnis-Ausgabe nach `src/lib/resultExport.ts`, Validierung nach `src/lib/tournamentValidation.ts`, die Undo-Vorschau nach `lib/undoTarget.ts`. Die Datei ist damit von 3052 auf **2407 Zeilen** geschrumpft und enthält im Wesentlichen noch Zustand, Ereignisbehandlung und Markup.
 
-**Fertig wenn:** Keine Datei im Projekt über 600 Zeilen; jede Hook-Datei einzeln testbar.
+**Was fehlt:** Das Kriterium „keine Datei über 600 Zeilen" ist deutlich verfehlt. Über der Grenze liegen weiterhin: `TournamentView/index.tsx` (2407), `db.ts` (1837), `TournamentCreate.tsx` (1526), `i18n/types.ts` (1015), `lib.rs` (998), `en.ts`/`de.ts` (je 986), `draw.ts` (970), `TvMode.tsx` (904), `scoring.ts` (785), `Players.tsx` (764), `ExcelImport.tsx` (754), `Sportstaetten.tsx` (738). Bei den Übersetzungs- und Migrationsdateien ist die Länge ohne Belang — es sind Tabellen. Bei den Ansichten steht der Umbau aus: Markup in Abschnitts-Komponenten, Zustand in eigene Hooks.
+
+**Fertig wenn:** Keine Ansichts- oder Logikdatei über 600 Zeilen; jede Hook-Datei einzeln testbar.
 
 ---
 
-### [ ] D2 — Format-Logik als if/else-Kaskade statt Strategie pro Format
-**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/pages/TournamentView/index.tsx:317-1060,1790-1860`
+### [~] D2 — Format-Logik als if/else-Kaskade statt Strategie pro Format — **Engine steht, View verzweigt noch**
+**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/lib/formats/` (neu), `src/pages/TournamentView/index.tsx`
 
-**Problem:** Neun Formate werden an mindestens fünf Stellen per `if (format === …)` verzweigt: Start, nächste Runde, „kann weiter?", Rundenzähler, Phase. Ein neues Format anzulegen bedeutet, alle Stellen zu finden — genau so sind B3 (Monrad = Swiss-Kopie) und B5 entstanden.
+**Problem:** Start und Fortschritt jedes der neun Formate lagen als if/else-Kaskade in der Ansicht.
 
-**Fix:** Interface `FormatEngine { start(ctx), canAdvance(ctx), advance(ctx), roundLabel(ctx), standings(ctx), validate(config) }`, eine Datei pro Format unter `src/lib/formats/`, Registry `FORMATS: Record<TournamentFormat, FormatEngine>`. Die View ruft nur noch `FORMATS[t.format].advance(ctx)`.
+**Bisher umgesetzt:** `src/lib/formats/` enthält eine `FormatEngine` pro Format hinter einer gemeinsamen Schnittstelle (`start`, `canAdvance`, `advance`, `progress`) und eine Registry. Die Ansicht ruft `engineFor(format)` — der gesamte Start- und Weiterschaltpfad ist frei von Format-Verzweigungen, und 37 Tests decken die Engines ab, darunter ein Durchlauf jedes Formats von Anfang bis Ende.
 
-**Fertig wenn:** Ein neues Format lässt sich durch Anlegen **einer** Datei plus Registry-Eintrag ergänzen; die View enthält keine formatspezifischen Verzweigungen mehr.
+**Was fehlt:** In der Ansicht stehen weiterhin **14** Abfragen auf `tournament.format` — für Anzeigeentscheidungen: Buchholz-Wertung bei Swiss/Monrad, Gruppenfortschritt bei `group_ko`, Bracket-Ansicht bei den K.-o.-Formaten, Warteschlange bei King of the Court. Ein neues Format braucht also weiterhin Eingriffe in der Ansicht. Der zweite Teil des Kriteriums ist damit offen; dafür müssten die Engines auch ihre Anzeige-Eigenschaften beschreiben (etwa `hasBracket`, `usesBuchholz`, `hasGroupPhase`).
+
+**Fertig wenn:** Ein neues Format lässt sich durch Anlegen **einer** Datei plus Registry-Eintrag ergänzen; die Ansicht enthält keine formatspezifischen Verzweigungen mehr.
 
 ---
 
@@ -447,12 +452,12 @@ Die Coverage-Schwellen in `vitest.config.ts` sind eine Ratsche: pro Modul hoch, 
 
 ---
 
-### [ ] D5 — `Settings.tsx` (1513 Zeilen) vermischt Konfiguration, Datenbankverwaltung und Bildbearbeitung
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/Settings.tsx`
+### [~] D5 — `Settings.tsx` (1513 Zeilen) vermischt Konfiguration, Datenbankverwaltung und Bildbearbeitung — **aufgeteilt, Ziel knapp verfehlt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/Settings.tsx`, `src/pages/settings/*`
 
-**Problem:** Enthält u. a. einen kompletten Canvas-Logo-Cropper mit Drag/Resize, Backup/Restore, DB-Pfadverwaltung, Wipe-Dialoge, Live-Publish-Konfiguration inklusive Push-Log mit eigenem 5-Sekunden-Polling, Update-Prüfung, Theme- und Schriftauswahl.
+**Bisher umgesetzt:** Vier eigenständige Module — `LogoSettings` (361 Zeilen, Upload und Zuschnitt), `LivePublishSettings` (352, WordPress-Anbindung und Push-Protokoll), `AppearanceSettings` (173, Thema, Sprache, Schrift) und `UpdateSettings` (152, Aktualisierungen). `Settings.tsx` ist von 1513 auf **499 Zeilen** geschrumpft und im Wesentlichen eine Seite aus Abschnitten.
 
-**Fix:** Pro Bereich eine Komponente unter `src/pages/settings/` (`DatabaseSection`, `LivePublishSection`, `AppearanceSection`, `UpdateSection`), `LogoCropper` als eigenständige Komponente unter `src/components/`.
+**Was fehlt:** Das Kriterium lautete „unter 200 Zeilen". Die verbleibenden 499 sind überwiegend Datenbankverwaltung — Speicherort, Sicherung, Wiederherstellung, Zurücksetzen —, die als fünftes Modul herausgelöst gehört.
 
 **Fertig wenn:** `Settings.tsx` ist eine Seite mit Abschnitts-Komponenten, unter 200 Zeilen.
 
