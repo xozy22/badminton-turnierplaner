@@ -782,6 +782,7 @@ export async function deleteTournament(id: number): Promise<void> {
     await d.execute("DELETE FROM rounds WHERE tournament_id = $1", [id]);
     await d.execute("DELETE FROM tournament_players WHERE tournament_id = $1", [id]);
     await d.execute("DELETE FROM tournaments WHERE id = $1", [id]);
+    await deleteTournamentSettings(id);
     return;
   }
   const store = loadStore();
@@ -793,6 +794,7 @@ export async function deleteTournament(id: number): Promise<void> {
   store.tournamentPlayers = store.tournamentPlayers.filter((tp) => tp.tournament_id !== id);
   store.tournaments = store.tournaments.filter((t) => t.id !== id);
   saveStore(store);
+  await deleteTournamentSettings(id);
 }
 
 // --- Tournament Players ---
@@ -1174,6 +1176,20 @@ export async function markGrandFinalRounds(tournamentId: number, roundIds: numbe
 }
 
 /** Sets `planned_rounds` for the formats that run a fixed number of rounds. */
+/**
+ * Removes the settings rows that belong to one tournament.
+ *
+ * These live in `app_settings` under a key built from the tournament id, so
+ * they are not covered by the cascade in `deleteTournament`. SQLite hands
+ * out the id of a deleted row again, which let a new tournament inherit the
+ * King-of-the-Court queue — a list of player ids from an entirely different
+ * event (REVIEW-BACKLOG.md C5).
+ */
+async function deleteTournamentSettings(tournamentId: number): Promise<void> {
+  await deleteAppSetting(kotcQueueKey(tournamentId));
+  await deleteAppSetting(`grand_final_rounds_${tournamentId}`);
+}
+
 export async function updatePlannedRounds(id: number, rounds: number | null): Promise<void> {
   if (isTauri()) {
     const d = await getTauriDb();
@@ -1420,7 +1436,7 @@ export async function updateMatchResult(matchId: number, winnerTeam: 1 | 2 | nul
     if (isTauri()) {
       const d = await getTauriDb();
       await d.execute(
-        "UPDATE matches SET winner_team = NULL, status = 'active', completed_at = NULL WHERE id = $1",
+        "UPDATE matches SET winner_team = NULL, status = 'active', completed_at = NULL, walkover = 0 WHERE id = $1",
         [matchId]
       );
       return;
@@ -1431,6 +1447,7 @@ export async function updateMatchResult(matchId: number, winnerTeam: 1 | 2 | nul
       m.winner_team = null;
       m.status = "active";
       m.completed_at = null;
+      m.walkover = 0;
     }
     saveStore(store);
     return;
@@ -1458,7 +1475,7 @@ export async function reopenMatch(matchId: number): Promise<void> {
   if (isTauri()) {
     const d = await getTauriDb();
     await d.execute(
-      "UPDATE matches SET winner_team = NULL, status = 'pending' WHERE id = $1",
+      "UPDATE matches SET winner_team = NULL, status = 'pending', completed_at = NULL, walkover = 0 WHERE id = $1",
       [matchId]
     );
     return;
@@ -1468,6 +1485,8 @@ export async function reopenMatch(matchId: number): Promise<void> {
   if (m) {
     m.winner_team = null;
     m.status = "pending";
+    m.completed_at = null;
+    m.walkover = 0;
   }
   saveStore(store);
 }
@@ -1596,6 +1615,10 @@ export async function wipeAllTournaments(): Promise<void> {
     await d.execute("DELETE FROM rounds");
     await d.execute("DELETE FROM tournament_players");
     await d.execute("DELETE FROM tournaments");
+    // Same orphan problem as in deleteTournament, for every tournament at once.
+    await d.execute(
+      "DELETE FROM app_settings WHERE key LIKE 'kotc_queue_%' OR key LIKE 'grand_final_rounds_%'",
+    );
     return;
   }
   const store = loadStore();
@@ -1605,6 +1628,17 @@ export async function wipeAllTournaments(): Promise<void> {
   store.tournamentPlayers = [];
   store.tournaments = [];
   saveStore(store);
+  // Backwards: removeItem shifts every later index down by one.
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (
+      key &&
+      (key.startsWith("app_setting_kotc_queue_") ||
+        key.startsWith("app_setting_grand_final_rounds_"))
+    ) {
+      localStorage.removeItem(key);
+    }
+  }
 }
 
 export async function wipeEntireDatabase(): Promise<void> {

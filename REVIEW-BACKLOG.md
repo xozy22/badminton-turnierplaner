@@ -14,8 +14,8 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | **0** ✅ | J1, J2 (CI + Test-Setup) — erledigt | Ohne Netz kein Umbau der Turnierlogik |
 | **1** ✅ | A1–A7 (kritische Bugs) — erledigt | Formate/Freilose/Setzliste sind teilweise kaputt |
 | **2** ✅ | B1–B14 (Turnierlogik & Fairness) — erledigt | Kern des Produkts |
-| **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — 12 von 18 erledigt | Basis für alles Weitere |
-| | offen: C5, D1, D2, D5, D7, D8 — die großen Umbauten (Datenschicht vereinheitlichen, View zerlegen, Format-Engine, Query-Layer) | |
+| **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — 15 von 18 erledigt, C5 abgesichert | Basis für alles Weitere |
+| | offen: C5 (Umbau), D7, D8 — Datenschicht vereinheitlichen, Refresh- und Query-Layer | |
 | **4** | E1–E5 (Performance) | Schnelle Gewinne |
 | **5** | F1–F10, G1–G5 (Design & Barrierefreiheit) | Das „komplett überarbeitet"-Gefühl |
 | **6** | H1–H5, I1–I5, J3–J6 | Politur & Sicherheit |
@@ -337,14 +337,24 @@ Der Wizard zeigt beides im Zusammenfassungsschritt und lässt den Start-Button b
 
 ---
 
-### [ ] C5 — Doppelte Datenbank-Implementierung (Tauri + localStorage) in jeder Funktion
-**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/lib/db.ts` (1338 Zeilen)
+### [~] C5 — Doppelte Datenbank-Implementierung (Tauri + localStorage) in jeder Funktion — **abgesichert, Umbau offen**
+**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/lib/db.ts` (1702 Zeilen), `src/lib/db.test.ts` (neu), `src/test/setup.ts` (neu)
 
-**Problem:** Jede der ~60 Funktionen enthält zwei vollständige Implementierungen: SQL für Tauri und ein Array-Backend für den Browser-Fallback. Die Zweige driften bereits auseinander (z. B. `deleteSportstaette` prüft im localStorage-Pfad andere Bedingungen, `retired`/`seed_rank` werden mit `as any` gesetzt). Das ist der Haupttreiber für die 30 ESLint-`any`-Fehler in dieser Datei und verdoppelt jeden künftigen Schema-Change.
+**Problem:** Jede der ~60 Funktionen enthält zwei vollständige Implementierungen: SQL für Tauri und ein Array-Backend für den Browser-Fallback. Die Zweige driften auseinander, und niemand merkt es — die Datenschicht hatte keinen einzigen Test.
 
-**Fix:** Repository-Muster: ein Interface `TournamentRepository`, zwei Implementierungen in getrennten Dateien (`db.tauri.ts`, `db.memory.ts`), Auswahl einmal beim Start. Oder — wenn der Browser-Fallback nur der Entwicklung dient — ihn durch eine In-Memory-SQLite (`sql.js`/`wa-sqlite`) ersetzen, sodass **eine** SQL-Implementierung genügt. Zweite Variante empfohlen: löscht ~600 Zeilen und beseitigt die Drift dauerhaft.
+**Bisher umgesetzt — die Drift sichtbar gemacht und zwei reale Fehler behoben:**
 
-**Fertig wenn:** Kein `isTauri()`-Zweig mehr in der Datenschicht; Testsuite läuft gegen dieselbe SQL-Logik wie die App.
+*Testabdeckung.* 33 Tests fahren die Datenschicht gegen das In-Memory-Backend: Spieler, Archivierung, Turniere, Teilnehmer, Setzliste, Spielplan, Ergebnisse, Sätze, Einstellungen. `src/test/setup.ts` stellt `localStorage` und ein nacktes `window` bereit — jsdom wäre für zwei Objekte zu teuer. Damit ist die Gesamtabdeckung von 37 % auf 57 % gestiegen; die Ratchet-Schwellen in `vitest.config.ts` sind entsprechend nachgezogen.
+
+*Bug 1 — Walkover überlebt das Zurücksetzen.* `reopenMatch` und `updateMatchResult(null)` löschten das `walkover`-Flag nicht. Ein per Kampflos vergebenes Spiel, das doch noch ausgetragen wird, blieb damit für immer als Kampflos markiert — und `scoring.ts` verwirft die Sätze jedes so markierten Spiels. Ergebnis: die nachgetragenen Sätze zählten nicht, die Rangliste wies eine falsche Satz- und Punktdifferenz aus. In **beiden** Pfaden vorhanden, seit Migration v15 die Spalte einführte. `reopenMatch` ließ zusätzlich `completed_at` stehen.
+
+*Bug 2 — turnierbezogene Einstellungen überleben das Turnier.* `kotc_queue_<id>` und `grand_final_rounds_<id>` liegen in `app_settings` und werden von der Löschkaskade nicht erfasst. Da SQLite die `rowid` eines gelöschten Turniers wieder vergibt, erbte das nächste King-of-the-Court-Turnier die Warteschlange des gelöschten — eine Liste von Spieler-IDs aus einer fremden Veranstaltung. `deleteTournament` und `wipeAllTournaments` räumen jetzt mit auf.
+
+**Was noch offen ist:** Die Vereinheitlichung selbst. Zwei Wege, wie zuvor beschrieben — Repository-Interface mit zwei Implementierungen, oder den Fallback durch eine In-Memory-SQLite (`sql.js`/`wa-sqlite`) ersetzen, sodass eine SQL-Implementierung genügt.
+
+**Hinweis zur Entscheidung:** Der localStorage-Fallback ist kein toter Code — jeder Browser-Smoke-Test dieser Überarbeitung lief darüber, und er ist der einzige Weg, die App ohne Tauri-Build zu bedienen. Ihn zu entfernen kostet diese Fähigkeit; `sql.js` würde sie erhalten, bringt aber ~1 MB WASM und einen neuen Persistenzpfad mit. Das ist eine Produktentscheidung und sollte vor dem Umbau getroffen werden.
+
+**Fertig wenn:** Kein `isTauri()`-Zweig mehr in der Datenschicht; die Testsuite läuft gegen dieselbe Logik wie die App.
 
 ---
 

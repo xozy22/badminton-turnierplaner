@@ -7,6 +7,8 @@ export default defineConfig({
     // by this suite (yet).
     environment: "node",
     include: ["src/**/*.test.ts", "scripts/**/*.test.mjs"],
+    // Provides localStorage and a bare window, which the data layer needs.
+    setupFiles: ["src/test/setup.ts"],
     coverage: {
       provider: "v8",
       include: ["src/lib/**/*.ts", "src/pages/TournamentView/lib/**/*.ts"],
@@ -16,10 +18,10 @@ export default defineConfig({
         // Global floor = slightly below the current state, so it acts as a
         // ratchet: coverage may not drop. Raise it as logic moves out of
         // the views into testable modules (REVIEW-BACKLOG.md D1/D2).
-        lines: 37,
-        functions: 32,
-        branches: 38,
-        statements: 38,
+        lines: 55,
+        functions: 58,
+        branches: 50,
+        statements: 55,
         // Modules with a real suite are held to a high bar — these must not
         // regress while the rest of the app gets reworked.
         "**/lib/scoring.ts": { lines: 95, functions: 95, branches: 78, statements: 95 },
