@@ -16,8 +16,9 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | **2** ✅ | B1–B14 (Turnierlogik & Fairness) — erledigt | Kern des Produkts |
 | **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — C-Reihe erledigt, D1/D2/D5 teilweise | Basis für alles Weitere |
 | | offen: Ansichten in Komponenten zerlegen (D1), Anzeige-Eigenschaften in die Format-Engines (D2), Datenbankverwaltung aus den Einstellungen lösen (D5) | |
-| **4** ✅ | E1–E4 (Performance) — erledigt; E5 wartet auf F1 | Schnelle Gewinne |
-| **5** | F1–F10, G1–G5 (Design & Barrierefreiheit) | Das „komplett überarbeitet"-Gefühl |
+| **4** ✅ | E1–E4 (Performance) — erledigt; E5 von 145 auf 64 KB (Ziel 60) | Schnelle Gewinne |
+| **5** ⏳ | F1–F10, G1–G5 — F1, F2, F4, G3, G4, G5 erledigt; F5 und G2 teilweise | Das „komplett überarbeitet"-Gefühl |
+| | offen: F3 (Aktionsleiste), F6 (Tastatur/Touch), F7 (Lade-/Leerzustände), F8 (Fensterbreite), F9 (nächster Schritt), F10 (Icons), G1 (ARIA-Rest), 8 Modals | |
 | **6** | H1 ✅, H2–H5, I1–I5, J3–J6 | Politur & Sicherheit |
 
 ---
@@ -582,14 +583,16 @@ Das Polling bleibt als Sicherheitsnetz — für Änderungen, die ohne Meldung pa
 
 ---
 
-### [ ] E5 — 145 KB CSS — **wartet auf F1**
-**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/lib/theme.ts`, projektweit
+### [~] E5 — 145 KB CSS — **von 145 auf 64 KB, Ziel knapp verfehlt**
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/index.css`, projektweit
 
-**Problem:** Tailwind kann kaum etwas entfernen, weil die Klassennamen in `theme.ts` als Strings zusammengesetzt und über Props verteilt werden.
+**Problem:** Tailwind konnte kaum etwas entfernen, weil die Klassennamen in `theme.ts` als Strings zusammengesetzt und über Props verteilt wurden.
 
-**Stand:** Das CSS-Bündel ist inzwischen bei **80 KB** statt 145 KB — der Rückgang stammt aus E2, wo die eingebetteten `@font-face`-Blöcke der vier nicht geladenen Familien entfielen. Die eigentliche Ursache ist unverändert und lässt sich nicht getrennt von F1 lösen: Solange die Klassen zur Laufzeit zusammengesetzt werden, sieht Tailwinds Scanner sie nicht als tot an. Das Ziel von 60 KB kommt mit der Umstellung auf CSS-Variablen.
+**Stand:** Mit den Design-Tokens (F1) und der Umstellung der hartcodierten Farben (F2) ist das Bündel von 145 KB auf **64 KB** gefallen. Vier Farbtabellen mit je ~50 Klassennamen sind zu einer geschrumpft, und 384 Literale wurden durch eine Handvoll Token-Utilities ersetzt.
 
-**Fertig wenn:** CSS-Bundle unter 60 KB — gemeinsam mit F1.
+**Was zu den letzten 4 KB fehlt:** Die Komponenten lesen ihre Klassen weiterhin über `theme.cardBg` statt sie direkt zu schreiben. Tailwind sieht dadurch beide Formen — die Utility und den Umweg — und behält Regeln, die nur über die Indirektion erreichbar sind. Das aufzulösen heißt, in rund 100 Dateien `${theme.x}` durch die Utility zu ersetzen; es ist derselbe Schritt, der auch den offenen dritten Teil von F1 schließt.
+
+**Fertig wenn:** CSS-Bundle unter 60 KB.
 
 ---
 
