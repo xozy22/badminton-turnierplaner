@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { useTheme } from "../../lib/ThemeContext";
 import { useT } from "../../lib/I18nContext";
-import { getCustomLogo } from "../../pages/Settings";
+import { getCustomLogo } from "../../pages/settings/LogoSettings";
 import { getAppSetting } from "../../lib/db";
 
 const COLLAPSED_KEY = "turnierplaner_sidebar_collapsed";

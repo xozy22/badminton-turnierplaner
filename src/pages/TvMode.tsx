@@ -52,7 +52,7 @@ import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import RestIndicator from "../components/players/RestIndicator";
-import { getCustomLogo } from "./Settings";
+import { getCustomLogo } from "./settings/LogoSettings";
 
 interface Announcement {
   id: number;
