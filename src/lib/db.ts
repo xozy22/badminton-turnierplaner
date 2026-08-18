@@ -1231,6 +1231,12 @@ export interface RoundSpec {
   phase?: string | null;
   groupNumber?: number | null;
   matches: MatchSpec[];
+  /**
+   * Marks the grand final of a double-elimination bracket. Not written to
+   * the database — the match lives in the winners bracket — but returned to
+   * the caller so it can note the round id (REVIEW-BACKLOG.md B4).
+   */
+  isGrandFinal?: boolean;
 }
 
 /**

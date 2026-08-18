@@ -365,18 +365,15 @@ export interface Translations {
 
   // Monrad specific
   tournament_view_next_monrad_round: string;
-  tournament_view_monrad_round_counter: string;
 
   // King of Court / Waterfall specific
   tournament_view_next_kotc_match: string;
   tournament_view_next_waterfall_round: string;
-  tournament_view_waterfall_round_counter: string;
 
   // Swiss specific
   tournament_swiss_rounds: string;
   tournament_swiss_rounds_hint: string;
   tournament_view_next_swiss_round: string;
-  tournament_view_swiss_round_counter: string;
 
   // Double Elimination specific
   tournament_view_advance_bracket: string;
@@ -427,6 +424,7 @@ export interface Translations {
   export_json: string;
   export_done: string;
   export_failed: string;
+  tournament_view_round_counter: string;
   tournament_view_round_byes: string;
   tournament_view_start_failed: string;
   tournament_view_start: string;

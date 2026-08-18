@@ -348,11 +348,9 @@ export const en: Translations = {
   tournament_swiss_rounds: "Number of rounds",
   tournament_swiss_rounds_hint: "Recommended: {count} rounds for {players} players",
   tournament_view_next_swiss_round: "Next Swiss round",
-  tournament_view_swiss_round_counter: "Round {current} of {total}",
 
   // Monrad specific
   tournament_view_next_monrad_round: "Next Monrad round",
-  tournament_view_monrad_round_counter: "Round {current} of {total}",
 
   // Double Elimination specific
   tournament_view_advance_bracket: "Advance bracket",
@@ -360,7 +358,6 @@ export const en: Translations = {
   // King of Court / Waterfall specific
   tournament_view_next_kotc_match: "Next match",
   tournament_view_next_waterfall_round: "Next rotation",
-  tournament_view_waterfall_round_counter: "Round {current} of {total}",
 
   // Status labels
   status_draft: "Draft",
@@ -408,6 +405,7 @@ export const en: Translations = {
   export_json: "Everything (JSON)",
   export_done: "File saved: {file}",
   export_failed: "Export failed: {error}",
+  tournament_view_round_counter: "Round {current} of {total}",
   tournament_view_round_byes: "Sitting out this round: {players}",
   tournament_view_start_failed: "Could not start the tournament - nothing was saved.",
   tournament_view_start: "Start tournament",
