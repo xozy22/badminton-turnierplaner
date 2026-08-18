@@ -735,7 +735,7 @@ export default function TvMode() {
       {/* Header */}
       <div className={`bg-black/30 backdrop-blur-sm border-b ${tv.headerBorder} px-8 py-4 flex justify-between items-center shrink-0`}>
         <div className="flex items-center gap-4">
-          <img src={getCustomLogo() || "/logo.png"} alt="Logo" className="w-10 h-10 object-contain" />
+          <img src={getCustomLogo() || "/logo.webp"} alt="Logo" className="w-10 h-10 object-contain" />
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight">{tournament.name}</h1>
             <div className={`${tv.primary} text-sm font-medium`}>

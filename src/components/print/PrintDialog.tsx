@@ -2,8 +2,8 @@ import { useState, useRef } from "react";
 import PrintView from "./PrintView";
 import type { PrintMode } from "./PrintView";
 import { generateCertificates } from "./CertificateGenerator";
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
+// html2canvas and jspdf together are ~700 KB and are only needed once the
+// user actually renders a PDF (REVIEW-BACKLOG.md E1).
 import type {
   Tournament,
   Player,
@@ -68,6 +68,10 @@ export default function PrintDialog({
       offscreen.innerHTML = printRef.current.innerHTML;
       document.body.appendChild(offscreen);
 
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
       const canvas = await html2canvas(offscreen, {
         scale: 2,
         useCORS: true,

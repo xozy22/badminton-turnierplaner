@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { getPlayers, createPlayer, updatePlayer, removePlayer, restorePlayer, isTauri } from "../lib/db";
-import ExcelJS from "exceljs";
+// exceljs is ~800 KB; it loads when someone actually exports
+// (REVIEW-BACKLOG.md E1).
 import type { Player, Gender } from "../lib/types";
 import { calculateAge, playerDisplayName } from "../lib/types";
 import ExcelImport from "../components/players/ExcelImport";
@@ -252,6 +253,7 @@ export default function Players() {
   const someSelected = selectedIds.size > 0;
 
   const handleExport = async () => {
+    const { default: ExcelJS } = await import("exceljs");
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Spieler");
     ws.columns = [

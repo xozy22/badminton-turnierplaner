@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import ExcelJS from "exceljs";
+// Type-only: the library itself is fetched when a file is picked, so the
+// ~800 KB stay out of the start bundle (REVIEW-BACKLOG.md E1).
+import type ExcelJS from "exceljs";
 import { createPlayer, getPlayers } from "../../lib/db";
 import type { Gender, Player } from "../../lib/types";
 import { playerDisplayName } from "../../lib/types";
@@ -129,7 +131,8 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const arrayBuffer = evt.target?.result as ArrayBuffer;
-      const wb = new ExcelJS.Workbook();
+      const { default: ExcelJSRuntime } = await import("exceljs");
+      const wb = new ExcelJSRuntime.Workbook();
       await wb.xlsx.load(arrayBuffer);
       workbookRef.current = wb;
 

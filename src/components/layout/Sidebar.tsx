@@ -52,7 +52,7 @@ export default function Sidebar() {
       <div className={`${collapsed ? "p-3" : "p-5"} border-b ${theme.sidebarBorder}`}>
         {collapsed ? (
           <div className="text-2xl text-center flex justify-center">
-            <img src={customLogo || "/logo.png"} alt="Logo" className="w-14 h-14 object-contain" />
+            <img src={customLogo || "/logo.webp"} alt="Logo" className="w-14 h-14 object-contain" />
           </div>
         ) : customLogo ? (
           <div className="flex items-center gap-3">
@@ -68,7 +68,7 @@ export default function Sidebar() {
           </div>
         ) : (
           <div className="flex justify-center">
-            <img src="/logo.png" alt="Logo" className="w-40 object-contain" />
+            <img src="/logo.webp" alt="Logo" className="w-40 object-contain" />
           </div>
         )}
       </div>

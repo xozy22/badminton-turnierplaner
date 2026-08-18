@@ -1,22 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import Layout from "./components/layout/Layout";
+
+// One chunk per page (REVIEW-BACKLOG.md E1). Home stays eager — it is what
+// the window opens on, so deferring it would only add a flash of the
+// fallback before the first paint.
 import Home from "./pages/Home";
-import Players from "./pages/Players";
-import Tournaments from "./pages/Tournaments";
-import TournamentCreate from "./pages/TournamentCreate";
-import TournamentView from "./pages/TournamentView";
-import TvMode from "./pages/TvMode";
-import Settings from "./pages/Settings";
-import Sportstaetten from "./pages/Sportstaetten";
-import Statistics from "./pages/Statistics";
-import Sessions from "./pages/Sessions";
-import SessionDetail from "./pages/SessionDetail";
-import SessionDashboard from "./pages/SessionDashboard";
+
+const Players = lazy(() => import("./pages/Players"));
+const Tournaments = lazy(() => import("./pages/Tournaments"));
+const TournamentCreate = lazy(() => import("./pages/TournamentCreate"));
+const TournamentView = lazy(() => import("./pages/TournamentView"));
+const TvMode = lazy(() => import("./pages/TvMode"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Sportstaetten = lazy(() => import("./pages/Sportstaetten"));
+const Statistics = lazy(() => import("./pages/Statistics"));
+const Sessions = lazy(() => import("./pages/Sessions"));
+const SessionDetail = lazy(() => import("./pages/SessionDetail"));
+const SessionDashboard = lazy(() => import("./pages/SessionDashboard"));
 import { useTheme } from "./lib/ThemeContext";
 import { useT } from "./lib/I18nContext";
 import LivePublisherHost from "./lib/useLivePublisher";
 import ErrorBoundary from "./components/layout/ErrorBoundary";
+
+/** Placeholder while a page chunk loads. */
+function PageLoading() {
+  return <div className="w-full h-full" aria-busy="true" />;
+}
 
 function UpdateBanner() {
   const { theme } = useTheme();
@@ -71,6 +81,10 @@ export default function App() {
       {/* A render error in any page shows a recoverable screen instead of a
           blank window — see REVIEW-BACKLOG.md D6. */}
       <ErrorBoundary>
+      {/* Chunks are served from disk by the bundled webview, so the wait is
+          measured in milliseconds; the fallback exists to satisfy Suspense,
+          not to be read. */}
+      <Suspense fallback={<PageLoading />}>
       <Routes>
         {/* TV-Modus: Fullscreen ohne Sidebar */}
         <Route path="/tv/:id" element={<TvMode />} />
@@ -91,6 +105,7 @@ export default function App() {
           <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
+      </Suspense>
       </ErrorBoundary>
     </BrowserRouter>
   );

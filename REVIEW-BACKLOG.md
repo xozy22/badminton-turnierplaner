@@ -507,25 +507,37 @@ Umgestellt: der Session-Kontext, der Konfigurationslader und die Turnier-Erkennu
 
 # E · Performance
 
-### [ ] E1 — 2,4 MB JavaScript in einem einzigen Chunk
-**Schwere:** mittel · **Aufwand:** S · **Dateien:** `vite.config.ts`, `src/App.tsx`, `src/components/print/*`, `src/components/players/ExcelImport.tsx`
+### [x] E1 — 2,4 MB JavaScript in einem einzigen Chunk — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/App.tsx`, `src/pages/Players.tsx`, `src/components/players/ExcelImport.tsx`, `src/components/print/PrintDialog.tsx`, `src/components/print/CertificateGenerator.ts`
 
-**Problem:** `dist/assets/index-*.js` ist 2.366 KB. `exceljs`, `jspdf` und `html2canvas` sind statisch importiert und landen im Startbundle, obwohl sie nur in Excel-Import, Druck und Urkunde gebraucht werden. Kein `React.lazy` im Projekt.
+**Problem:** Das Startbundle war 2.394 KB. `exceljs`, `jspdf` und `html2canvas` wurden statisch importiert und landeten darin, obwohl sie nur beim Excel-Import, beim Druck und bei der Urkunde gebraucht werden. Kein `React.lazy` im Projekt.
 
-**Fix:** Routen per `React.lazy` + `Suspense` splitten; schwere Bibliotheken per `await import()` erst bei Bedarf laden; `manualChunks` für Vendor-Pakete.
+**Umgesetzt:** Die drei schweren Bibliotheken kommen jetzt per `await import()` genau dann, wenn jemand exportiert, druckt oder eine Urkunde erzeugt — zusammen 1,5 MB, die beim Start niemand braucht. In `ExcelImport` und `CertificateGenerator` bleibt der Typ-Import stehen (`import type`), der zur Laufzeit verschwindet.
 
-**Fertig wenn:** Start-Chunk unter 600 KB; Druck/Excel-Funktionen laden ihre Abhängigkeiten nach.
+Dazu eine Route pro Seite über `React.lazy` + `Suspense`. Die Startseite bleibt bewusst statisch — sie ist das, worauf das Fenster öffnet, ein Nachladen brächte nur ein Aufblitzen des Platzhalters.
+
+**Ergebnis:** Startbundle **264 KB** statt 2.394 KB. Größte nachgeladene Brocken: exceljs 924 KB, jspdf 404 KB, html2canvas 200 KB, die Turnieransicht 172 KB.
+
+**Fertig wenn:** ~~Start-Chunk unter 600 KB~~ — 264 KB. Im Browser gegengeprüft: alle elf Routen laden ihren Chunk, der Excel-Export zieht `exceljs` erst beim Klick nach und erzeugt eine gültige Datei.
 
 ---
 
-### [ ] E2 — 121 Schriftdateien (~1,9 MB) für fünf Familien
-**Schwere:** mittel · **Aufwand:** XS · **Dateien:** `src/main.tsx:3-23`
+### [x] E2 — 121 Schriftdateien (~1,9 MB) für fünf Familien — **erledigt**
+**Schwere:** mittel · **Aufwand:** XS · **Dateien:** `src/main.tsx`, `src/lib/fonts.ts` (neu), `src/lib/ThemeContext.tsx`, `public/`
 
-**Problem:** Inter, Nunito, Roboto, Poppins und Montserrat werden mit allen Gewichten **und allen Subsets** importiert — inklusive Devanagari, Kyrillisch und Vietnamesisch, die die App nie benötigt. `dist` ist deswegen 9,1 MB groß.
+**Problem:** Alle fünf wählbaren Familien wurden in `main.tsx` mit allen Gewichten importiert — und über den Standard-Einstiegspunkt der `@fontsource`-Pakete mit **allen Subsets**: Kyrillisch, Griechisch, Vietnamesisch und Devanagari inklusive. Tatsächlich waren es 242 Dateien mit 4,1 MB, für eine Oberfläche, die es auf Deutsch und Englisch gibt.
 
-**Fix:** Nur `latin`-Subsets importieren (`@fontsource/inter/latin-400.css`), Gewichte auf die tatsächlich genutzten reduzieren, und die nicht ausgewählten Schriftfamilien dynamisch nachladen, wenn der Nutzer sie in den Einstellungen wählt.
+**Umgesetzt:** `main.tsx` lädt nur noch den lateinischen Schnitt der Standardfamilie Inter, in den fünf Gewichten, die die Oberfläche wirklich verwendet (400–800; das einzige `font-light` im ganzen Projekt rechtfertigt keine sechste Datei). Die anderen vier Familien holt `ensureFontFamily` in `src/lib/fonts.ts` nach, sobald jemand sie in den Einstellungen wählt. Schlägt der Nachladeversuch fehl, greift der System-Stack, der ohnehin hinter jeder Familie steht — eine fehlgeschlagene Schrift kostet ein anderes Schriftbild, keinen kaputten Bildschirm.
 
-**Fertig wenn:** `dist` unter 4 MB; Schriftwechsel in den Einstellungen funktioniert weiterhin.
+**Dabei aufgefallen — zwei Bilddateien, die zusammen mehr wogen als das JavaScript:**
+
+`public/favicon.svg` war mit 1.200 KB kein Vektor, sondern ein 690×687-PNG, das ein Favicon-Generator in eine SVG-Hülle base64-kodiert hatte — für ein Symbol, das der Browser mit 16 bis 32 Pixeln darstellt. Ersetzt durch ein 128×128-PNG mit 40 KB.
+
+`public/logo.png` war 844×844 groß und 1.118 KB schwer, wird aber nirgends größer als 160 CSS-Pixel angezeigt (Sidebar `w-40`, TV-Modus `w-10`). Als 512×512-WebP sind es 115 KB — genug Reserve für ein 3×-Display. Die App-Icons unter `src-tauri/icons/` sind davon unberührt.
+
+**Ergebnis:** 50 Schriftdateien mit 1.036 KB statt 242 mit 4.136 KB; `dist` insgesamt **3,9 MB** statt 9,1 MB.
+
+**Fertig wenn:** ~~`dist` unter 4 MB; Schriftwechsel funktioniert weiterhin~~ — beides erfüllt; im Browser gegengeprüft, dass beim Wechsel auf Montserrat die Familie nachgeladen und angewandt wird.
 
 ---
 

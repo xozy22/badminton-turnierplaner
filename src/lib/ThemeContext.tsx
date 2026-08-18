@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { ensureFontFamily } from "./fonts";
 import { type ThemeId, type ThemeColors, THEMES, loadThemeId, saveThemeId, type FontSizeId, FONT_SIZES, loadFontSize, saveFontSize, type FontFamilyId, FONT_FAMILIES, loadFontFamily, saveFontFamily } from "./theme";
 
 interface ThemeContextValue {
@@ -68,6 +69,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Apply font family
   useEffect(() => {
     document.documentElement.style.fontFamily = FONT_FAMILIES[fontFamilyId].family;
+    // Fetches the files unless this is the bundled default, or already
+    // loaded. Applying the family first means the switch is visible as soon
+    // as the download lands (REVIEW-BACKLOG.md E2).
+    void ensureFontFamily(fontFamilyId);
   }, [fontFamilyId]);
 
   return (
