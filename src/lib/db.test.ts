@@ -75,6 +75,7 @@ import {
   getGrandFinalRounds,
   getAllMatchesWithTournament,
   getAllSetsFlat,
+  getMatchesForTournaments,
 } from "./db";
 
 // db.ts reaches for these two modules on the Tauri path; the harness
@@ -230,6 +231,29 @@ for (const backend of BACKENDS) {
       const usage = await getPlayerMatchUsage(ids[0]);
       expect(usage.map((t) => t.name)).toEqual(["Testturnier"]);
       await expect(deletePlayer(ids[0])).rejects.toBeInstanceOf(PlayerInUseError);
+    });
+
+    it("finds a player in any of the four team columns", async () => {
+      // The query tests one id against team1_p1, team1_p2, team2_p1 and
+      // team2_p2. Checking only the first column would pass while three
+      // quarters of it were broken (REVIEW-BACKLOG.md E4).
+      const ids = await seedPlayers(4);
+      const tournamentId = await seedTournament(ids);
+      await createSchedule(tournamentId, [
+        {
+          roundNumber: 1,
+          matches: [
+            { team1_p1: ids[0], team1_p2: ids[1], team2_p1: ids[2], team2_p2: ids[3] },
+          ],
+        },
+      ]);
+
+      for (const id of ids) {
+        expect(
+          (await getPlayerMatchUsage(id)).map((t) => t.name),
+          `player ${id}`,
+        ).toEqual(["Testturnier"]);
+      }
     });
   });
 
@@ -760,6 +784,30 @@ for (const backend of BACKENDS) {
       expect(rows[0].tournament_id).toBe(a);
     });
 
+    it("returns the matches of several tournaments in one call", async () => {
+      const ids = await seedPlayers(2);
+      const a = await createTournament("Erstes", "singles", "round_robin", 2, 21);
+      const b = await createTournament("Zweites", "singles", "round_robin", 2, 21);
+      const c = await createTournament("Drittes", "singles", "round_robin", 2, 21);
+      for (const t of [a, b, c]) {
+        for (const pid of ids) await addPlayerToTournament(t, pid);
+        await createSchedule(t, [
+          { roundNumber: 1, matches: [{ team1_p1: ids[0], team2_p1: ids[1] }] },
+        ]);
+      }
+
+      const rows = await getMatchesForTournaments([a, c]);
+
+      expect(rows).toHaveLength(2);
+      expect(rows.map((r) => r.tournament_id)).toEqual([a, c]);
+      // The tournament each match belongs to has to survive the join.
+      expect(new Set(rows.map((r) => r.tournament_id))).not.toContain(b);
+    });
+
+    it("returns nothing for an empty id list", async () => {
+      expect(await getMatchesForTournaments([])).toEqual([]);
+    });
+
     it("returns every set across all tournaments", async () => {
       const ids = await seedPlayers(2);
       const tournamentId = await seedTournament(ids);
@@ -797,6 +845,66 @@ for (const backend of BACKENDS) {
       expect(await getTournaments()).toHaveLength(0);
       expect(await getAllMatchesWithTournament()).toHaveLength(0);
       expect(await getPlayers()).toHaveLength(2);
+    });
+  });
+
+  // These only make sense against SQL — the fallback has no round trips to
+  // count (REVIEW-BACKLOG.md E4).
+  describe.skipIf(backend.name !== "SQLite (real migrations)")("round trips", () => {
+    it("builds a 16-player round robin in a single transaction", async () => {
+      const ids = await seedPlayers(16);
+      const tournamentId = await seedTournament(ids);
+
+      // Berger tables: 15 rounds of 8 matches for 16 players.
+      const rounds = [];
+      for (let r = 0; r < 15; r++) {
+        const matches = [];
+        for (let m = 0; m < 8; m++) {
+          matches.push({ team1_p1: ids[m], team2_p1: ids[15 - m] });
+        }
+        rounds.push({ roundNumber: r + 1, matches });
+      }
+
+      const before = sqlite!.roundTrips;
+      await createSchedule(tournamentId, rounds, { status: "active" });
+      const spent = sqlite!.roundTrips - before;
+
+      // 135 inserts plus the status update, in one transaction.
+      expect(spent).toBe(1);
+      expect(await getAllMatchesByTournament(tournamentId)).toHaveLength(120);
+    });
+
+    it("seeds every player in a single statement", async () => {
+      const ids = await seedPlayers(16);
+      const tournamentId = await seedTournament(ids);
+
+      const before = sqlite!.roundTrips;
+      await setTournamentSeeds(tournamentId, ids);
+
+      expect(sqlite!.roundTrips - before).toBe(1);
+      const ranks = new Map(
+        (await getTournamentPlayersDetailed(tournamentId)).map((d) => [d.player.id, d.seed_rank]),
+      );
+      ids.forEach((id, i) => expect(ranks.get(id), `player ${id}`).toBe(i + 1));
+    });
+
+    it("reads the matches of several tournaments in a single query", async () => {
+      const ids = await seedPlayers(2);
+      const tournamentIds = [];
+      for (const name of ["A", "B", "C", "D"]) {
+        const t = await createTournament(name, "singles", "round_robin", 2, 21);
+        for (const pid of ids) await addPlayerToTournament(t, pid);
+        await createSchedule(t, [
+          { roundNumber: 1, matches: [{ team1_p1: ids[0], team2_p1: ids[1] }] },
+        ]);
+        tournamentIds.push(t);
+      }
+
+      const before = sqlite!.roundTrips;
+      const rows = await getMatchesForTournaments(tournamentIds);
+
+      expect(sqlite!.roundTrips - before).toBe(1);
+      expect(rows).toHaveLength(4);
     });
   });
   });

@@ -21,7 +21,7 @@
 
 import { useState } from "react";
 import { usePolling } from "./usePolling";
-import { getAllMatchesByTournament } from "./db";
+import { getMatchesForTournaments } from "./db";
 import { getSessionTournaments } from "./sessions";
 import type { Match, Tournament, TournamentFormat } from "./types";
 
@@ -45,19 +45,19 @@ export interface SessionMatch extends Match {
  */
 export async function getSessionMatches(sessionId: number): Promise<SessionMatch[]> {
   const tournaments = await getSessionTournaments(sessionId);
-  const out: SessionMatch[] = [];
-  for (const t of tournaments) {
-    const matches = await getAllMatchesByTournament(t.id);
-    for (const m of matches) {
-      out.push({
-        ...m,
-        tournament_id: t.id,
-        tournament_name: t.name,
-        tournament_format: t.format,
-      });
-    }
-  }
-  return out;
+  if (tournaments.length === 0) return [];
+
+  // One query for the whole session instead of one per tournament — this
+  // runs every five seconds while the dashboard is open
+  // (REVIEW-BACKLOG.md E4).
+  const byId = new Map(tournaments.map((t) => [t.id, t]));
+  const matches = await getMatchesForTournaments(tournaments.map((t) => t.id));
+
+  return matches.flatMap((m) => {
+    const t = byId.get(m.tournament_id);
+    if (!t) return [];
+    return [{ ...m, tournament_id: t.id, tournament_name: t.name, tournament_format: t.format }];
+  });
 }
 
 /**

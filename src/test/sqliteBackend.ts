@@ -93,20 +93,37 @@ export interface SqliteBackend {
   database: SqlDatabase;
   /** Stands in for `invoke` from `@tauri-apps/api/core`. */
   invoke(command: string, args?: Record<string, unknown>): Promise<unknown>;
+  /**
+   * Statements sent since the last reset, counted the way the app pays for
+   * them: one per `select`/`execute`, and one per transaction regardless of
+   * how many statements it carries. Lets a test assert that a schedule
+   * costs a single round trip (REVIEW-BACKLOG.md E4).
+   */
+  readonly roundTrips: number;
   /** Empties every table, keeping the schema. */
   reset(): void;
   close(): void;
 }
 
 /**
- * Rewrites `$1, $2, …` into the `?` placeholders node:sqlite expects.
+ * Rewrites `$1, $2, …` into the positional `?` that node:sqlite binds, and
+ * returns the parameter list that goes with the rewritten statement.
  *
- * The order is positional in both dialects, so the parameter array is
- * passed through untouched. `$` inside a string literal would be rewritten
- * too, but no query in db.ts contains one.
+ * `$N` is a *named* placeholder as far as SQLite is concerned, so the same
+ * number may appear several times and still consume a single value — which
+ * `getPlayerMatchUsage` relies on: one player id against four columns. A
+ * naive `$N` → `?` would turn that into four positional slots fed by one
+ * value, so the query would run with three NULLs and quietly match less
+ * than it should. Expanding the argument list keeps the harness faithful
+ * to what the app's driver does.
  */
-function toQuestionMarks(sql: string): string {
-  return sql.replace(/\$\d+/g, "?");
+function toPositional(sql: string, values: unknown[]): { sql: string; values: unknown[] } {
+  const expanded: unknown[] = [];
+  const rewritten = sql.replace(/\$(\d+)/g, (_whole, digits: string) => {
+    expanded.push(values[Number(digits) - 1]);
+    return "?";
+  });
+  return { sql: rewritten, values: expanded };
 }
 
 /** SQLite binds booleans as integers; everything else passes straight through. */
@@ -130,12 +147,18 @@ export function createSqliteBackend(): SqliteBackend {
     }
   }
 
+  let roundTrips = 0;
+
   const database: SqlDatabase = {
     async select<T>(query: string, bindValues: unknown[] = []): Promise<T> {
-      return db.prepare(toQuestionMarks(query)).all(...bindValues.map(toBindValue)) as T;
+      roundTrips++;
+      const { sql, values } = toPositional(query, bindValues);
+      return db.prepare(sql).all(...values.map(toBindValue)) as T;
     },
     async execute(query: string, bindValues: unknown[] = []) {
-      const result = db.prepare(toQuestionMarks(query)).run(...bindValues.map(toBindValue));
+      roundTrips++;
+      const { sql, values } = toPositional(query, bindValues);
+      const result = db.prepare(sql).run(...values.map(toBindValue));
       return {
         rowsAffected: Number(result.changes),
         lastInsertId: Number(result.lastInsertRowid),
@@ -150,6 +173,7 @@ export function createSqliteBackend(): SqliteBackend {
    * matches in one go.
    */
   function executeTransaction(statements: TxStatement[]): number[] {
+    roundTrips++;
     const insertIds: number[] = [];
     db.exec("BEGIN");
     try {
@@ -164,7 +188,8 @@ export function createSqliteBackend(): SqliteBackend {
           }
           return toBindValue(p);
         });
-        const result = db.prepare(toQuestionMarks(statement.sql)).run(...params);
+        const { sql, values } = toPositional(statement.sql, params);
+        const result = db.prepare(sql).run(...values);
         insertIds.push(Number(result.lastInsertRowid));
       }
       db.exec("COMMIT");
@@ -177,6 +202,9 @@ export function createSqliteBackend(): SqliteBackend {
 
   return {
     database,
+    get roundTrips() {
+      return roundTrips;
+    },
     async invoke(command: string, args?: Record<string, unknown>): Promise<unknown> {
       switch (command) {
         case "get_db_path":
@@ -204,6 +232,7 @@ export function createSqliteBackend(): SqliteBackend {
       }
       // Hand out ids from 1 again, so tests can rely on them.
       db.exec("DELETE FROM sqlite_sequence");
+      roundTrips = 0;
     },
     close() {
       db.close();

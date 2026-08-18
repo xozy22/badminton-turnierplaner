@@ -552,14 +552,22 @@ Dazu eine Route pro Seite über `React.lazy` + `Suspense`. Die Startseite bleibt
 
 ---
 
-### [ ] E4 — Schreibvorgänge in Schleifen statt Sammeloperationen
-**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/lib/db.ts:885`, `src/pages/TournamentView/index.tsx` (Match-Erzeugung), `src/lib/sessionContext.ts:47`
+### [x] E4 — Schreibvorgänge in Schleifen statt Sammeloperationen — **erledigt**
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/lib/db.ts`, `src/lib/sessionContext.ts`, `src/test/sqliteBackend.ts`
 
-**Problem:** `setTournamentSeeds` führt ein `UPDATE` pro Spieler aus, Rundenerzeugung ein `INSERT` pro Match, `getSessionMatches` eine Abfrage pro Turnier. Jeder Aufruf ist ein IPC-Roundtrip.
+**Problem:** `setTournamentSeeds` setzte ein `UPDATE` pro Spieler ab, `getSessionMatches` eine Abfrage pro Turnier. Jeder Aufruf ist ein IPC-Roundtrip.
 
-**Fix:** Zusammen mit A6 (Transaktionen) auf Sammel-Statements umstellen (`INSERT … VALUES (…),(…),(…)`, `CASE`-Update, `WHERE tournament_id IN (…)`).
+**Umgesetzt:**
 
-**Fertig wenn:** Start eines Round-Robin mit 16 Spielern braucht eine Transaktion statt 120 Einzelabfragen.
+*Setzliste.* Ein einziges `UPDATE … SET seed_rank = CASE player_id WHEN … END`, dessen `ELSE NULL` zugleich die nicht gesetzten Spieler leert — das vorherige „erst alles auf NULL, dann N Updates" entfällt komplett. Bei 32 Setzplätzen: ein Roundtrip statt 33.
+
+*Session-Spiele.* Neu ist `getMatchesForTournaments(ids)` mit `WHERE r.tournament_id IN (…)`. Das Dashboard fragte bisher pro Turnier einzeln ab — alle fünf Sekunden, solange es offen ist.
+
+*Rundenerzeugung* lief bereits seit A6 über eine Transaktion; das ist jetzt belegt statt angenommen.
+
+**Dabei aufgefallen — der Testadapter war untreu.** `getPlayerMatchUsage` prüft eine Spieler-ID gegen vier Spalten und verwendet dafür `$1` viermal bei einem einzigen Parameter. Für SQLite ist `$1` ein *benannter* Platzhalter, das ist also korrekt. Der Adapter in `sqliteBackend.ts` ersetzte aber jedes `$N` durch ein positionales `?` — aus einem Parameter wurden vier Slots, drei davon NULL. Der Test war grün, weil sein Spieler zufällig in der ersten Spalte stand. Der Adapter expandiert die Argumentliste jetzt entsprechend, und ein neuer Test stellt alle vier Spalten auf die Probe.
+
+**Fertig wenn:** ~~Start eines Round-Robin mit 16 Spielern braucht eine Transaktion statt 120 Einzelabfragen~~ — als Test formuliert: Das Testbackend zählt Roundtrips, und drei Fälle belegen je genau einen für den 16-Spieler-Spielplan (120 Spiele), die Setzliste und die Session-Abfrage. Gegengeprüft, indem die Schleifenvariante kurz zurückgeholt wurde — der Test schlug an.
 
 ---
 

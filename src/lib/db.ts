@@ -1010,16 +1010,32 @@ export async function setTournamentSeeds(
 ): Promise<void> {
   if (isTauri()) {
     const d = await getTauriDb();
-    await d.execute(
-      "UPDATE tournament_players SET seed_rank = NULL WHERE tournament_id = $1",
-      [tournamentId],
-    );
-    for (let i = 0; i < seedOrder.length; i++) {
+    if (seedOrder.length === 0) {
       await d.execute(
-        "UPDATE tournament_players SET seed_rank = $1 WHERE tournament_id = $2 AND player_id = $3",
-        [i + 1, tournamentId, seedOrder[i]],
+        "UPDATE tournament_players SET seed_rank = NULL WHERE tournament_id = $1",
+        [tournamentId],
       );
+      return;
     }
+    // One CASE instead of a clear-all plus an UPDATE per seeded player: the
+    // ELSE branch does the clearing, so a 32-player seeding is one IPC
+    // round trip rather than 33 (REVIEW-BACKLOG.md E4).
+    //
+    // Placeholders are numbered in the order they appear and each is used
+    // once — the tournament id therefore comes last. Binding is positional,
+    // so a $1 reused in two places would pick up the wrong value.
+    const cases = seedOrder
+      .map((_, i) => `WHEN $${i * 2 + 1} THEN $${i * 2 + 2}`)
+      .join(" ");
+    const params: number[] = [];
+    seedOrder.forEach((playerId, i) => params.push(playerId, i + 1));
+    params.push(tournamentId);
+    await d.execute(
+      `UPDATE tournament_players
+          SET seed_rank = CASE player_id ${cases} ELSE NULL END
+        WHERE tournament_id = $${params.length}`,
+      params,
+    );
     return;
   }
   const store = loadStore();
@@ -1545,6 +1561,44 @@ export async function getAllMatchesByTournament(tournamentId: number): Promise<M
   return store.matches
     .filter((m) => roundIds.has(m.round_id))
     .sort((a, b) => a.id - b.id);
+}
+
+/**
+ * Matches of several tournaments at once, each tagged with the tournament
+ * it belongs to.
+ *
+ * The session view used to call getAllMatchesByTournament in a loop — one
+ * IPC round trip per tournament, five seconds apart, for as long as the
+ * dashboard is open (REVIEW-BACKLOG.md E4).
+ */
+export async function getMatchesForTournaments(
+  tournamentIds: number[],
+): Promise<(Match & { tournament_id: number })[]> {
+  if (tournamentIds.length === 0) return [];
+
+  if (isTauri()) {
+    const d = await getTauriDb();
+    const placeholders = tournamentIds.map((_, i) => `$${i + 1}`).join(", ");
+    return d.select(
+      `SELECT m.*, r.tournament_id
+         FROM matches m
+         JOIN rounds r ON m.round_id = r.id
+        WHERE r.tournament_id IN (${placeholders})
+        ORDER BY r.tournament_id, r.round_number, m.id`,
+      tournamentIds,
+    );
+  }
+
+  const store = loadStore();
+  const wanted = new Set(tournamentIds);
+  const roundToTournament = new Map<number, number>();
+  for (const r of store.rounds) {
+    if (wanted.has(r.tournament_id)) roundToTournament.set(r.id, r.tournament_id);
+  }
+  return store.matches
+    .filter((m) => roundToTournament.has(m.round_id))
+    .map((m) => ({ ...m, tournament_id: roundToTournament.get(m.round_id)! }))
+    .sort((a, b) => a.tournament_id - b.tournament_id || a.id - b.id);
 }
 
 export async function getAllSetsByTournament(tournamentId: number): Promise<GameSet[]> {
