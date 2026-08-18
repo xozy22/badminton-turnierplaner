@@ -380,37 +380,39 @@ export default function Statistics() {
           </h2>
 
           <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl overflow-hidden`}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className={`${theme.headerGradient} text-xs`}>
-                  <th className={`text-left px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_rank}</th>
-                  <th className={`text-left px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_player}</th>
-                  <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_matches_played}</th>
-                  <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.common_wins_abbr}</th>
-                  <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.common_losses_abbr}</th>
-                  <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_win_rate}</th>
-                  <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_points_avg}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rankings.slice(0, 15).map((entry, idx) => {
-                  const winRateColor = entry.winRate > 60 ? "text-emerald-500" : entry.winRate >= 40 ? "text-yellow-500" : "text-danger-text";
-                  return (
-                    <tr key={entry.player.id} className={`border-t ${theme.cardBorder} ${idx < 3 ? theme.headerGradient : ""}`}>
-                      <td className={`px-4 py-2.5 font-bold ${theme.textSecondary}`}>
-                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : idx + 1}
-                      </td>
-                      <td className={`px-4 py-2.5 font-medium ${theme.textPrimary}`}>{playerDisplayName(entry.player)}</td>
-                      <td className={`px-4 py-2.5 text-center ${theme.textSecondary}`}>{entry.totalMatches}</td>
-                      <td className="px-4 py-2.5 text-center font-semibold text-emerald-500">{entry.wins}</td>
-                      <td className="px-4 py-2.5 text-center font-semibold text-danger-text">{entry.losses}</td>
-                      <td className={`px-4 py-2.5 text-center font-bold ${winRateColor}`}>{entry.winRate.toFixed(0)}%</td>
-                      <td className={`px-4 py-2.5 text-center ${theme.textSecondary}`}>{entry.avgPointsPerMatch.toFixed(1)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className={`${theme.headerGradient} text-xs`}>
+                    <th className={`text-left px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_rank}</th>
+                    <th className={`text-left px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_player}</th>
+                    <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_matches_played}</th>
+                    <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.common_wins_abbr}</th>
+                    <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.common_losses_abbr}</th>
+                    <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_win_rate}</th>
+                    <th className={`text-center px-4 py-3 font-medium ${theme.textSecondary}`}>{t.stats_points_avg}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rankings.slice(0, 15).map((entry, idx) => {
+                    const winRateColor = entry.winRate > 60 ? "text-emerald-500" : entry.winRate >= 40 ? "text-yellow-500" : "text-danger-text";
+                    return (
+                      <tr key={entry.player.id} className={`border-t ${theme.cardBorder} ${idx < 3 ? theme.headerGradient : ""}`}>
+                        <td className={`px-4 py-2.5 font-bold ${theme.textSecondary}`}>
+                          {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : idx + 1}
+                        </td>
+                        <td className={`px-4 py-2.5 font-medium ${theme.textPrimary}`}>{playerDisplayName(entry.player)}</td>
+                        <td className={`px-4 py-2.5 text-center ${theme.textSecondary}`}>{entry.totalMatches}</td>
+                        <td className="px-4 py-2.5 text-center font-semibold text-emerald-500">{entry.wins}</td>
+                        <td className="px-4 py-2.5 text-center font-semibold text-danger-text">{entry.losses}</td>
+                        <td className={`px-4 py-2.5 text-center font-bold ${winRateColor}`}>{entry.winRate.toFixed(0)}%</td>
+                        <td className={`px-4 py-2.5 text-center ${theme.textSecondary}`}>{entry.avgPointsPerMatch.toFixed(1)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       )}

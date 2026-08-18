@@ -502,207 +502,209 @@ export default function Players() {
         )}
 
         {/* Player Table */}
-        <table className="w-full text-sm">
-          <thead>
-            <tr className={`border-b ${theme.cardBorder} ${theme.headerGradient}`}>
-              <th className="w-10 px-3 py-3 text-center align-middle">
-                <input
-                  type="checkbox"
-                  checked={allFilteredSelected}
-                  onChange={toggleSelectAll}
-                  className="rounded accent-emerald-600"
-                  title={t.players_select_all}
-                />
-              </th>
-              <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide align-middle`}>
-                #
-              </th>
-              <th
-                onClick={() => toggleSort("first_name")}
-                className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide cursor-pointer select-none hover:opacity-80`}
-              >
-                {t.common_first_name} {sortKey === "first_name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
-              </th>
-              <th
-                onClick={() => toggleSort("last_name")}
-                className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide cursor-pointer select-none hover:opacity-80`}
-              >
-                {t.common_last_name} {sortKey === "last_name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
-              </th>
-              <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.common_gender}
-              </th>
-              <th className={`text-center px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.common_age}
-              </th>
-              <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.common_club}
-              </th>
-              <th className={`text-right px-5 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.common_actions}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredPlayers.map((p, i) => {
-              const isSelected = selectedIds.has(p.id);
-              return (
-                <tr
-                  key={p.id}
-                  className={`border-b ${theme.cardBorder} last:border-0 transition-colors ${
-                    isSelected ? theme.selectedBg : `hover:${theme.cardBg}`
-                  } ${p.archived_at ? "opacity-60" : ""}`}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className={`border-b ${theme.cardBorder} ${theme.headerGradient}`}>
+                <th className="w-10 px-3 py-3 text-center align-middle">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleSelectAll}
+                    className="rounded accent-emerald-600"
+                    title={t.players_select_all}
+                  />
+                </th>
+                <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide align-middle`}>
+                  #
+                </th>
+                <th
+                  onClick={() => toggleSort("first_name")}
+                  className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide cursor-pointer select-none hover:opacity-80`}
                 >
-                  <td className="px-3 py-3 text-center align-middle">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelect(p.id)}
-                      className="rounded accent-emerald-600"
-                    />
-                  </td>
-                  <td className={`px-3 py-3 ${theme.textMuted} font-mono text-xs`}>
-                    {i + 1}
-                  </td>
-                  <td className={`px-3 py-3 font-medium ${theme.textPrimary}`}>
-                    {editingId === p.id ? (
+                  {t.common_first_name} {sortKey === "first_name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+                </th>
+                <th
+                  onClick={() => toggleSort("last_name")}
+                  className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide cursor-pointer select-none hover:opacity-80`}
+                >
+                  {t.common_last_name} {sortKey === "last_name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+                </th>
+                <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.common_gender}
+                </th>
+                <th className={`text-center px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.common_age}
+                </th>
+                <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.common_club}
+                </th>
+                <th className={`text-right px-5 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.common_actions}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPlayers.map((p, i) => {
+                const isSelected = selectedIds.has(p.id);
+                return (
+                  <tr
+                    key={p.id}
+                    className={`border-b ${theme.cardBorder} last:border-0 transition-colors ${
+                      isSelected ? theme.selectedBg : `hover:${theme.cardBg}`
+                    } ${p.archived_at ? "opacity-60" : ""}`}
+                  >
+                    <td className="px-3 py-3 text-center align-middle">
                       <input
-                        type="text"
-                        value={editFirstName}
-                        onChange={(e) => setEditFirstName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
-                        autoFocus
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(p.id)}
+                        className="rounded accent-emerald-600"
                       />
-                    ) : (
-                      p.first_name
-                    )}
-                  </td>
-                  <td className={`px-3 py-3 ${theme.textPrimary}`}>
-                    {editingId === p.id ? (
-                      <input
-                        type="text"
-                        value={editLastName}
-                        onChange={(e) => setEditLastName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
-                      />
-                    ) : (
-                      p.last_name
-                    )}
-                  </td>
-                  <td className="px-3 py-3">
-                    {editingId === p.id ? (
-                      <select
-                        value={editGender}
-                        onChange={(e) => setEditGender(e.target.value as Gender)}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm`}
-                      >
-                        <option value="m">{t.common_gender_male}</option>
-                        <option value="f">{t.common_gender_female}</option>
-                      </select>
-                    ) : (
-                      <span
-                        className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                          p.gender === "m"
-                            ? "bg-blue-500/10 text-blue-500"
-                            : "bg-pink-500/10 text-pink-500"
-                        }`}
-                      >
-                        {p.gender === "m" ? t.common_gender_male : t.common_gender_female}
-                      </span>
-                    )}
-                  </td>
-                  <td className={`px-3 py-3 text-center ${theme.textSecondary}`}>
-                    {editingId === p.id ? (
-                      <input
-                        type="date"
-                        value={editBirthDate}
-                        onChange={(e) => setEditBirthDate(e.target.value)}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-2 py-1.5 text-sm w-36 text-center`}
-                        max={new Date().toISOString().split("T")[0]}
-                      />
-                    ) : (
-                      p.birth_date != null ? (
-                        <span className="text-sm" title={`${t.common_birth_date}: ${new Date(p.birth_date).toLocaleDateString()}`}>
-                          {calculateAge(p.birth_date)}
-                        </span>
+                    </td>
+                    <td className={`px-3 py-3 ${theme.textMuted} font-mono text-xs`}>
+                      {i + 1}
+                    </td>
+                    <td className={`px-3 py-3 font-medium ${theme.textPrimary}`}>
+                      {editingId === p.id ? (
+                        <input
+                          type="text"
+                          value={editFirstName}
+                          onChange={(e) => setEditFirstName(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
+                          autoFocus
+                        />
                       ) : (
-                        <span className="text-sm">-</span>
-                      )
-                    )}
-                  </td>
-                  <td className={`px-3 py-3 ${theme.textSecondary}`}>
-                    {editingId === p.id ? (
-                      <ClubInput
-                        value={editClub}
-                        onChange={setEditClub}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full`}
-                        placeholder={t.players_club_placeholder}
-                        clubs={existingClubs}
-                      />
-                    ) : (
-                      <span className="text-sm">{p.club ?? "-"}</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    {editingId === p.id ? (
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={handleSave}
-                          className={`${theme.activeBadgeText} text-sm font-medium`}
+                        p.first_name
+                      )}
+                    </td>
+                    <td className={`px-3 py-3 ${theme.textPrimary}`}>
+                      {editingId === p.id ? (
+                        <input
+                          type="text"
+                          value={editLastName}
+                          onChange={(e) => setEditLastName(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
+                        />
+                      ) : (
+                        p.last_name
+                      )}
+                    </td>
+                    <td className="px-3 py-3">
+                      {editingId === p.id ? (
+                        <select
+                          value={editGender}
+                          onChange={(e) => setEditGender(e.target.value as Gender)}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm`}
                         >
-                          {t.common_save}
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className={`${theme.textMuted} hover:opacity-80 text-sm`}
+                          <option value="m">{t.common_gender_male}</option>
+                          <option value="f">{t.common_gender_female}</option>
+                        </select>
+                      ) : (
+                        <span
+                          className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                            p.gender === "m"
+                              ? "bg-blue-500/10 text-blue-500"
+                              : "bg-pink-500/10 text-pink-500"
+                          }`}
                         >
-                          {t.common_cancel}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-3 justify-end">
-                        {p.archived_at ? (
-                          <button
-                            onClick={() => handleRestorePlayer(p.id)}
-                            className={`${theme.textMuted} hover:${theme.activeBadgeText} text-sm transition-colors`}
-                          >
-                            {t.players_restore}
-                          </button>
+                          {p.gender === "m" ? t.common_gender_male : t.common_gender_female}
+                        </span>
+                      )}
+                    </td>
+                    <td className={`px-3 py-3 text-center ${theme.textSecondary}`}>
+                      {editingId === p.id ? (
+                        <input
+                          type="date"
+                          value={editBirthDate}
+                          onChange={(e) => setEditBirthDate(e.target.value)}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-2 py-1.5 text-sm w-36 text-center`}
+                          max={new Date().toISOString().split("T")[0]}
+                        />
+                      ) : (
+                        p.birth_date != null ? (
+                          <span className="text-sm" title={`${t.common_birth_date}: ${new Date(p.birth_date).toLocaleDateString()}`}>
+                            {calculateAge(p.birth_date)}
+                          </span>
                         ) : (
-                          <>
+                          <span className="text-sm">-</span>
+                        )
+                      )}
+                    </td>
+                    <td className={`px-3 py-3 ${theme.textSecondary}`}>
+                      {editingId === p.id ? (
+                        <ClubInput
+                          value={editClub}
+                          onChange={setEditClub}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full`}
+                          placeholder={t.players_club_placeholder}
+                          clubs={existingClubs}
+                        />
+                      ) : (
+                        <span className="text-sm">{p.club ?? "-"}</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      {editingId === p.id ? (
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={handleSave}
+                            className={`${theme.activeBadgeText} text-sm font-medium`}
+                          >
+                            {t.common_save}
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className={`${theme.textMuted} hover:opacity-80 text-sm`}
+                          >
+                            {t.common_cancel}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-3 justify-end">
+                          {p.archived_at ? (
                             <button
-                              onClick={() => handleEdit(p)}
+                              onClick={() => handleRestorePlayer(p.id)}
                               className={`${theme.textMuted} hover:${theme.activeBadgeText} text-sm transition-colors`}
                             >
-                              {t.common_edit}
+                              {t.players_restore}
                             </button>
-                            <button
-                              onClick={() => handleDeleteSingle(p)}
-                              className={`${theme.textMuted} hover:text-danger-text text-sm transition-colors`}
-                            >
-                              {t.common_delete}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleEdit(p)}
+                                className={`${theme.textMuted} hover:${theme.activeBadgeText} text-sm transition-colors`}
+                              >
+                                {t.common_edit}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSingle(p)}
+                                className={`${theme.textMuted} hover:text-danger-text text-sm transition-colors`}
+                              >
+                                {t.common_delete}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredPlayers.length === 0 && (
+                <tr>
+                  <td colSpan={8} className={`px-5 py-12 text-center ${theme.textMuted}`}>
+                    {players.length === 0
+                      ? t.players_none_yet
+                      : t.players_no_filter_results}
                   </td>
                 </tr>
-              );
-            })}
-            {filteredPlayers.length === 0 && (
-              <tr>
-                <td colSpan={8} className={`px-5 py-12 text-center ${theme.textMuted}`}>
-                  {players.length === 0
-                    ? t.players_none_yet
-                    : t.players_no_filter_results}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Delete Confirmation Modal */}

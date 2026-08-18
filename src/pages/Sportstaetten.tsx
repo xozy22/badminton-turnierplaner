@@ -481,150 +481,152 @@ export default function Sportstaetten() {
         )}
 
         {/* Table */}
-        <table className="w-full text-sm">
-          <thead>
-            <tr className={`border-b ${theme.cardBorder} ${theme.headerGradient}`}>
-              <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide align-middle`}>
-                #
-              </th>
-              <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.common_name}
-              </th>
-              <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.venues_address}
-              </th>
-              <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.venues_zip}
-              </th>
-              <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.venues_city}
-              </th>
-              <th className={`text-center px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.venues_halls_courts}
-              </th>
-              <th className={`text-right px-5 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.common_actions}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredSportstaetten.map((s, i) => (
-              <tr
-                key={s.id}
-                ref={(el) => { editRowRefs.current.set(s.id, el); }}
-                className={`border-b ${theme.cardBorder} last:border-0 transition-colors hover:${theme.cardBg} ${editingId === s.id ? "ring-2 ring-emerald-300/40" : ""}`}
-              >
-                <td className={`px-3 py-3 ${theme.textMuted} font-mono text-xs`}>
-                  {i + 1}
-                </td>
-                <td className={`px-3 py-3 font-medium ${theme.textPrimary}`}>
-                  {editingId === s.id ? (
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                      className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
-                      autoFocus
-                    />
-                  ) : (
-                    s.name
-                  )}
-                </td>
-                <td className={`px-3 py-3 ${theme.textSecondary}`}>
-                  {editingId === s.id ? (
-                    <input
-                      type="text"
-                      value={editAddress}
-                      onChange={(e) => setEditAddress(e.target.value)}
-                      className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full`}
-                      placeholder={t.venues_address_placeholder}
-                    />
-                  ) : (
-                    <span className="text-sm">{s.address ?? "-"}</span>
-                  )}
-                </td>
-                <td className={`px-3 py-3 ${theme.textSecondary}`}>
-                  {editingId === s.id ? (
-                    <input
-                      type="text"
-                      value={editZip}
-                      onChange={(e) => setEditZip(e.target.value)}
-                      className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-2 py-1.5 text-sm w-20`}
-                      placeholder={t.venues_zip}
-                    />
-                  ) : (
-                    <span className="text-sm">{s.zip ?? "-"}</span>
-                  )}
-                </td>
-                <td className={`px-3 py-3 ${theme.textSecondary}`}>
-                  {editingId === s.id ? (
-                    <input
-                      type="text"
-                      value={editCity}
-                      onChange={(e) => setEditCity(e.target.value)}
-                      className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full`}
-                      placeholder={t.venues_city_placeholder}
-                    />
-                  ) : (
-                    <span className="text-sm">{s.city ?? "-"}</span>
-                  )}
-                </td>
-                <td className={`px-3 py-3 ${theme.textSecondary}`}>
-                  {editingId === s.id ? (
-                    <div className="min-w-[200px]">
-                      <HallEditor halls={editHalls} onChange={setEditHalls} theme={theme} t={t} compact />
-                    </div>
-                  ) : (
-                    <span className="text-sm text-center block">{formatHallsSummary(s)}</span>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-right">
-                  {editingId === s.id ? (
-                    <div className="flex gap-2 justify-end">
-                      <button
-                        onClick={handleSave}
-                        className={`${theme.activeBadgeText} text-sm font-medium`}
-                      >
-                        {t.common_save}
-                      </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className={`${theme.textMuted} hover:opacity-80 text-sm`}
-                      >
-                        {t.common_cancel}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-3 justify-end">
-                      <button
-                        onClick={() => handleEdit(s)}
-                        className={`${theme.textMuted} hover:${theme.activeBadgeText} text-sm transition-colors`}
-                      >
-                        {t.common_edit}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSingle(s)}
-                        className={`${theme.textMuted} hover:text-danger-text text-sm transition-colors`}
-                      >
-                        {t.common_delete}
-                      </button>
-                    </div>
-                  )}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className={`border-b ${theme.cardBorder} ${theme.headerGradient}`}>
+                <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide align-middle`}>
+                  #
+                </th>
+                <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.common_name}
+                </th>
+                <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.venues_address}
+                </th>
+                <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.venues_zip}
+                </th>
+                <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.venues_city}
+                </th>
+                <th className={`text-center px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.venues_halls_courts}
+                </th>
+                <th className={`text-right px-5 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.common_actions}
+                </th>
               </tr>
-            ))}
-            {filteredSportstaetten.length === 0 && (
-              <tr>
-                <td colSpan={7} className={`px-5 py-12 text-center ${theme.textMuted}`}>
-                  {sportstaetten.length === 0
-                    ? t.venues_none_yet
-                    : t.venues_no_filter_results}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredSportstaetten.map((s, i) => (
+                <tr
+                  key={s.id}
+                  ref={(el) => { editRowRefs.current.set(s.id, el); }}
+                  className={`border-b ${theme.cardBorder} last:border-0 transition-colors hover:${theme.cardBg} ${editingId === s.id ? "ring-2 ring-emerald-300/40" : ""}`}
+                >
+                  <td className={`px-3 py-3 ${theme.textMuted} font-mono text-xs`}>
+                    {i + 1}
+                  </td>
+                  <td className={`px-3 py-3 font-medium ${theme.textPrimary}`}>
+                    {editingId === s.id ? (
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
+                        autoFocus
+                      />
+                    ) : (
+                      s.name
+                    )}
+                  </td>
+                  <td className={`px-3 py-3 ${theme.textSecondary}`}>
+                    {editingId === s.id ? (
+                      <input
+                        type="text"
+                        value={editAddress}
+                        onChange={(e) => setEditAddress(e.target.value)}
+                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full`}
+                        placeholder={t.venues_address_placeholder}
+                      />
+                    ) : (
+                      <span className="text-sm">{s.address ?? "-"}</span>
+                    )}
+                  </td>
+                  <td className={`px-3 py-3 ${theme.textSecondary}`}>
+                    {editingId === s.id ? (
+                      <input
+                        type="text"
+                        value={editZip}
+                        onChange={(e) => setEditZip(e.target.value)}
+                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-2 py-1.5 text-sm w-20`}
+                        placeholder={t.venues_zip}
+                      />
+                    ) : (
+                      <span className="text-sm">{s.zip ?? "-"}</span>
+                    )}
+                  </td>
+                  <td className={`px-3 py-3 ${theme.textSecondary}`}>
+                    {editingId === s.id ? (
+                      <input
+                        type="text"
+                        value={editCity}
+                        onChange={(e) => setEditCity(e.target.value)}
+                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full`}
+                        placeholder={t.venues_city_placeholder}
+                      />
+                    ) : (
+                      <span className="text-sm">{s.city ?? "-"}</span>
+                    )}
+                  </td>
+                  <td className={`px-3 py-3 ${theme.textSecondary}`}>
+                    {editingId === s.id ? (
+                      <div className="min-w-[200px]">
+                        <HallEditor halls={editHalls} onChange={setEditHalls} theme={theme} t={t} compact />
+                      </div>
+                    ) : (
+                      <span className="text-sm text-center block">{formatHallsSummary(s)}</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    {editingId === s.id ? (
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={handleSave}
+                          className={`${theme.activeBadgeText} text-sm font-medium`}
+                        >
+                          {t.common_save}
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className={`${theme.textMuted} hover:opacity-80 text-sm`}
+                        >
+                          {t.common_cancel}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-3 justify-end">
+                        <button
+                          onClick={() => handleEdit(s)}
+                          className={`${theme.textMuted} hover:${theme.activeBadgeText} text-sm transition-colors`}
+                        >
+                          {t.common_edit}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSingle(s)}
+                          className={`${theme.textMuted} hover:text-danger-text text-sm transition-colors`}
+                        >
+                          {t.common_delete}
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {filteredSportstaetten.length === 0 && (
+                <tr>
+                  <td colSpan={7} className={`px-5 py-12 text-center ${theme.textMuted}`}>
+                    {sportstaetten.length === 0
+                      ? t.venues_none_yet
+                      : t.venues_no_filter_results}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Delete Confirmation Modal */}

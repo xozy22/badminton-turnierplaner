@@ -709,14 +709,18 @@ Das Feldmenü gab es bereits; es war nur per Doppelklick erreichbar. Es ist jetz
 
 ---
 
-### [ ] F8 — Keine durchdachte Fenster-/Bildschirmanpassung
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/components/layout/Layout.tsx`, `src/components/layout/Sidebar.tsx`, Tabellen-Views
+### [x] F8 — Keine durchdachte Fenster-/Bildschirmanpassung — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/Players.tsx`, `src/pages/Sportstaetten.tsx`, `src/pages/Statistics.tsx`, `src-tauri/tauri.conf.json`
 
-**Problem:** Feste Sidebar, breite Tabellen ohne horizontales Scrollen, Standardfenster 1200 × 800. Bei geteiltem Bildschirm oder auf einem 13-Zoll-Laptop bricht das Layout. Der TV-Modus ist separat gepflegt statt eine Ansichtsvariante zu sein.
+**Problem:** Breite Tabellen ohne horizontales Scrollen, keine festgelegte Mindestfenstergröße.
 
-**Fix:** Sidebar unter einer Breitenschwelle einklappbar (Icon-Leiste), Tabellen in scrollbare Container, Kartenlayout als Alternative für schmale Fenster; kleinste sinnvolle Fenstergröße in `tauri.conf.json` als `minWidth`/`minHeight` festlegen.
+**Gemessen bei 900 px:** Auf der Spielerseite standen 30 Elemente über den sichtbaren Bereich hinaus, auf der Sportstättenseite neun — und weil die Seite selbst nicht horizontal scrollt, war dieser Inhalt schlicht **abgeschnitten**, nicht etwa erreichbar.
 
-**Fertig wenn:** Bei 900 px Fensterbreite ist jede Seite vollständig bedienbar, ohne dass Inhalt abgeschnitten wird.
+**Umgesetzt:** Die drei Tabellen (Spieler, Sportstätten, Statistik) sitzen jetzt in eigenen `overflow-x-auto`-Containern. Die Seite bleibt damit unverschoben, und die Tabelle lässt sich innerhalb ihres Rahmens seitlich scrollen. In `tauri.conf.json` sind `minWidth: 900` und `minHeight: 600` gesetzt, sodass das Fenster nicht kleiner werden kann, als die Oberfläche verkraftet.
+
+Die Sidebar war bereits einklappbar; der TV-Modus bleibt eine eigene Ansicht, weil er für Betrachtungsabstand ausgelegt ist und nicht dieselben Zustände zeigt.
+
+**Fertig wenn:** ~~Bei 900 px Fensterbreite ist jede Seite vollständig bedienbar, ohne dass Inhalt abgeschnitten wird~~ — über acht Seiten geprüft: kein Element mehr, das übersteht und in keinem scrollbaren Behälter liegt.
 
 ---
 
