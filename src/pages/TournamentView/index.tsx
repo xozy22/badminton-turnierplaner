@@ -223,11 +223,70 @@ export default function TournamentView() {
     ? getEffectiveScoring(tournament, activeRoundPhase)
     : { pointsPerSet: 21, setsToWin: 2, cap: 30 };
 
+  /** Groups matches by their round, for the per-round views. */
+  const groupMatchesByRound = (matches: Match[]): Map<number, Match[]> => {
+    const byRound = new Map<number, Match[]>();
+    for (const match of matches) {
+      const arr = byRound.get(match.round_id);
+      if (arr) arr.push(match);
+      else byRound.set(match.round_id, [match]);
+    }
+    return byRound;
+  };
+
+  /** Groups sets by their match, for the score inputs. */
+  const groupSetsByMatch = (sets: GameSet[]): Map<number, GameSet[]> => {
+    const byMatch = new Map<number, GameSet[]>();
+    for (const set of sets) {
+      const arr = byMatch.get(set.match_id);
+      if (arr) arr.push(set);
+      else byMatch.set(set.match_id, [set]);
+    }
+    return byMatch;
+  };
+
+  /**
+   * Reloads only what a score entry or a court assignment can change:
+   * matches, sets and the standings that follow from them.
+   *
+   * Entering a result used to go through loadAll, which also fetched every
+   * player in the database, the participant list, the payment table and the
+   * tournament row — none of which a score can touch. That is the single
+   * most frequent action in a running tournament, several times per match
+   * (REVIEW-BACKLOG.md D7).
+   *
+   * The roster is read from state rather than refetched; whatever changes
+   * it goes through loadAll and re-creates this callback.
+   */
+  const refreshScores = useCallback(async () => {
+    if (!tournament) return;
+
+    const [allMatches, allSets] = await Promise.all([
+      getAllMatchesByTournament(tournamentId),
+      getAllSetsByTournament(tournamentId),
+    ]);
+
+    const sbm = groupSetsByMatch(allSets);
+    setMatchesByRound(groupMatchesByRound(allMatches));
+    setSetsByMatch(sbm);
+    setAllMatches(allMatches);
+
+    const swissLike = tournament.format === "swiss" || tournament.format === "monrad";
+    setStandings(
+      calculateStandings(
+        players,
+        allMatches,
+        sbm,
+        swissLike ? { byesCountAsWins: true, withBuchholz: true } : {},
+      ),
+    );
+  }, [tournamentId, tournament, players]);
+
   const loadAll = useCallback(async () => {
-    // Every action in this view ends here, so the round trips add up
-    // (REVIEW-BACKLOG.md D7). None of these seven queries depends on
-    // another, so they go out together instead of one after the next —
-    // over Tauri's IPC each one is a serialise/deserialise hop.
+    // Structural reload: everything the view shows. None of these eight
+    // queries depends on another, so they go out together instead of one
+    // after the next — over Tauri's IPC each one is a serialise/
+    // deserialise hop (REVIEW-BACKLOG.md D7).
     const [td, ap, p, r, allMatches, allSets, retiredIds, pd] = await Promise.all([
       getTournament(tournamentId),
       getPlayers(),
@@ -244,21 +303,8 @@ export default function TournamentView() {
     setPlayers(p);
     setRounds(r);
 
-    // Group matches by round
-    const mbr = new Map<number, Match[]>();
-    for (const match of allMatches) {
-      const arr = mbr.get(match.round_id);
-      if (arr) arr.push(match);
-      else mbr.set(match.round_id, [match]);
-    }
-
-    // Group sets by match
-    const sbm = new Map<number, GameSet[]>();
-    for (const set of allSets) {
-      const arr = sbm.get(set.match_id);
-      if (arr) arr.push(set);
-      else sbm.set(set.match_id, [set]);
-    }
+    const mbr = groupMatchesByRound(allMatches);
+    const sbm = groupSetsByMatch(allSets);
 
     setMatchesByRound(mbr);
     setSetsByMatch(sbm);
@@ -549,7 +595,7 @@ export default function TournamentView() {
       }
     }
 
-    loadAll();
+    refreshScores();
   };
 
   // onKeyDown=Enter: Auto-Fill (gleicher Code wie in handleScoreBlur)
@@ -689,7 +735,7 @@ export default function TournamentView() {
     }
 
     await updateMatchCourt(matchId, court);
-    loadAll();
+    refreshScores();
   };
 
   const handleAnnounce = (court: number, team1: string, team2: string) => {
@@ -707,7 +753,7 @@ export default function TournamentView() {
     // Clear court (but keep court_assigned_at) so it doesn't show on a field
     await clearMatchCourt(matchId);
     await reopenMatch(matchId);
-    loadAll();
+    refreshScores();
   };
 
   const handleAddPlayer = async (playerId: number) => {

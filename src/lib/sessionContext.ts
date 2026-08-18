@@ -19,7 +19,8 @@
 // polling is consistent with how the existing live publisher and TV
 // mode operate).
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { usePolling } from "./usePolling";
 import { getAllMatchesByTournament } from "./db";
 import { getSessionTournaments } from "./sessions";
 import type { Match, Tournament, TournamentFormat } from "./types";
@@ -175,42 +176,35 @@ const EMPTY: SessionContextValue = {
 export function useSessionContext(sessionId: number | null, paused = false): SessionContextValue {
   const [value, setValue] = useState<SessionContextValue>(EMPTY);
 
-  useEffect(() => {
-    if (sessionId == null) {
-      setValue(EMPTY);
-      return;
-    }
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const [tournaments, matches] = await Promise.all([
-          getSessionTournaments(sessionId),
-          getSessionMatches(sessionId),
-        ]);
-        if (cancelled) return;
-        setValue({
-          matches,
-          courtOccupancy: getSessionCourtOccupancy(matches),
-          playerCourts: getSessionPlayerCourts(matches),
-          tournaments,
-          loaded: true,
-        });
-      } catch (err) {
-        console.error(`useSessionContext(${sessionId}): poll failed:`, err);
+  usePolling(
+    async (cancelled) => {
+      if (sessionId == null) {
+        setValue(EMPTY);
+        return;
       }
-    };
-    // Always run one tick so the value is populated even when paused —
-    // the dashboard needs the last known state to render the static view.
-    tick();
-    if (paused) {
-      return () => { cancelled = true; };
-    }
-    const id = setInterval(tick, SESSION_CONTEXT_POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [sessionId, paused]);
+      const [tournaments, matches] = await Promise.all([
+        getSessionTournaments(sessionId),
+        getSessionMatches(sessionId),
+      ]);
+      if (cancelled()) return;
+      setValue({
+        matches,
+        courtOccupancy: getSessionCourtOccupancy(matches),
+        playerCourts: getSessionPlayerCourts(matches),
+        tournaments,
+        loaded: true,
+      });
+    },
+    {
+      intervalMs: SESSION_CONTEXT_POLL_MS,
+      // A paused poller still runs its first tick — which is what keeps the
+      // dashboard showing the last known state, and what clears the value
+      // when the session id goes away. `disabled` would skip that tick too.
+      paused: paused || sessionId == null,
+      label: `useSessionContext(${sessionId})`,
+    },
+    [sessionId],
+  );
 
   return value;
 }

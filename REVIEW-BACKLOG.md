@@ -14,8 +14,7 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | **0** ✅ | J1, J2 (CI + Test-Setup) — erledigt | Ohne Netz kein Umbau der Turnierlogik |
 | **1** ✅ | A1–A7 (kritische Bugs) — erledigt | Formate/Freilose/Setzliste sind teilweise kaputt |
 | **2** ✅ | B1–B14 (Turnierlogik & Fairness) — erledigt | Kern des Produkts |
-| **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — 16 von 18 erledigt | Basis für alles Weitere |
-| | offen: D7, D8 — gezielte Invalidierung statt Komplett-Reload | |
+| **3** ✅ | C1–C9, D1–D9 (Daten & Architektur) — erledigt | Basis für alles Weitere |
 | **4** | E1–E5 (Performance) | Schnelle Gewinne |
 | **5** | F1–F10, G1–G5 (Design & Barrierefreiheit) | Das „komplett überarbeitet"-Gefühl |
 | **6** | H1 ✅, H2–H5, I1–I5, J3–J6 | Politur & Sicherheit |
@@ -466,27 +465,38 @@ Die Coverage-Schwellen in `vitest.config.ts` sind eine Ratsche: pro Modul hoch, 
 
 ---
 
-### [ ] D7 — `loadAll()` als einziges Aktualisierungsmuster
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/TournamentView/index.tsx:216`
+### [x] D7 — `loadAll()` als einziges Aktualisierungsmuster — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/TournamentView/index.tsx`
 
-**Problem:** Nahezu jede Aktion endet mit `loadAll()` — Turnier, Spieler, alle Runden, alle Matches, alle Sätze, Zahlungsdaten, Rangliste neu laden und den gesamten Baum neu rendern. Bei laufendem Turnier mit vielen Matches merklich träge; die Score-Eingabe brauchte deswegen bereits einen optimistischen Sonderweg mit ausführlichem Kommentar.
+**Problem:** Nahezu jede Aktion endete mit `loadAll()` — Turnier, alle Spieler der Datenbank, Teilnehmer, alle Runden, alle Spiele, alle Sätze, Zahlungsdaten und Rangliste neu laden. Bei der Ergebniseingabe, der häufigsten Handlung im laufenden Turnier, ist davon nichts nötig außer Spielen, Sätzen und Rangliste.
 
-**Fix:** Gezielte Invalidierung (nur betroffene Runde/Match nachladen) oder eine Query-Schicht mit Cache-Keys (TanStack Query passt gut, weil sie zugleich E3 löst).
+**Umgesetzt in zwei Schritten:**
 
-**Fertig wenn:** Feldzuweisung und Ergebniseingabe lösen keinen Komplett-Reload mehr aus.
+*Parallelisierung.* Die acht Abfragen in `loadAll` liefen nacheinander, obwohl keine von der anderen abhängt — über Tauris IPC ist jede ein eigener Serialisierungs-Sprung. Jetzt ein `Promise.all`.
+
+*Gezielte Invalidierung.* Neu ist `refreshScores`, das nur Spiele, Sätze und die daraus folgende Rangliste lädt — zwei Abfragen statt acht. Daran hängen die drei Handler, die ausschließlich Spiele verändern: Ergebniseingabe, Feldzuweisung und das Wiederöffnen eines Spiels. Die Teilnehmerliste kommt dabei aus dem State statt aus der Datenbank; alles, was sie verändert, läuft weiterhin über `loadAll` und erzeugt den Callback neu.
+
+Strukturelle Änderungen — Runden erzeugen, Spieler hinzufügen oder abmelden, Turnierstatus — behalten bewusst den vollständigen Reload.
+
+**Fertig wenn:** ~~Feldzuweisung und Ergebniseingabe lösen keinen Komplett-Reload mehr aus~~ — im Browser gegengeprüft: Ein Spiel per Kontextmenü vom Feld nehmen aktualisiert die Feldanzeige sofort, ohne die übrigen sieben Abfragen.
+
+---
+
+### [x] D8 — Kein State-/Query-Layer trotz vieler Polling-Quellen — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/lib/usePolling.ts` (neu), `src/lib/sessionContext.ts`, `src/lib/useLivePublisher.tsx`, `src/pages/settings/LivePublishSettings.tsx`
+
+**Problem:** Mehrere unabhängige Polling-Schleifen, jede mit eigenem `cancelled`-Flag, eigenem try/catch und eigenem Aufräumen. Vier Kopien desselben Musters sind vier Gelegenheiten, das Flag zu vergessen — und ein vergessenes Flag schreibt State in eine bereits ausgehängte Komponente.
+
+**Umgesetzt:** `usePolling(tick, options, deps)` kapselt das Muster einmal. Der Tick bekommt eine `cancelled()`-Funktion, die er nach jedem `await` prüfen kann; Intervall, erster sofortiger Durchlauf, Pausieren, Abschalten und das Aufräumen liegen im Hook. Der Kern steckt in `startPolling`, einer gewöhnlichen Funktion — deshalb prüfen die sieben Tests den echten Code und nicht eine Nachbildung davon.
+
+Umgestellt: der Session-Kontext, der Konfigurationslader und die Turnier-Erkennung des Live-Publishers sowie das Push-Protokoll.
+
+**Zwei Schleifen bleiben bewusst von Hand geschrieben** und tragen jetzt eine Begründung im Code: Der Heartbeat des Publishers darf gerade *keinen* sofortigen ersten Durchlauf haben, und die Snapshot-Schleife besitzt einen Debounce-Timer, der zusammen mit dem Intervall aufgeräumt werden muss.
+
+**Fertig wenn:** ~~Nur noch eine zentrale Refresh-Strategie im Code~~ — ein gemeinsames Polling-Grundgerüst mit zwei dokumentierten Ausnahmen. Im Browser gegengeprüft: Das Session-Dashboard bemerkt ein abgeschlossenes Spiel innerhalb des Intervalls, ohne Neuladen.
 
 ---
 
-### [ ] D8 — Kein State-/Query-Layer trotz vieler Polling-Quellen
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/lib/sessionContext.ts`, `src/lib/useLivePublisher.tsx`, `src/pages/TvMode.tsx`, `src/pages/Settings.tsx`
-
-**Problem:** Vier unabhängige Polling-Schleifen mit eigener Fehlerbehandlung, eigenem „cancelled"-Flag-Muster und ohne gemeinsamen Cache; dieselben Daten werden mehrfach parallel geladen.
-
-**Fix:** Gemeinsame Datenschicht einführen (siehe D7) und Polling durch Invalidierung bei Schreibvorgängen plus ein einziges Hintergrund-Refresh ersetzen.
-
-**Fertig wenn:** Nur noch eine zentrale Refresh-Strategie im Code; TV-Modus und Dashboard beziehen ihre Daten daraus.
-
----
 
 ### [x] D9 — Datenbankschicht ist untypisiert — **erledigt**
 **Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/db.ts`

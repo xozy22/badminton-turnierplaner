@@ -35,6 +35,7 @@
 /* eslint-disable react-refresh/only-export-components */
 
 import { useEffect, useRef, useState } from "react";
+import { usePolling } from "./usePolling";
 import {
   getAppSetting,
   getTournaments,
@@ -173,30 +174,21 @@ export function triggerImmediatePush(tournamentId: number): boolean {
 
 function useLiveConfig(): LivePublishConfig | null {
   const [cfg, setCfg] = useState<LivePublishConfig | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
+  usePolling(
+    async (cancelled) => {
+      let parsed: LivePublishConfig | null = null;
       try {
         const raw = await getAppSetting(LIVE_PUBLISH_SETTING_KEY);
-        if (cancelled) return;
-        if (!raw) {
-          setCfg(null);
-          return;
-        }
-        const parsed = JSON.parse(raw) as LivePublishConfig;
-        setCfg(parsed);
+        if (raw) parsed = JSON.parse(raw) as LivePublishConfig;
       } catch (err) {
+        // A malformed config means "not configured", not a broken app.
         console.error("useLiveConfig: failed to load config:", err);
-        if (!cancelled) setCfg(null);
       }
-    };
-    load();
-    const id = setInterval(load, DISCOVERY_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
+      if (cancelled()) return;
+      setCfg(parsed);
+    },
+    { intervalMs: DISCOVERY_INTERVAL_MS, label: "useLiveConfig" },
+  );
   return cfg;
 }
 
@@ -208,42 +200,33 @@ function useLiveConfig(): LivePublishConfig | null {
  */
 function useActiveOptedInTournaments(connected: boolean): Tournament[] {
   const [list, setList] = useState<Tournament[]>([]);
-  useEffect(() => {
-    if (!connected) return;
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const [all, optedIn, paused] = await Promise.all([
-          getTournaments(),
-          getLiveTournamentIds(),
-          getPausedTournamentIds(),
-        ]);
-        if (cancelled) return;
-        const optedSet = new Set(optedIn);
-        const pausedSet = new Set(paused);
-        const target = all.filter(
-          (t) => t.status === "active" && optedSet.has(t.id) && !pausedSet.has(t.id),
-        );
-        setList((prev) => {
-          if (
-            prev.length === target.length &&
-            prev.every((t, i) => t.id === target[i].id)
-          ) {
-            return prev;
-          }
-          return target;
-        });
-      } catch (err) {
-        console.error("useActiveOptedInTournaments: failed to load:", err);
-      }
-    };
-    tick();
-    const id = setInterval(tick, DISCOVERY_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [connected]);
+  usePolling(
+    async (cancelled) => {
+      const [all, optedIn, paused] = await Promise.all([
+        getTournaments(),
+        getLiveTournamentIds(),
+        getPausedTournamentIds(),
+      ]);
+      if (cancelled()) return;
+      const optedSet = new Set(optedIn);
+      const pausedSet = new Set(paused);
+      const target = all.filter(
+        (t) => t.status === "active" && optedSet.has(t.id) && !pausedSet.has(t.id),
+      );
+      // Same list, same array — so consumers do not re-render every tick.
+      setList((prev) =>
+        prev.length === target.length && prev.every((t, i) => t.id === target[i].id)
+          ? prev
+          : target,
+      );
+    },
+    {
+      intervalMs: DISCOVERY_INTERVAL_MS,
+      disabled: !connected,
+      label: "useActiveOptedInTournaments",
+    },
+    [connected],
+  );
   return list;
 }
 
@@ -445,6 +428,12 @@ function TournamentPublisher({ tournamentId, config }: TournamentPublisherProps)
   // Heartbeat loop: every 60s, push regardless of changes (acts as a
   // liveness signal so the WP page can show "still active" / handles
   // downstream restarts).
+  //
+  // Deliberately not on usePolling: that always fires one immediate tick,
+  // which would send a heartbeat the moment a publisher mounts, on top of
+  // the push the snapshot loop above is already about to make. The loop
+  // above stays hand-written too — it owns a debounce timer that has to be
+  // cleared alongside the interval (REVIEW-BACKLOG.md D8).
   useEffect(() => {
     const id = setInterval(() => {
       if (finalEmitted.current) return;

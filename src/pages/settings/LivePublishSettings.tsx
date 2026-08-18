@@ -4,6 +4,7 @@
 // Extracted from the 1483-line Settings page (REVIEW-BACKLOG.md D5).
 
 import { useEffect, useState } from "react";
+import { usePolling } from "../../lib/usePolling";
 import { getAppSetting, setAppSetting } from "../../lib/db";
 import { useTheme } from "../../lib/ThemeContext";
 import { useT } from "../../lib/I18nContext";
@@ -235,23 +236,14 @@ export function PushLogPanel() {
   const [entries, setEntries] = useState<PushLogEntry[]>([]);
   const [showAll, setShowAll] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const list = await getPushLog();
-        if (!cancelled) setEntries(list);
-      } catch (err) {
-        console.error("PushLogPanel: load failed:", err);
-      }
-    };
-    load();
-    const id = setInterval(load, 5000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
+  usePolling(
+    async (cancelled) => {
+      const list = await getPushLog();
+      if (cancelled()) return;
+      setEntries(list);
+    },
+    { intervalMs: 5000, label: "PushLogPanel" },
+  );
 
   const handleClear = async () => {
     await clearPushLog();
