@@ -16,6 +16,7 @@ import SessionDashboard from "./pages/SessionDashboard";
 import { useTheme } from "./lib/ThemeContext";
 import { useT } from "./lib/I18nContext";
 import LivePublisherHost from "./lib/useLivePublisher";
+import ErrorBoundary from "./components/layout/ErrorBoundary";
 
 function UpdateBanner() {
   const { theme } = useTheme();
@@ -67,6 +68,9 @@ export default function App() {
     <BrowserRouter>
       <UpdateBanner />
       <LivePublisherHost />
+      {/* A render error in any page shows a recoverable screen instead of a
+          blank window — see REVIEW-BACKLOG.md D6. */}
+      <ErrorBoundary>
       <Routes>
         {/* TV-Modus: Fullscreen ohne Sidebar */}
         <Route path="/tv/:id" element={<TvMode />} />
@@ -87,6 +91,7 @@ export default function App() {
           <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

@@ -15,6 +15,7 @@
 // /sessions/:id/live route, parallel to /tv/:id).
 
 import { useEffect, useMemo, useState } from "react";
+import { formatDateTime } from "../lib/datetime";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getSession } from "../lib/sessions";
 import { getSportstaetten, getPlayers } from "../lib/db";
@@ -195,8 +196,7 @@ export default function SessionDashboard() {
   const formatTimestamp = (iso: string | null): string => {
     if (!iso) return "—";
     try {
-      const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
-      return d.toLocaleString();
+      return formatDateTime(iso);
     } catch {
       return iso;
     }

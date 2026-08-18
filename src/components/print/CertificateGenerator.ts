@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import { formatDate } from "../../lib/datetime";
 import type { Tournament, StandingEntry } from "../../lib/types";
 import { playerDisplayName } from "../../lib/types";
 import type { Translations } from "../../lib/i18n/types";
@@ -160,7 +161,9 @@ function drawCertificatePage(
   y += 6;
 
   // Date
-  const dateStr = new Date(tournament.created_at).toLocaleDateString();
+  // Parsed through the shared helper: created_at may be SQLite's
+  // zoneless UTC, which `new Date()` would read as local time.
+  const dateStr = formatDate(tournament.created_at);
   doc.text(`${t.certificate_date}: ${dateStr}`, PAGE_W / 2, y, {
     align: "center",
   });

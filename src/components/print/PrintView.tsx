@@ -309,7 +309,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
             const pIds = new Set<number>();
             for (const m of gMatches) {
               pIds.add(m.team1_p1); if (m.team1_p2) pIds.add(m.team1_p2);
-              pIds.add(m.team2_p1); if (m.team2_p2) pIds.add(m.team2_p2);
+              if (m.team2_p1) pIds.add(m.team2_p1); if (m.team2_p2) pIds.add(m.team2_p2);
             }
             const gPlayers = players.filter((p) => pIds.has(p.id));
             const isDoubles = tournament.mode !== "singles";

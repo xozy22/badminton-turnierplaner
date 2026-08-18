@@ -1,0 +1,913 @@
+# BOSS — Vollständiger Review & Überarbeitungs-Backlog
+
+Stand: 2026-08-18 · Basis: Commit `e783243` (v2.9.0) · Umfang: ~27.000 Zeilen TS/TSX, 462 Zeilen Rust, 319 Zeilen PHP
+
+Jeder Punkt ist als eigenständige Aufgabe formuliert: **Problem → Fix → Fertig-Kriterium**.
+Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
+
+---
+
+## Empfohlene Meilensteine
+
+| Phase | Inhalt | Warum zuerst |
+|---|---|---|
+| **0** ✅ | J1, J2 (CI + Test-Setup) — erledigt | Ohne Netz kein Umbau der Turnierlogik |
+| **1** ✅ | A1–A7 (kritische Bugs) — erledigt | Formate/Freilose/Setzliste sind teilweise kaputt |
+| **2** ✅ | B1–B14 (Turnierlogik & Fairness) — erledigt | Kern des Produkts |
+| **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — 12 von 18 erledigt | Basis für alles Weitere |
+| | offen: C5, D1, D2, D5, D7, D8 — die großen Umbauten (Datenschicht vereinheitlichen, View zerlegen, Format-Engine, Query-Layer) | |
+| **4** | E1–E5 (Performance) | Schnelle Gewinne |
+| **5** | F1–F10, G1–G5 (Design & Barrierefreiheit) | Das „komplett überarbeitet"-Gefühl |
+| **6** | H1–H5, I1–I5, J3–J6 | Politur & Sicherheit |
+
+---
+
+## Arbeiten mit der Testsuite (seit Phase 0)
+
+```bash
+pnpm test
+```
+
+`pnpm test` führt alle Tests aus, `pnpm test:watch` beobachtet Änderungen, `pnpm test:coverage` prüft zusätzlich die Abdeckungsschwellen.
+
+**Wichtig für die Abarbeitung:** Bekannte Fehler aus diesem Backlog sind bereits als Tests hinterlegt und mit `it.fails(...)` markiert — sie tragen die Backlog-Nummer im Namen (z. B. `A1: accepts every tournament format the app offers`). Solche Tests sind **grün, solange der Fehler existiert**. Sobald du den Fehler behebst, meldet Vitest `Expect test to fail` — das ist das Signal, dass der Fix wirkt.
+
+Der Ablauf pro Backlog-Punkt ist damit:
+
+1. Zugehörigen `it.fails`-Test suchen (Backlog-Nummer im Testnamen).
+2. Fehler beheben.
+3. `.fails` aus dem Test entfernen — er bleibt als Regressionsschutz stehen.
+4. Punkt hier abhaken.
+
+Aktuell hinterlegt: keine. Alle Marker sind entfallen — die zugehörigen Tests sind jetzt reguläre Regressionstests.
+
+Die Abdeckungsschwellen in `vitest.config.ts` sind eine Ratsche: global knapp unter dem Ist-Wert, für `scoring.ts`, `draw.ts`, `restTime.ts` und `courtConflicts.ts` dagegen hoch. Beim Herauslösen von Logik aus den Views (D1/D2) die globalen Werte mit anheben.
+
+---
+
+# A · Kritische Fehler
+
+### [x] A1 — Fünf von neun Turnierformaten lassen sich gar nicht anlegen — **erledigt**
+**Schwere:** kritisch · **Aufwand:** S · **Dateien:** `src-tauri/src/lib.rs` (Migration v14)
+
+**Problem:** Migration v1 erstellte `tournaments` mit einem CHECK, der nur `round_robin`, `elimination`, `random_doubles` und `group_ko` kannte. Jeder Versuch, ein Swiss-, Doppel-KO-, Monrad-, King-of-the-Court- oder Waterfall-Turnier anzulegen, scheiterte an `CHECK constraint failed` — obwohl alle neun Formate im Wizard angeboten werden.
+
+**Umgesetzt:** Migration v14 baut den kompletten Turnier-Graph neu auf (`tournaments`, `tournament_players`, `rounds`, `matches`, `sets`) und lässt den Format-CHECK weg — welche Formate gültig sind, gehört zur `TournamentFormat`-Union in TypeScript.
+
+Zwei Fallstricke schließen den naheliegenden Weg aus (beide im Code dokumentiert): sqlx aktiviert Foreign Keys auf **jeder** Verbindung, und Migrationen laufen in einer Transaktion — dort ist `PRAGMA foreign_keys=OFF` wirkungslos. Und `ALTER TABLE … RENAME` schreibt die FK-Klauseln der referenzierenden Tabellen mit um, sodass ein Rename-and-Drop Runden, Spiele und Sätze per Cascade mitnimmt (`legacy_alter_table` verhindert das nicht — gegen SQLite 3.50 geprüft). Deshalb: alles sichern, Kind-zu-Eltern droppen, Eltern-zu-Kind neu anlegen, zurückschreiben.
+
+**Abgesichert durch:** `src/test/migrations.test.ts` fährt die echte Migrationskette gegen In-Memory-SQLite, prüft alle neun Formate und dass eine bestehende Datenbank den Umbau mit allen Turnieren, Runden, Spielen und Sätzen übersteht. Dieser Test hat die Cascade-Falle aufgedeckt, bevor sie Daten kosten konnte.
+
+---
+
+### [x] A2 — Freilose im KO: Spieler verschwinden aus dem Turnier — **erledigt**
+**Schwere:** kritisch · **Aufwand:** M · **Dateien:** `src/lib/draw.ts`, `src/pages/TournamentView/index.tsx`, `src/lib/scoring.ts`, Migration v14
+
+**Problem:** Freilos-Partien wurden beim Turnierstart herausgefiltert, und die Folgerunde sammelte ausschließlich Sieger gespielter Partien. Wer ein Freilos hatte, existierte in keiner Runde und war nach Runde 1 aus dem Turnier verschwunden — bei jeder Teilnehmerzahl, die keine Zweierpotenz ist.
+
+**Umgesetzt:** Ein Freilos ist jetzt ein echtes Match ohne Gegner: `matches.team2_p1` ist seit Migration v14 NULL-fähig, das Match wird direkt als abgeschlossen mit `winner_team = 1` gespeichert, und die bestehende Sieger-Logik trägt den Spieler damit von selbst weiter. Die Bracket-Erzeugung (`buildBracket`) berechnet die korrekte Anzahl Erstrunden-Partien und vergibt die Freilose an die höchsten Seeds. In der Oberfläche erscheint "Freilos" statt eines leeren Namens (Spielansicht, Court-Übersicht, Bracket, TV-Modus, Druck); die Rangliste zählt ein Freilos **nicht** als Sieg, damit Quoten und Tiebreaks nicht verfälscht werden.
+
+**Verifiziert:** In der laufenden App mit 6 Spielern (2 gesetzt): Runde 1 = 2 Partien + 2 Freilose für die gesetzten Spieler, Runde 2 = beide Freilos-Spieler plus beide Sieger im Halbfinale. Dazu Regressionstests für 3/5/6/7/11/13 Teilnehmer in `src/lib/draw.test.ts`.
+
+**Bewusst offen:** `advanceDoubleElimination` verarbeitet Freilose korrekt, seine Bracket-Struktur bleibt aber die alte — sie wird in B4 ersetzt.
+
+---
+
+### [x] A3 — Doppel-KO-Bracket ignoriert Setzliste und wirft Teams weg — **erledigt**
+**Schwere:** hoch · **Aufwand:** S · **Dateien:** `src/lib/draw.ts`, `src/pages/TournamentView/index.tsx`
+
+**Problem:** `generateEliminationBracketDoubles` nahm keine Setzliste entgegen und mischte rein zufällig; überzählige Teams fielen stillschweigend heraus.
+
+**Umgesetzt:** Einzel und Doppel teilen sich jetzt einen Kern (`buildBracket`) über den Begriff "Teilnehmer" — ein Spieler oder ein Team. `generateEliminationBracketDoubles(teams, seedTeams?)` nimmt gesetzte Teams entgegen; die Turnieransicht leitet sie aus den Spieler-Setzplätzen ab, wobei ein Team den besten Rang seiner beiden Spieler erbt. Überzählige Teams verschwinden nicht mehr, sie bekommen ein Freilos.
+
+**Abgesichert durch:** Tests für Setzreihenfolge, Freilos-Vergabe an gesetzte Teams und unbekannte Seed-Einträge in `src/lib/draw.test.ts`.
+
+---
+
+### [x] A4 — Setzliste geht beim Start verloren, wenn nicht direkt aus dem Wizard gestartet wird — **erledigt**
+**Schwere:** hoch · **Aufwand:** S · **Dateien:** `src/pages/TournamentView/index.tsx`
+
+**Problem:** Die Auslosung nutzte ausschließlich die Setzliste aus dem React-Router-State. Wer den Entwurf speicherte und das Turnier später startete, bekam eine ungesetzte Zufallsauslosung — ohne jeden Hinweis, obwohl `seed_rank` in der Datenbank stand.
+
+**Umgesetzt:** Die Auslosung liest die Setzliste aus der persistierten Spalte `seed_rank` (memoisiert als `seedOrder`); der Router-State greift nur noch, solange die Spielerdaten beim allerersten Rendern nicht geladen sind. Damit überlebt die Setzung Reload, Neustart und einen Start Tage später.
+
+**Verifiziert:** Im Rauchtest gingen die Freilose an genau die beiden Spieler mit `seed_rank` 1 und 2 — die Seeds kamen dabei ausschließlich aus der Datenbank, ohne Wizard-Navigation.
+
+---
+
+### [x] A5 — Spieler löschen scheitert stumm (ursprünglich: FK-Enforcement) — **erledigt**
+**Schwere:** hoch · **Aufwand:** S · **Dateien:** `src/lib/db.ts`, `src/pages/Players.tsx`
+
+**Befund korrigiert:** Die Annahme, Foreign Keys seien unzuverlässig aktiv, war falsch. sqlx setzt `PRAGMA foreign_keys = ON` als Default beim Aufbau **jeder** Verbindung (`sqlx-sqlite/src/options/mod.rs:185`); der Aufruf in `db.ts` ist redundant.
+
+**Der reale Schaden lag woanders:** Weil `matches` die Spieler ohne `ON DELETE` referenziert, verweigert SQLite das Löschen jedes Spielers, der schon einmal gespielt hat. `Players.tsx` fing den Fehler ab und schrieb ihn nur in die Konsole — für den Nutzer passierte beim Klick auf "Löschen" sichtbar nichts. Bei Mehrfachauswahl brach der Vorgang zudem beim ersten Fehler ab, nachdem bereits gelöscht worden war.
+
+**Umgesetzt:** `deletePlayer` prüft die Verwendung vorab und wirft einen typisierten `PlayerInUseError`, der die betroffenen Turniere benennt. Die Spielerverwaltung löscht, was löschbar ist, und meldet den Rest namentlich per Toast. Der irreführende Kommentar in `db.ts` ist richtiggestellt.
+
+**Bleibt für C8:** Soft-Delete, damit Spieler mit Historie archiviert statt blockiert werden.
+
+---
+
+### [x] A6 — Turnierstart ist nicht atomar — **erledigt**
+**Schwere:** hoch · **Aufwand:** M · **Dateien:** `src-tauri/src/lib.rs`, `src/lib/db.ts`, `src/pages/TournamentView/index.tsx`
+
+**Problem:** Der Turnierstart setzte zuerst den Status auf `active` und erzeugte danach Dutzende Runden und Spiele in Einzelschritten. Brach etwas ab, blieb ein aktives Turnier ohne oder mit halbem Spielplan zurück, das sich nicht mehr starten ließ.
+
+**Umgesetzt:** Ein Transaktions-Helper im Frontend reicht nicht — das SQL-Plugin führt jedes Statement auf einer beliebigen Verbindung seines Pools aus, ein `BEGIN` aus dem Frontend würde die folgenden Statements also nicht einschließen. Stattdessen gibt es das Rust-Kommando `execute_transaction`, das eine Statement-Liste auf **einer** Verbindung in einer Transaktion abarbeitet; Parameter dürfen per `{"__lastInsertId": n}` auf die ID eines vorherigen Statements verweisen (Runde anlegen, dann ihre Spiele).
+
+Darauf setzen zwei fachliche Funktionen in `db.ts` auf: `createSchedule(tournamentId, rounds, {status, phase})` schreibt Runden, Spiele und den Statuswechsel gemeinsam, `deleteRoundsAtomically` ist das Gegenstück fürs Undo. Umgestellt sind Turnierstart, KO-Phasenstart, KO-Folgerunde (Finale und Bronze-Spiel gehören zusammen), Schweizer System, Monrad, King of the Court, Waterfall, Zufallsdoppel und das Undo. Status- und Phasenwechsel passieren jetzt **mit** dem Spielplan statt davor.
+
+**Bewusst offen:** `advanceDoubleElimination` schreibt weiterhin einzeln — die Funktion wird in B4 ohnehin ersetzt.
+
+---
+
+### [x] A7 — Backup-Wiederherstellung und DB-Ortswechsel ohne Neustart — **erledigt**
+**Schwere:** hoch · **Aufwand:** S · **Dateien:** `src-tauri/src/lib.rs`, `src/pages/Settings.tsx`
+
+**Problem:** `restore_db` kopierte das Backup über die geöffnete Datenbank, `change_db_dir` schrieb die neue Konfiguration, während die App weiter in die alte Datei schrieb. Beides konnte Daten verlieren oder die Datei beschädigen.
+
+**Umgesetzt:** Alle Datei-Operationen laufen jetzt über eine vorgemerkte Aktion (`pending_db_action.json`), die beim nächsten Start ausgeführt wird, bevor das SQL-Plugin die Datenbank öffnet — dasselbe Muster, das der Wipe schon richtig gemacht hat. Abgedeckt sind `restore`, `move_db`, `reset_dir` und `wipe`; der alte Wipe-Marker wird weiterhin gelesen. Vor dem Zurückspielen eines Backups entsteht eine Sicherheitskopie `*.pre-restore`, die Prüfung des SQLite-Headers bleibt vor dem Neustart, damit eine falsche Datei sofort gemeldet wird. Auch "Speicherort zurücksetzen" läuft über diesen Weg (neues Kommando `reset_db_dir`) — vorher wurde nur die Konfigurationsdatei gelöscht, während die App weiter in die alte Datenbank schrieb. Die Meldungstexte in beiden Sprachen sagen an, dass die App neu startet.
+
+---
+
+# B · Turnierlogik & Fairness
+
+### [x] B1 — Rangliste sortiert nach Prozenten und bevorzugt dadurch Spieler mit wenigen Spielen — **erledigt**
+**Schwere:** hoch · **Aufwand:** M · **Dateien:** `src/lib/scoring.ts`
+
+**Problem:** Sortierkriterium 1 war die Siegquote. Wer 1:0 stand (100 %), stand vor 5:1 (83 %) — in jeder laufenden Runde, in Gruppen ungleicher Größe und nach Aufgaben. Kein Direktvergleich, keine Differenzen.
+
+**Umgesetzt:** Ein dokumentiertes Regelwerk in `rankSubjects`, für Einzel und Teams identisch:
+
+1. Siege (absolut)
+2. Direktvergleich unter allen Punktgleichen — Mini-Tabelle aus den Spielen untereinander
+3. Satzdifferenz innerhalb dieser Mini-Tabelle
+4. Satzdifferenz gesamt
+5. Punktdifferenz gesamt
+6. stabiler Schlüssel, damit die Reihenfolge zwischen zwei Renderings nicht springt
+
+Bei Schweizer System und Monrad schiebt sich die Buchholz-Wertung an die zweite Stelle (siehe B2). Die Prozentwerte sind aus der Sortierung verschwunden; die Anzeige zeigt weiterhin Siege, Sätze und Punkte.
+
+**Abgesichert durch:** Tests für Siege vor Quote, Direktvergleich, Satz- und Punktdifferenz, Dreier-Patt über die Mini-Tabelle und Stabilität bei identischen Bilanzen.
+
+---
+
+### [x] B2 — Schweizer System: keine Freilos-Buchhaltung, kein Buchholz, greedy Paarung — **erledigt**
+**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/lib/draw.ts`, `src/lib/scoring.ts`, `src/pages/TournamentView/index.tsx`, `src/components/tournament/RanglisteTab.tsx`
+
+**Umgesetzt, alle drei Teile:**
+
+- **Freilose:** `pickByePlayer` vergibt das Freilos an den am schlechtesten platzierten Spieler, der noch keins hatte. Es wird als echtes Bye-Match gespeichert (möglich seit A2), taucht damit in der Historie auf und zählt als Sieg — in einem Schweizer System muss der Spieler mit dem Feld mithalten können, anders als im KO.
+- **Paarung:** `pairWithoutRematch` sucht mit Backtracking eine wiederholungsfreie Paarung und fällt erst auf Wiederholungen zurück, wenn nachweislich keine existiert. Der greedy Vorgänger konnte einen späteren Spieler in ein vermeidbares Rematch drängen. Eine Schrittgrenze verhindert, dass eine pathologische Historie die App blockiert.
+- **Buchholz:** Summe der Siege aller Gegner, berechnet über `calculateStandings(..., { withBuchholz: true })`, als Kriterium direkt nach den Siegen und als Spalte „BHZ" in der Rangliste (nur bei Swiss/Monrad sichtbar).
+
+**Korrektur am ursprünglichen Befund:** Der greedy Algorithmus ließ keinen Spieler ohne Match — dieser Zweig ist bei gerader Feldgröße nicht erreichbar. Der reale Schaden waren die vermeidbaren Wiederholungspaarungen.
+
+**Abgesichert durch:** Tests für Freilos-Verteilung über fünf Runden, Ausschluss des Freilos-Spielers aus der Paarung, wiederholungsfreie Lösung in einer eng gestrickten Historie und den Rückfall auf ein Rematch, wenn wirklich keins vermeidbar ist.
+
+---
+
+### [x] B3 — Monrad ist funktional identisch zum Schweizer System, aber ohne dessen Schutzmechanismen — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/lib/draw.ts`, `src/pages/TournamentView/index.tsx`
+
+**Problem:** `generateMonradRound` paarte strikt 1-2, 3-4, 5-6 ohne jede Rematch-Prüfung. Bei unveränderter Tabelle entstand Runde für Runde exakt dieselbe Paarung.
+
+**Umgesetzt:** Monrad behält die Paarung nach Rang, nutzt aber dieselbe Backtracking-Suche wie das Schweizer System, sobald eine Begegnung schon stattgefunden hat — die klassische Monrad-Korrektur (Verschiebung um eine Position). Die Turnieransicht baut die Historie dafür auf und übergibt sie; Freilose werden wie bei Swiss vergeben und gezählt.
+
+**Bewusst beibehalten:** Monrad läuft weiterhin unter `phase='swiss'` in der Datenbank. Eine eigene Phase wäre sauberer, ändert aber nichts am Verhalten und hätte eine weitere Migration bedeutet.
+
+---
+
+### [x] B4 — Doppel-KO: Verliererrunde ist strukturell falsch — **erledigt**
+**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/lib/doubleElimination.ts` (neu), `src/pages/TournamentView/index.tsx`
+
+**Problem:** Der Code sagte es selbst: „For simplicity: losers from winners bracket form new losers round". Absteiger spielten nur untereinander, nie gegen die Überlebenden der Verliererrunde. Dadurch lief das Bracket nie auf einen Verlierer-Champion zusammen; das Grand Final hing an Längenprüfungen, ein Bracket-Reset fehlte.
+
+**Umgesetzt:** Ein eigenes Modul `doubleElimination.ts` leitet den Zustand aus den gespeicherten Spielen ab und sagt, welche Runden als Nächstes fällig sind. Es enthält keine Datenbank- und keine React-Abhängigkeit, ist also direkt testbar. Die Regeln:
+
+- **Minor-Runde:** Überlebende der Verliererrunde gegen die Spieler, die gerade aus der Gewinnerrunde gefallen sind
+- **Major-Runde:** die Sieger einer Minor-Runde untereinander
+- **Rundenweise Einspeisung:** wartende Absteiger kommen nach der Runde ihres Ausscheidens ins Bracket, nicht alle auf einmal — sonst trifft ein Viertelfinal-Verlierer zwei Stufen zu früh auf einen Erstrunden-Verlierer
+- **Parallele Runden:** die Funktion liefert alle gerade fälligen Runden, weil Gewinner- und Verliererrunde in der Halle gleichzeitig laufen
+- **Grand Final + Bracket-Reset:** gewinnt der Verlierer-Champion das Finale, haben beide eine Niederlage und es wird genau einmal wiederholt
+- **Bronze:** die Verlierer der Runde vor dem Verlierer-Finale, sofern aktiviert
+
+**Verifiziert:** Simulation eines vollständigen 8er-Turniers — jeder Teilnehmer scheidet erst nach zwei Niederlagen aus, es bleibt genau ein Champion. In der laufenden App erzeugt ein Klick auf „Bracket weiterschalten" korrekt Gewinnerrunde 2 **und** die Verliererrunde mit allen vier Erstrunden-Verlierern.
+
+**Anmerkung:** Das Grand Final wird als Gewinnerrunde mit einem Spiel gespeichert; welche Runde ein Grand Final ist, steht in `app_settings`. Das vermeidet eine weitere Migration für ein einzelnes Match.
+
+---
+
+### [x] B5 — King of the Court: Warteschlange wird nicht geführt — **erledigt**
+**Schwere:** hoch · **Aufwand:** M · **Dateien:** `src/lib/draw.ts`, `src/lib/db.ts`, `src/pages/TournamentView/index.tsx`
+
+**Problem:** Die Schlange wurde bei jedem Aufruf aus der alphabetisch sortierten Spielerliste neu gebaut. Der Herausforderer war praktisch immer derselbe Spieler, der Rest kam nie dran — das Format war unbrauchbar.
+
+**Umgesetzt:** Die Warteschlange ist der Zustand des Formats und wird jetzt persistiert (`app_settings`, pro Turnier). `advanceKingOfCourtQueue` rotiert sie nach jedem Spiel: Sieger vorne, Verlierer ans Ende, alle anderen rücken auf. Spieler, die das Turnier verlassen haben, fallen heraus; neu hinzugekommene werden angehängt. Turniere, die vor dieser Änderung gestartet wurden, fallen einmalig auf die alte Rekonstruktion zurück.
+
+**Abgesichert durch:** Test über sechs Runden, in dem jeder Spieler mindestens einmal auf dem Feld steht — mit der alten Logik spielten zwei Spieler alles und vier gar nicht.
+
+**Bewusst nicht geändert:** King of the Court bleibt ein Ein-Feld-Format. Der Wizard weist jetzt darauf hin, wenn die Sportstätte mehr Felder hat (B13).
+
+---
+
+### [x] B6 — Waterfall: ungerade Spielerzahl und Rundenzahl ungeklärt — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/lib/draw.ts`, `src/pages/TournamentView/index.tsx`
+
+**Umgesetzt:**
+- `generateWaterfallRound` respektiert die Feldzahl der Sportstätte statt so viele Spiele anzusetzen, wie Spieler da sind.
+- Wer keinen Platz bekommt, wird als Aussetzer **zurückgegeben und namentlich angezeigt** statt still hinten aus dem Array zu fallen.
+- Die Auswahl der Aussetzer richtet sich nach der bisherigen Pausenzahl (wenigste Pausen zuerst dran), bei Gleichstand nach der Leiterposition. Vorher pausierte immer dasselbe untere Ende der Leiter.
+- `advanceWaterfall` lässt Aussetzer auf ihrer Leiterposition stehen — wer nicht spielt, steigt weder auf noch ab.
+- Die Rundenzahl kommt aus `planned_rounds` (siehe B7).
+
+**Abgesichert durch:** Tests für Feldgrenze, gemeldete Aussetzer, unveränderte Leiterposition und eine Rotation über sechs Runden.
+
+---
+
+### [x] B7 — `num_groups` wird als Rundenzahl zweckentfremdet — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** Migration v15, `src/lib/types.ts`, `src/lib/db.ts`, `src/pages/TournamentCreate.tsx`, `src/pages/TournamentView/index.tsx`
+
+**Umgesetzt:** Migration v15 legt `tournaments.planned_rounds` an, überträgt die Werte der betroffenen Bestandsturniere aus `num_groups` und setzt dort `num_groups = 0`. Wizard und Turnieransicht lesen und schreiben getrennte Felder; die Rundenauswahl hat einen eigenen State. `num_groups` bedeutet damit wieder ausschließlich „Anzahl Gruppen" — auch für Statistik, Live-Snapshot und WordPress-Plugin.
+
+---
+
+### [x] B8 — Aufgabe/Walkover verfälscht die Statistik — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** Migration v15, `src/lib/scoring.ts`, `src/lib/db.ts`, `src/pages/TournamentView/index.tsx`
+
+**Problem:** Bei einer Aufgabe wurden für jedes offene Spiel volle Sätze mit 21:0 geschrieben. Diese erfundenen Punkte flossen in Satz- und Punktquote, in Tiebreaks, in die KO-Qualifikation und in die Statistikseite.
+
+**Umgesetzt:** `matches.walkover` (Migration v15). `setMatchWalkover` schreibt den Sieg, löscht etwaige Sätze und gibt das Feld frei. Beide Ranglisten-Berechnungen zählen den Sieg, ignorieren aber Sätze und Punkte eines Walkovers — auch dann, wenn aus Altdaten noch Satz-Zeilen daran hängen.
+
+**Abgesichert durch:** Tests, dass ein Walkover als Sieg zählt, aber weder Sätze noch Punkte beisteuert.
+
+---
+
+### [x] B9 — Gruppeneinteilung im Doppel ohne Snake-Verteilung — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/draw.ts`, `src/pages/TournamentView/index.tsx`
+
+**Umgesetzt:** `splitTeamsIntoGroups(teams, numGroups, seedTeams?)` verteilt gesetzte Teams im Schlangensystem wie die Einzel-Variante (4 Gruppen, 8 Seeds → G1=[1,8], G2=[2,7], …); ungesetzte Teams werden gemischt aufgefüllt. Die Turnieransicht leitet die gesetzten Teams aus den Spieler-Setzplätzen ab und übergibt sie.
+
+---
+
+### [x] B10 — Random Doubles / Mixed: Aussetzer-Anzeige und Fairness inkonsistent — **erledigt**
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/lib/draw.ts`, `src/pages/TournamentView/index.tsx`
+
+**Umgesetzt:**
+- Beide Auslosungen geben jetzt `{ matches, byePlayers }` zurück; alle Aussetzer (bis zu drei im Doppel) werden nach der Auslosung namentlich als Hinweis angezeigt.
+- Mixed nutzt dieselben Fairness-Eingaben wie das Zufallsdoppel: wer am wenigsten gespielt hat, kommt zuerst aufs Feld, und Wiederholungspaarungen werden gewichtet statt nur gezählt. Vorher setzte aus, wer zufällig am Ende der gemischten Liste stand — Runde für Runde.
+
+**Abgesichert durch:** Tests für vollständige Aussetzer-Meldung, gleichmäßige Pausenverteilung über neun Runden und Vermeidung von Wiederholungspaarungen im Mixed.
+
+---
+
+### [x] B11 — KO-Qualifikation vergleicht Gruppenzweite über Prozentwerte — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/scoring.ts`, `src/pages/TournamentView/index.tsx`
+
+**Umgesetzt:** `rankAcrossGroups` sortiert die Nachrücker nach Siegen, Satzdifferenz und Punktdifferenz — Direktvergleich entfällt, weil sie nie gegeneinander gespielt haben. Bei **ungleich großen Gruppen** rechnet `limitStandingsToTopN` (bzw. die Team-Variante) die Ergebnisse gegen die Letztplatzierten der größeren Gruppen heraus, sodass die Bilanzen vergleichbar sind. Die Gruppensieger-Reihenfolge dient zugleich als Setzliste für das KO-Bracket, sodass Gruppensieger getrennt bleiben und bei krummen Feldern die Freilose bekommen.
+
+---
+
+### [x] B12 — Partner-Erkennung bei Aufgabe ist unzuverlässig und asymmetrisch — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/pages/TournamentView/index.tsx`
+
+**Umgesetzt:** `getFixedPartner` liest den Partner aus der persistierten Teamliste (`team_config`) statt aus dem ersten Match-Treffer. Einzel und Formate mit wechselnden Partnern liefern konsequent `null`. Aufgeben und Reaktivieren nutzen dieselbe Funktion — vorher prüften beide unterschiedliche Bedingungen, sodass im Einzel ein Gegner als „Partner" mit ausgeschlossen werden konnte.
+
+---
+
+### [x] B13 — Keine Format-spezifische Teilnehmer-Validierung — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/lib/tournamentValidation.ts` (neu), `src/pages/TournamentCreate.tsx`
+
+**Umgesetzt:** Ein eigenes Modul prüft die Konfiguration und liefert Befunde in zwei Stufen — Fehler blockieren den Start, Hinweise werden nur angezeigt. Abgedeckt sind unter anderem:
+
+| Prüfung | Stufe |
+|---|---|
+| Mindestteilnehmer je Format (KotC 3, Waterfall 4, sonst 2/4) | Fehler |
+| Mixed ohne zwei Damen und zwei Herren | Fehler |
+| Ungerade Spielerzahl bei festen Teams | Fehler (bei wechselnden Partnern: Hinweis) |
+| Unvollständige Teampaarung | Fehler |
+| Mehr Gruppen als Teilnehmer füllen können, KO-Größe über Teilnehmerzahl | Fehler |
+| Freilose im KO, unausgeglichenes Mixed, Aussetzer im Waterfall | Hinweis |
+| Mehr Runden als mögliche Gegner, sehr langes Rundenturnier, King of the Court auf mehreren Feldern | Hinweis |
+
+Der Wizard zeigt beides im Zusammenfassungsschritt und lässt den Start-Button bei Fehlern gesperrt.
+
+**Abgesichert durch:** 29 Tests in `src/lib/tournamentValidation.test.ts`.
+
+---
+
+### [x] B14 — Modulo-Bias im Shuffle — **erledigt**
+**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `src/lib/draw.ts`
+
+**Umgesetzt:** `randomInt` zieht per Rejection Sampling gleichverteilt: Werte aus dem unvollständigen letzten Block werden verworfen und neu gezogen. Der Fisher-Yates-Shuffle nutzt es an jeder Stelle.
+
+**Abgesichert durch:** Verteilungstest über 20.000 Durchläufe — jede Position jedes Werts liegt innerhalb von 15 % des Erwartungswerts.
+
+---
+
+# C · Datenhaltung & Persistenz
+
+### [x] C1 — Keine Datenbank-Indizes — **erledigt**
+**Schwere:** mittel · **Aufwand:** XS · **Dateien:** Migration v16
+
+**Umgesetzt:** Indizes auf `matches(round_id)`, `matches(court)`, `matches(status)`, `sets(match_id, set_number)`, `rounds(tournament_id)`, `tournament_players(player_id)`, `tournaments(session_id | venue_id | status)` und `sessions(venue_id)`. Der Schema-Test prüft, dass die heißen Fremdschlüssel abgedeckt sind.
+
+---
+
+### [x] C2 — `sets` ohne Eindeutigkeit, `upsertSet` als Lese-Schreib-Paar — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** Migration v16, `src/lib/db.ts`
+
+**Umgesetzt:** Migration v16 räumt vorhandene Duplikate ab (je Match und Satznummer bleibt der jüngste Eintrag) und legt danach einen `UNIQUE`-Index an. `upsertSet` ist ein einzelnes `INSERT … ON CONFLICT … DO UPDATE` statt SELECT-dann-INSERT/UPDATE — zwei schnelle Tastendrücke können keine doppelte Zeile mehr erzeugen, deren Punkte doppelt zählen.
+
+---
+
+### [x] C3 — Zeitzonen-Chaos bei Zeitstempeln — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/datetime.ts` (neu), `src/lib/db.ts`, `src/lib/stats.ts`, `src/components/print/CertificateGenerator.ts`, Sessions-Seiten
+
+**Umgesetzt:** Ein Modul mit `parseDbDate`, `dbDateToMillis`, `byNewest`, `formatDate/Time/DateTime` und `nowIso`. Es erkennt beide gespeicherten Formen — SQLites zonenloses `datetime('now')` (UTC) und JavaScripts ISO mit `Z` — und liefert für beide denselben Zeitpunkt. Alle Lesestellen nutzen es: Turniersortierung, Statistik-Dauern, Urkunde und die drei Sessions-Seiten, die je einen eigenen Workaround hatten. Geschrieben wird ausschließlich ISO-UTC über `nowIso()`.
+
+**Abgesichert durch:** 16 Tests, darunter der direkte Vergleich beider Formen und die Sortierung über gemischte Werte.
+
+---
+
+### [x] C4 — Einstellungen liegen in zwei Systemen — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/appSettings.ts` (neu), `src/pages/Settings.tsx`, `src/components/courts/CourtTimer.tsx`
+
+**Umgesetzt:** Ein Modul hält die Einstellungen. Die Datenbank (`app_settings`) ist die maßgebliche Quelle, `localStorage` nur noch ein synchroner Spiegel — nötig, weil Werte wie die Timer-Schwellen schon während des ersten Renderings gebraucht werden. Beim ersten Start nach der Umstellung übernimmt `syncSettingsFromDb` die vorhandenen lokalen Werte und schreibt sie in die Datenbank; damit wandern bestehende Installationen von selbst mit, und ein Backup enthält künftig die vollständige Konfiguration.
+
+---
+
+### [ ] C5 — Doppelte Datenbank-Implementierung (Tauri + localStorage) in jeder Funktion
+**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/lib/db.ts` (1338 Zeilen)
+
+**Problem:** Jede der ~60 Funktionen enthält zwei vollständige Implementierungen: SQL für Tauri und ein Array-Backend für den Browser-Fallback. Die Zweige driften bereits auseinander (z. B. `deleteSportstaette` prüft im localStorage-Pfad andere Bedingungen, `retired`/`seed_rank` werden mit `as any` gesetzt). Das ist der Haupttreiber für die 30 ESLint-`any`-Fehler in dieser Datei und verdoppelt jeden künftigen Schema-Change.
+
+**Fix:** Repository-Muster: ein Interface `TournamentRepository`, zwei Implementierungen in getrennten Dateien (`db.tauri.ts`, `db.memory.ts`), Auswahl einmal beim Start. Oder — wenn der Browser-Fallback nur der Entwicklung dient — ihn durch eine In-Memory-SQLite (`sql.js`/`wa-sqlite`) ersetzen, sodass **eine** SQL-Implementierung genügt. Zweite Variante empfohlen: löscht ~600 Zeilen und beseitigt die Drift dauerhaft.
+
+**Fertig wenn:** Kein `isTauri()`-Zweig mehr in der Datenschicht; Testsuite läuft gegen dieselbe SQL-Logik wie die App.
+
+---
+
+### [x] C6 — Spielernamen dreifach gespeichert, Inserts mit dreistufigem Fallback — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** Migration v18, `src/lib/db.ts`
+
+**Umgesetzt:** Migration v18 füllt `first_name`/`last_name` endgültig, synchronisiert `name` und entfernt die toten Spalten `age` und `birth_year`. Im Code sind die dreistufigen try/catch-Kaskaden in `createPlayer`/`updatePlayer` verschwunden, und die drei inline-Rekonstruktionen („falls first_name leer, splitte name") sind durch einen gemeinsamen `rowToPlayer`-Mapper ersetzt. `name` bleibt als Spalte erhalten, weil `ORDER BY` und die veröffentlichten Snapshots sie lesen — sie wird beim Schreiben mitgepflegt.
+
+---
+
+### [x] C7 — `ensureExpectedSchema` als Dauerlösung — **erledigt**
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/lib/db.ts`, `src/test/migrations.test.ts`
+
+**Umgesetzt:** Statt bei jedem Start ALTER-TABLE-Statements auf Verdacht abzusetzen, prüft `verifySchema` die erwarteten Tabellen und Spalten und wirft einen typisierten `SchemaMismatchError` mit der Liste des Fehlenden. Ein falsches Schema ist damit ein Problem, das vor dem ersten Spiel sichtbar wird, statt mitten im Turnier an einem INSERT zu scheitern.
+
+**Zusätzlich abgesichert:** Ein Test liest `REQUIRED_SCHEMA` aus `db.ts` und prüft es gegen die real ausgeführte Migrationskette. Wer künftig eine Spalte im Code erwartet, ohne eine Migration zu schreiben, bekommt einen roten Test statt einer App, die nicht startet.
+
+---
+
+### [x] C8 — Gelöschte Spieler hinterlassen „?" in historischen Turnieren — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** Migration v17, `src/lib/db.ts`, `src/pages/Players.tsx`
+
+**Umgesetzt:** `players.archived_at` (Migration v17). `removePlayer` entscheidet selbst: Wer noch nie gespielt hat, wird gelöscht; wer Spiele hat, wird archiviert — die Zeile bleibt, die Historie bleibt lesbar, und aus den Auswahllisten verschwindet der Spieler trotzdem. Die Spielerverwaltung meldet beide Fälle getrennt, blendet Archivierte hinter einem Schalter ein und bietet dort „Wiederherstellen" an.
+
+---
+
+### [x] C9 — Ergebnisse lassen sich nicht exportieren — **erledigt**
+**Schwere:** niedrig · **Aufwand:** M · **Dateien:** `src/lib/resultExport.ts` (neu), `src/pages/TournamentView/index.tsx`
+
+**Umgesetzt:** Vier Exporte über ein Menü neben dem Druck-Knopf:
+
+| Export | Inhalt |
+|---|---|
+| Spiele (CSV) | Runde, Phase, Gruppe, Feld, beide Teams, Sieger, Wertung (gespielt / kampflos / Freilos), alle Sätze, Endzeit |
+| Rangliste (CSV) | Platz, Name, Verein, Bilanz, Sätze, Punkte — plus Buchholz, wenn die Tabelle eine hat |
+| Startgeld (CSV) | Zahlungsstatus, Methode, Datum, Betrag |
+| Alles (JSON) | vollständiger Snapshot in derselben Form wie beim Live-Publishing |
+
+Trennzeichen ist das Semikolon und die Datei beginnt mit einem BOM, damit Excel sie ohne Zutun als UTF-8 mit korrekten Umlauten öffnet. In der Desktop-App wählt ein nativer Dialog den Ort, im Browser wird heruntergeladen.
+
+**Verifiziert:** In der laufenden App erzeugt „Spiele (CSV)" eine Datei mit korrekten Siegern, Satzergebnissen und Zeitstempeln. Dazu 17 Tests für Formatierung, Escaping, Doppel-Namen, Freilose und Walkover.
+
+---
+
+# D · Architektur & Code-Qualität
+
+### [ ] D1 — `TournamentView/index.tsx` ist mit 3052 Zeilen unwartbar
+**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/pages/TournamentView/index.tsx`
+
+**Problem:** Eine Komponente enthält: Datenladen, neun Format-Engines, Score-Eingabe, Feldzuweisung, Konfliktprüfung, Live-Publishing-Steuerung, Session-Integration, Undo, Aufgabe/Reaktivierung, sämtliche Modals, Header, Tabs und Rendering. ~30 `useState`, mehrere `useMemo`-Ketten, Funktionen die 200+ Zeilen lang sind.
+
+**Fix:** Schrittweise zerlegen — `useTournamentData()` (Laden/Reload), `useMatchScoring()`, `useCourtAssignment()`, `useLiveControls()`, `useTournamentActions()`; Format-Logik nach D2 auslagern; Header und Tab-Leiste als eigene Komponenten. Ziel: Datei unter 400 Zeilen, reine Orchestrierung.
+
+**Fertig wenn:** Keine Datei im Projekt über 600 Zeilen; jede Hook-Datei einzeln testbar.
+
+---
+
+### [ ] D2 — Format-Logik als if/else-Kaskade statt Strategie pro Format
+**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/pages/TournamentView/index.tsx:317-1060,1790-1860`
+
+**Problem:** Neun Formate werden an mindestens fünf Stellen per `if (format === …)` verzweigt: Start, nächste Runde, „kann weiter?", Rundenzähler, Phase. Ein neues Format anzulegen bedeutet, alle Stellen zu finden — genau so sind B3 (Monrad = Swiss-Kopie) und B5 entstanden.
+
+**Fix:** Interface `FormatEngine { start(ctx), canAdvance(ctx), advance(ctx), roundLabel(ctx), standings(ctx), validate(config) }`, eine Datei pro Format unter `src/lib/formats/`, Registry `FORMATS: Record<TournamentFormat, FormatEngine>`. Die View ruft nur noch `FORMATS[t.format].advance(ctx)`.
+
+**Fertig wenn:** Ein neues Format lässt sich durch Anlegen **einer** Datei plus Registry-Eintrag ergänzen; die View enthält keine formatspezifischen Verzweigungen mehr.
+
+---
+
+### [x] D3 — 59 ESLint-Fehler, keine Durchsetzung — **weitgehend erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** projektweit, `eslint.config.js`
+
+**Stand: von 64 Meldungen auf 14** (10 Fehler, 4 Warnungen).
+
+Behoben: sämtliche 43 `no-explicit-any` — die Datenbankschicht ist typisiert (siehe D9), der Router-State, die `theme`-Props und der Vorlagen-Import ebenfalls; die ungenutzten Variablen; `useTimer` leitet seinen Wert ab, statt ihn im Effekt zu setzen; `coverage/` ist aus dem Lint-Lauf ausgenommen.
+
+Bewusst abgeschaltet: `react-refresh/only-export-components` für die Context-Module und `Settings.tsx`. Provider und zugehöriger Hook in einer Datei ist gängige Praxis; die Regel betrifft ausschließlich die Granularität von Hot Reload.
+
+**Rest (14):** ausschließlich `react-hooks/set-state-in-effect` und `exhaustive-deps` in den Lade- und Polling-Pfaden (`sessionContext`, `useLivePublisher`, `Statistics`, `TournamentCreate`, `CourtContextMenu`) sowie eine Memoization-Warnung. Diese Muster verschwinden mit dem Umbau der Datenschicht (D7/D8) — vorher würde man sie nur verschieben. Bis dahin läuft `pnpm lint` in CI als Hinweis mit.
+
+---
+
+### [x] D4 — Keine automatisierten Tests — **erledigt**
+**Schwere:** hoch · **Aufwand:** M (Setup) + laufend · **Dateien:** `src/lib/*.test.ts`, `src/test/*`
+
+**Stand:** 246 Tests in 8 Dateien. Abgedeckt sind `scoring` (97 %), `draw` (91 %), `restTime` (98 %), `courtConflicts`, `datetime` (92 %), `doubleElimination`, `tournamentValidation` sowie die Migrationskette gegen eine echte SQLite.
+
+Die Coverage-Schwellen in `vitest.config.ts` sind eine Ratsche: pro Modul hoch, global knapp unter dem Ist-Wert (aktuell ~39 %). Der globale Wert steigt automatisch, sobald Logik aus den Views in testbare Module wandert (D1/D2) — die Views selbst sind bislang nicht abgedeckt.
+
+**Offen:** Komponententests. Sie werden erst nach D1/D2 sinnvoll, weil die Views heute Datenzugriff, Formatlogik und Darstellung vermischen.
+
+---
+
+### [ ] D5 — `Settings.tsx` (1513 Zeilen) vermischt Konfiguration, Datenbankverwaltung und Bildbearbeitung
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/Settings.tsx`
+
+**Problem:** Enthält u. a. einen kompletten Canvas-Logo-Cropper mit Drag/Resize, Backup/Restore, DB-Pfadverwaltung, Wipe-Dialoge, Live-Publish-Konfiguration inklusive Push-Log mit eigenem 5-Sekunden-Polling, Update-Prüfung, Theme- und Schriftauswahl.
+
+**Fix:** Pro Bereich eine Komponente unter `src/pages/settings/` (`DatabaseSection`, `LivePublishSection`, `AppearanceSection`, `UpdateSection`), `LogoCropper` als eigenständige Komponente unter `src/components/`.
+
+**Fertig wenn:** `Settings.tsx` ist eine Seite mit Abschnitts-Komponenten, unter 200 Zeilen.
+
+---
+
+### [x] D6 — Keine Error Boundary — **erledigt**
+**Schwere:** mittel · **Aufwand:** XS · **Dateien:** `src/components/layout/ErrorBoundary.tsx` (neu), `src/App.tsx`
+
+**Umgesetzt:** Eine Fehlergrenze um alle Routen. Statt eines weißen Fensters — wie beim Hotfix v2.8.1 — erscheint eine verständliche Meldung mit dem Hinweis, dass die Daten gespeichert sind, einem „Neu laden"-Knopf, einem Knopf zum Kopieren der technischen Details und einem aufklappbaren Stacktrace.
+
+---
+
+### [ ] D7 — `loadAll()` als einziges Aktualisierungsmuster
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/TournamentView/index.tsx:216`
+
+**Problem:** Nahezu jede Aktion endet mit `loadAll()` — Turnier, Spieler, alle Runden, alle Matches, alle Sätze, Zahlungsdaten, Rangliste neu laden und den gesamten Baum neu rendern. Bei laufendem Turnier mit vielen Matches merklich träge; die Score-Eingabe brauchte deswegen bereits einen optimistischen Sonderweg mit ausführlichem Kommentar.
+
+**Fix:** Gezielte Invalidierung (nur betroffene Runde/Match nachladen) oder eine Query-Schicht mit Cache-Keys (TanStack Query passt gut, weil sie zugleich E3 löst).
+
+**Fertig wenn:** Feldzuweisung und Ergebniseingabe lösen keinen Komplett-Reload mehr aus.
+
+---
+
+### [ ] D8 — Kein State-/Query-Layer trotz vieler Polling-Quellen
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/lib/sessionContext.ts`, `src/lib/useLivePublisher.tsx`, `src/pages/TvMode.tsx`, `src/pages/Settings.tsx`
+
+**Problem:** Vier unabhängige Polling-Schleifen mit eigener Fehlerbehandlung, eigenem „cancelled"-Flag-Muster und ohne gemeinsamen Cache; dieselben Daten werden mehrfach parallel geladen.
+
+**Fix:** Gemeinsame Datenschicht einführen (siehe D7) und Polling durch Invalidierung bei Schreibvorgängen plus ein einziges Hintergrund-Refresh ersetzen.
+
+**Fertig wenn:** Nur noch eine zentrale Refresh-Strategie im Code; TV-Modus und Dashboard beziehen ihre Daten daraus.
+
+---
+
+### [x] D9 — Datenbankschicht ist untypisiert — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/db.ts`
+
+**Umgesetzt:** Ein `SqlDatabase`-Interface beschreibt die tatsächlich genutzte Oberfläche des SQL-Plugins (`select`, `execute`); `tauriDb` ist damit typisiert statt `any`. Der localStorage-Store hat einen vollständigen Typ für die Turnier-Spieler-Verknüpfung bekommen (`StoredTournamentPlayer`), wodurch sämtliche `as any`-Zugriffe auf `retired`, `payment_status`, `seed_rank`, `team_config` und Verwandte entfallen sind. `db.ts` ist von 30 Lint-Fehlern auf 0 gegangen.
+
+---
+
+# E · Performance
+
+### [ ] E1 — 2,4 MB JavaScript in einem einzigen Chunk
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `vite.config.ts`, `src/App.tsx`, `src/components/print/*`, `src/components/players/ExcelImport.tsx`
+
+**Problem:** `dist/assets/index-*.js` ist 2.366 KB. `exceljs`, `jspdf` und `html2canvas` sind statisch importiert und landen im Startbundle, obwohl sie nur in Excel-Import, Druck und Urkunde gebraucht werden. Kein `React.lazy` im Projekt.
+
+**Fix:** Routen per `React.lazy` + `Suspense` splitten; schwere Bibliotheken per `await import()` erst bei Bedarf laden; `manualChunks` für Vendor-Pakete.
+
+**Fertig wenn:** Start-Chunk unter 600 KB; Druck/Excel-Funktionen laden ihre Abhängigkeiten nach.
+
+---
+
+### [ ] E2 — 121 Schriftdateien (~1,9 MB) für fünf Familien
+**Schwere:** mittel · **Aufwand:** XS · **Dateien:** `src/main.tsx:3-23`
+
+**Problem:** Inter, Nunito, Roboto, Poppins und Montserrat werden mit allen Gewichten **und allen Subsets** importiert — inklusive Devanagari, Kyrillisch und Vietnamesisch, die die App nie benötigt. `dist` ist deswegen 9,1 MB groß.
+
+**Fix:** Nur `latin`-Subsets importieren (`@fontsource/inter/latin-400.css`), Gewichte auf die tatsächlich genutzten reduzieren, und die nicht ausgewählten Schriftfamilien dynamisch nachladen, wenn der Nutzer sie in den Einstellungen wählt.
+
+**Fertig wenn:** `dist` unter 4 MB; Schriftwechsel in den Einstellungen funktioniert weiterhin.
+
+---
+
+### [ ] E3 — Vier Polling-Schleifen mit Voll-Reload
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/TvMode.tsx:171`, `src/lib/sessionContext.ts:208`, `src/lib/useLivePublisher.tsx:194,241,434,449`, `src/pages/Settings.tsx:1411`
+
+**Problem:** Der TV-Modus lädt alle 5 Sekunden das komplette Turnier neu (mehrere SQL-Abfragen über IPC), der Session-Kontext ebenfalls alle 5 Sekunden über **alle** Turniere der Session, der Live-Publisher pollt zusätzlich. Auf schwacher Hardware (typischer Hallen-Laptop) ist das dauerhafte Grundlast.
+
+**Fix:** Änderungen aktiv signalisieren statt zu pollen: Tauri-Events (`emit`/`listen`) beim Schreiben in die DB; das TV-Fenster und das Dashboard abonnieren. Polling nur noch als Sicherheitsnetz mit deutlich längerem Intervall. Der `BroadcastChannel`, der bereits für Ansagen existiert, sollte auf Tauri-Events umgestellt werden — zwischen getrennten WebView-Fenstern ist `BroadcastChannel` nicht zuverlässig (bitte auf Windows verifizieren).
+
+**Fertig wenn:** Ein eingetragenes Ergebnis erscheint im TV-Modus in unter 1 Sekunde, ohne dauerhaftes Polling.
+
+---
+
+### [ ] E4 — Schreibvorgänge in Schleifen statt Sammeloperationen
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/lib/db.ts:885`, `src/pages/TournamentView/index.tsx` (Match-Erzeugung), `src/lib/sessionContext.ts:47`
+
+**Problem:** `setTournamentSeeds` führt ein `UPDATE` pro Spieler aus, Rundenerzeugung ein `INSERT` pro Match, `getSessionMatches` eine Abfrage pro Turnier. Jeder Aufruf ist ein IPC-Roundtrip.
+
+**Fix:** Zusammen mit A6 (Transaktionen) auf Sammel-Statements umstellen (`INSERT … VALUES (…),(…),(…)`, `CASE`-Update, `WHERE tournament_id IN (…)`).
+
+**Fertig wenn:** Start eines Round-Robin mit 16 Spielern braucht eine Transaktion statt 120 Einzelabfragen.
+
+---
+
+### [ ] E5 — 145 KB CSS
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/lib/theme.ts`, projektweit
+
+**Problem:** Tailwind kann kaum etwas entfernen, weil die Klassennamen in `theme.ts` als Strings zusammengesetzt und über Props verteilt werden. Wird mit F1 gemeinsam gelöst.
+
+**Fix:** Siehe F1 — Umstellung auf CSS-Variablen reduziert die Klassenmenge drastisch.
+
+**Fertig wenn:** CSS-Bundle unter 60 KB.
+
+---
+
+# F · Design & Bedienung
+
+### [ ] F1 — Theme-System aus vier handgepflegten Klassen-Tabellen
+**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/lib/theme.ts` (356 Zeilen), alle Komponenten
+
+**Problem:** Vier Themes × ~50 Schlüssel als Tailwind-Klassenstrings, die jede Komponente per `theme.cardBg` durchreichen muss. Dark Mode ist ein separates Theme statt einer Variante — jede neue Komponente muss alle vier Themes manuell bedienen, was systematisch vergessen wird (siehe F2). Das ist auch die Ursache für E5 und für Bugs wie „WP plugin row-hover too dark in dark mode".
+
+**Fix:** Auf Design-Tokens umstellen: semantische CSS-Variablen (`--surface`, `--surface-raised`, `--border`, `--text-primary`, `--text-muted`, `--accent`, `--accent-contrast`, `--success`, `--warning`, `--danger`) auf `:root`, pro Theme überschrieben über ein `data-theme`-Attribut; in Tailwind v4 per `@theme` als Utilities verfügbar machen. Komponenten nutzen dann `bg-surface text-primary` statt `theme.cardBg`. Dark Mode wird ein Wert des Attributs, nicht ein eigener Farbsatz.
+
+**Fertig wenn:** `theme.ts` ist auf eine Token-Definition geschrumpft; keine Komponente erhält Farben mehr als Prop; ein neues Theme entsteht durch Hinzufügen eines Variablensatzes.
+
+---
+
+### [ ] F2 — Hartcodierte Farben umgehen das Theme
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/TournamentView/index.tsx` (Header-Knöpfe), `src/pages/TvMode.tsx:67-71`, viele Komponenten
+
+**Problem:** Neben dem Theme existieren feste Klassen: `bg-amber-500`, `bg-violet-600`, `text-rose-400`, `bg-gray-100 text-gray-500`, `bg-amber-50 text-amber-700`. Im Dark-Theme entstehen dadurch Kontrastbrüche (heller Badge auf dunklem Grund und umgekehrt). Der TV-Modus pflegt zusätzlich eine eigene, parallele Farbtabelle.
+
+**Fix:** Nach F1 alle festen Farben auf semantische Tokens abbilden (`--accent-secondary` für „nächste Runde", `--danger` für destruktiv, `--info` für KO-Phase). TV-Accents aus denselben Tokens ableiten.
+
+**Fertig wenn:** Eine Suche nach `bg-amber-|bg-violet-|text-rose-|bg-gray-1` in `src/pages` und `src/components` liefert keine Treffer mehr (außer in der Token-Definition).
+
+---
+
+### [ ] F3 — Aktionsleiste im Turnier-Header überläuft
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/pages/TournamentView/index.tsx:2050-2260`
+
+**Problem:** Je nach Zustand stehen bis zu zehn Knöpfe nebeneinander in einem `flex gap-2` ohne Umbruch: Bearbeiten, Vorlage, Löschen, Start, Nächste Runde, KO starten, Nächste KO-Runde, Undo, Beenden, Drucken, Live, TV. Keine Hierarchie zwischen „das ist jetzt dran" und „selten gebraucht"; auf 1200 px Fensterbreite (der konfigurierten Standardgröße!) wird es eng.
+
+**Fix:** Eine klar hervorgehobene Primäraktion („Was ist jetzt zu tun?"), zwei bis drei Sekundäraktionen, der Rest in ein Überlaufmenü (⋯). Zustandsabhängig statt kumulativ.
+
+**Fertig wenn:** Bei 1200 px Breite steht in jedem Turnierzustand höchstens eine Knopfreihe ohne Umbruch.
+
+---
+
+### [ ] F4 — Drei verschiedene Bestätigungsmuster
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/pages/SessionDetail.tsx:164`, `src/pages/Tournaments.tsx:322`, `src/pages/Settings.tsx:218`, diverse Modals
+
+**Problem:** Es gibt gestylte Modals (DeleteTournamentModal, UndoRoundModal …), ein natives `confirm()` beim Lösen eines Turniers von einer Session, ein natives `alert()` beim Vorlagen-Import-Fehler und den Tauri-`ask()`-Dialog beim Restore. Optisch und im Verhalten drei verschiedene Welten — v2.8.3 hat genau das schon einmal für einen Fall repariert.
+
+**Fix:** Eine `useConfirm()`-Funktion auf Basis eines generischen `<ConfirmDialog>` (Titel, Text, Gefahrenstufe, optionales Bestätigungswort), alle Aufrufstellen darauf umstellen; Fehler ausschließlich über den bestehenden Toast-Mechanismus.
+
+**Fertig wenn:** Keine Treffer mehr für `confirm(` und `alert(` in `src/`.
+
+---
+
+### [ ] F5 — Kein gemeinsames Modal-Fundament
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/components/tournament/*Modal.tsx`, `src/pages/TournamentView/components/modals/*`
+
+**Problem:** Zwölf Modals, jedes mit eigenem Overlay-Markup. Kein Fokus-Trap, kein Fokus-Rückgabe beim Schließen, kein `role="dialog"`/`aria-modal`, kein Scroll-Lock des Hintergrunds, Escape nur vereinzelt (CourtContextMenu, SessionDetail). Größe, Abstände und Knopfreihenfolge variieren.
+
+**Fix:** `<Modal>`-Basiskomponente (Portal, Overlay, Fokus-Trap, Escape, Scroll-Lock, ARIA, einheitlicher Footer mit Abbrechen/Bestätigen) und alle Modals darauf umstellen.
+
+**Fertig wenn:** Jedes Modal schließt mit Escape, fängt den Tab-Fokus und gibt ihn beim Schließen an das auslösende Element zurück.
+
+---
+
+### [ ] F6 — Feldzuweisung nur per Maus
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/components/courts/CourtOverview.tsx:143-210`
+
+**Problem:** Zuweisung erfolgt über HTML5-Drag-and-Drop plus Doppelklick. Es gibt keine Tastaturbedienung und keine Touch-Unterstützung (HTML5-DnD funktioniert auf Touchscreens nicht) — auf einem Hallen-Tablet ist die Kernfunktion damit nicht bedienbar. Der Kontextmenü-Weg (v2.9.0) deckt nur das Zurücknehmen ab.
+
+**Fix:** Jede Match-Karte bekommt eine erreichbare Aktion „Feld zuweisen" (Menü mit freien Feldern, per Tastatur bedienbar); Drag-and-Drop bleibt als Beschleuniger. Alternativ Pointer-Events-basiertes DnD, das auch auf Touch funktioniert.
+
+**Fertig wenn:** Ein komplettes Turnier lässt sich ausschließlich per Tastatur und ausschließlich per Touch durchführen.
+
+---
+
+### [ ] F7 — Lade- und Leerzustände uneinheitlich
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** projektweit (`{t.common_loading}` als nackter Text)
+
+**Problem:** Ladezustände sind meist ein unformatiertes „Wird geladen…" ohne Layout — die Seite springt beim Eintreffen der Daten. Leerzustände („noch keine Spieler", „noch keine Runde") sind je Seite unterschiedlich gestaltet, teils fehlen sie.
+
+**Fix:** `<LoadingState>`- und `<EmptyState>`-Komponenten (Icon, Titel, erklärender Satz, primäre Handlungsaufforderung), durchgängig verwenden; Skeletons für Listen und Tabellen.
+
+**Fertig wenn:** Jede Seite hat einen definierten Lade- und Leerzustand ohne Layoutsprung.
+
+---
+
+### [ ] F8 — Keine durchdachte Fenster-/Bildschirmanpassung
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/components/layout/Layout.tsx`, `src/components/layout/Sidebar.tsx`, Tabellen-Views
+
+**Problem:** Feste Sidebar, breite Tabellen ohne horizontales Scrollen, Standardfenster 1200 × 800. Bei geteiltem Bildschirm oder auf einem 13-Zoll-Laptop bricht das Layout. Der TV-Modus ist separat gepflegt statt eine Ansichtsvariante zu sein.
+
+**Fix:** Sidebar unter einer Breitenschwelle einklappbar (Icon-Leiste), Tabellen in scrollbare Container, Kartenlayout als Alternative für schmale Fenster; kleinste sinnvolle Fenstergröße in `tauri.conf.json` als `minWidth`/`minHeight` festlegen.
+
+**Fertig wenn:** Bei 900 px Fensterbreite ist jede Seite vollständig bedienbar, ohne dass Inhalt abgeschnitten wird.
+
+---
+
+### [ ] F9 — Der nächste Schritt ist nicht erkennbar
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/TournamentView/index.tsx`, `src/pages/Home.tsx`
+
+**Problem:** Ob als Nächstes ausgelost, gestartet, ein Feld zugewiesen, die KO-Phase begonnen oder das Turnier beendet werden muss, erschließt sich nur daraus, welcher Knopf gerade sichtbar ist. Für einen Turnierleiter unter Zeitdruck ist das zu implizit — besonders bei den mehrphasigen Formaten.
+
+**Fix:** Statusleiste unter dem Header: „Phase X von Y · N Spiele offen · Nächster Schritt: …" mit direkter Aktion. Kombinierbar mit dem bestehenden `GroupProgressBar`.
+
+**Fertig wenn:** In jedem Turnierzustand benennt die Oberfläche den nächsten Schritt in einem Satz.
+
+---
+
+### [ ] F10 — Emojis als Icon-System
+**Schwere:** niedrig · **Aufwand:** M · **Dateien:** projektweit
+
+**Problem:** 🚀 🏆 🎲 ➡️ ↩️ 📦 🔓 📋 🗑️ 📺 🔗 📌 werden als Icons verwendet. Darstellung, Größe und Grundlinie unterscheiden sich je nach Betriebssystem und Schriftart; Screenreader lesen sie als Text vor („Rakete Turnier starten"); Farbanpassung ans Theme ist unmöglich.
+
+**Fix:** Ein SVG-Icon-Set (z. B. Lucide, tree-shakebar) einführen, Emojis in funktionalen Elementen ersetzen. Wo Emojis bewusst dekorativ bleiben (TV-Modus, Medaillen), `aria-hidden="true"` setzen.
+
+**Fertig wenn:** Alle Knöpfe und Navigationselemente verwenden SVG-Icons; verbliebene Emojis sind für Screenreader ausgeblendet.
+
+---
+
+# G · Barrierefreiheit
+
+### [ ] G1 — Nahezu keine ARIA-Auszeichnung
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** projektweit (16 `aria-`-Vorkommen in der gesamten Anwendung)
+
+**Problem:** Modals ohne `role="dialog"`/`aria-modal`/`aria-labelledby`, Tabs ohne `role="tablist"`/`aria-selected`, Icon-Knöpfe ohne `aria-label`, Tabellen ohne `scope`-Attribute, Fortschrittsbalken ohne `role="progressbar"`.
+
+**Fix:** Semantisches HTML bevorzugen (`<button>`, `<nav>`, `<table>` mit `<th scope>`), ARIA nur ergänzend; Modal-Rollen zentral über F5 lösen; Tab-Leisten über ein gemeinsames `<Tabs>`-Muster.
+
+**Fertig wenn:** Ein Durchlauf mit einem Accessibility-Prüfwerkzeug meldet auf den Hauptseiten keine kritischen Verstöße.
+
+---
+
+### [ ] G2 — Tastaturbedienung und Fokus-Sichtbarkeit ungeprüft
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/index.css`, projektweit
+
+**Problem:** Kein globaler `:focus-visible`-Stil. Es gibt anklickbare `<div>`-Elemente ohne `tabIndex`; die Reihenfolge des Tab-Fokus wurde nie geprüft. Score-Eingabe hat eine eigene Enter/Tab-Logik, die undokumentiert ist.
+
+**Fix:** Globalen, gut sichtbaren Fokusring über Token definieren; alle interaktiven Elemente als `<button>`/`<a>` umsetzen; Tastaturkürzel (Enter = Ergebnis bestätigen, Escape = schließen, F11 = Vollbild) an einer Stelle dokumentieren und in einer Hilfe-Übersicht anzeigen.
+
+**Fertig wenn:** Jede Kernaufgabe (Turnier anlegen, Ergebnis eintragen, Feld zuweisen) ist rein per Tastatur mit sichtbarem Fokus durchführbar.
+
+---
+
+### [ ] G3 — Farbkontraste nicht geprüft
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/theme.ts`, Komponenten
+
+**Problem:** `textMuted: "text-gray-400"` auf weißem Grund erreicht etwa 2,8:1 und verfehlt WCAG AA (4,5:1) deutlich; ähnliche Zweifel bestehen bei `text-rose-400`, `bg-amber-50/text-amber-700` und den Sidebar-Texten mit `/70`-Transparenz. In der Halle (helles Umgebungslicht, Beamer, TV) ist Kontrast besonders wichtig.
+
+**Fix:** Bei der Token-Definition (F1) jede Text-/Hintergrund-Kombination gegen AA prüfen und Werte anpassen; TV-Modus gegen AAA prüfen (Betrachtungsabstand).
+
+**Fertig wenn:** Alle Text-/Hintergrund-Paare erreichen mindestens 4,5:1 (großer Text 3:1), dokumentiert in einer Kontrasttabelle.
+
+---
+
+### [ ] G4 — Formularfelder ohne Beschriftung, Statusänderungen ohne Ansage
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/pages/TournamentView/components/MatchCard.tsx`, `src/lib/ToastContext.tsx`
+
+**Problem:** Die Score-Eingabefelder sind nur visuell durch Position zugeordnet, ohne `<label>` oder `aria-label` („Satz 1, Punkte Team 1"). Toasts und Ergebnisänderungen werden nicht über `aria-live` angesagt.
+
+**Fix:** `aria-label` je Eingabefeld aus Satznummer und Teamnamen erzeugen; Toast-Container als `aria-live="polite"` (Fehler `assertive`).
+
+**Fertig wenn:** Screenreader nennt beim Fokussieren eines Score-Feldes Satz und Team; Toasts werden vorgelesen.
+
+---
+
+### [ ] G5 — Bewegungsreduzierung nicht berücksichtigt
+**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `src/index.css`
+
+**Problem:** `transition-all` ist praktisch überall gesetzt, dazu Auto-Rotation und Einblendungen im TV-Modus. `prefers-reduced-motion` wird nirgends ausgewertet.
+
+**Fix:** Globale Media-Query, die Übergänge und Animationen auf nahezu 0 setzt, wenn der Nutzer Bewegungsreduzierung aktiviert hat.
+
+**Fertig wenn:** Bei aktivierter Systemeinstellung laufen keine Animationen mehr.
+
+---
+
+# H · Sprache & Texte
+
+### [ ] H1 — Die deutsche Oberfläche verwendet durchgehend keine Umlaute
+**Schwere:** hoch (Wahrnehmung) · **Aufwand:** S · **Dateien:** `src/lib/i18n/de.ts` (246 Ersatzschreibungen, nur 9 echte Umlaute), `src/lib/types.ts:120`, `src/lib/db.ts:392`, `src-tauri/src/lib.rs`, `README.md`
+
+**Problem:** Die Anwendung zeigt „Sportstaetten", „fuer den Verein", „ausgewaehlt", „Verlaengerung", „zurueck", „Ueberweisung". Für eine deutschsprachige Vereinssoftware ist das der auffälligste Qualitätsmangel überhaupt — er betrifft jeden Bildschirm. Vermutlich eine Encoding-Vorsichtsmaßnahme aus der Anfangszeit; die Dateien sind heute UTF-8, echte Umlaute funktionieren nachweislich (9 kommen bereits vor).
+
+**Fix:** `de.ts` vollständig auf korrekte Rechtschreibung umstellen (ä, ö, ü, ß), ebenso die fest verdrahteten deutschen Strings in `types.ts`, `db.ts` und den Rust-Fehlermeldungen sowie die deutschen Abschnitte im README. Kodierung der Dateien auf UTF-8 ohne BOM sicherstellen und einen Lint-Test ergänzen, der `ae|oe|ue|ss`-Ersatzschreibungen in `de.ts` meldet.
+
+**Fertig wenn:** Kein Ersatzschreibungs-Treffer mehr in `de.ts`; die Anwendung zeigt in allen Ansichten korrekte Umlaute.
+
+---
+
+### [ ] H2 — 55 ungenutzte Übersetzungsschlüssel
+**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `src/lib/i18n/de.ts`, `src/lib/i18n/en.ts`, `src/lib/i18n/types.ts`
+
+**Problem:** `pnpm check:i18n` meldet 55 ungenutzte Schlüssel (u. a. `tournament_unsaved_warning`, `tournaments_delete_confirm_word`, `stats_by_status`). Teils Reste entfernter Funktionen, teils Hinweis auf nie fertiggestellte Features. Das Skript existiert, wird aber von nichts erzwungen.
+
+**Fix:** Jeden Schlüssel prüfen: entfernen oder die zugehörige Funktion nachziehen. `check:i18n` anschließend in CI verpflichtend machen (J1).
+
+**Fertig wenn:** `pnpm check:i18n` meldet 0 ungenutzte Schlüssel und läuft in CI.
+
+---
+
+### [ ] H3 — Deutsche Changelog-Abschnitte im englischen README
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `README.md` (46 KB), `README_DE.md` (34 KB)
+
+**Problem:** Ab v2.7 sind die Versionsabschnitte auf Deutsch mitten im englischen Dokument („Match per Rechtsklick zurueck in die Warteschlange (v2.9.0)"). Beide READMEs sind zugleich Feature-Dokumentation und Changelog und dadurch für Neueinsteiger unbrauchbar lang.
+
+**Fix:** `CHANGELOG.md` abspalten (Keep-a-Changelog-Format), README auf Zweck, Screenshots, Installation, Kurzüberblick und Entwicklungshinweise kürzen (Ziel: unter 300 Zeilen), deutsche und englische Fassung inhaltlich abgleichen.
+
+**Fertig wenn:** README unter 300 Zeilen, Changelog vollständig ausgelagert, beide Sprachen konsistent.
+
+---
+
+### [ ] H4 — Deutsche Texte im Code statt in der Übersetzung
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/types.ts:120,220,227,234`, `src/lib/db.ts:392`, `src/lib/scoring.ts:88,222`, `src-tauri/src/lib.rs` (alle Fehlermeldungen)
+
+**Problem:** `MODE_LABELS`, `FORMAT_LABELS`, `STATUS_LABELS`, `PAYMENT_METHOD_LABELS` sind fest deutsch; Validierungsfehler aus `scoring.ts` („Punkte duerfen nicht negativ sein") ebenfalls; die Rust-Kommandos geben deutsche Fehlertexte zurück, die im UI unübersetzt erscheinen. Bei englischer Spracheinstellung mischen sich beide Sprachen.
+
+**Fix:** Label-Konstanten entweder entfernen (i18n-Schlüssel existieren bereits parallel!) oder als Schlüsselreferenzen umbauen; Validierungsfehler als Fehlercodes zurückgeben und im UI übersetzen; Rust-Fehler als Codes statt Klartext liefern.
+
+**Fertig wenn:** Bei englischer Spracheinstellung erscheint kein deutscher Text mehr — auch nicht in Fehlermeldungen.
+
+---
+
+### [ ] H5 — Datums- und Zahlenformate teilweise fest auf `de-DE`
+**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `src/components/courts/CourtTimer.tsx:53`, `src/pages/SessionDashboard.tsx:242`, `src/pages/TournamentCreate.tsx:56`
+
+**Problem:** `toLocaleTimeString("de-DE")` und manuell zusammengebaute Datumsformate (`DD.MM.YYYY`) ignorieren die gewählte Sprache; Startgeldbeträge werden ohne `Intl.NumberFormat` formatiert.
+
+**Fix:** Aktive Sprache aus dem I18n-Kontext an `Intl.DateTimeFormat`/`Intl.NumberFormat` durchreichen; zentrale Formatierungshelfer (zusammen mit C3).
+
+**Fertig wenn:** Sprachumschaltung ändert auch Datums-, Zeit- und Währungsdarstellung.
+
+---
+
+# I · Sicherheit & Datenschutz
+
+### [ ] I1 — Content-Security-Policy erlaubt beliebige Ziele
+**Schwere:** mittel · **Aufwand:** XS · **Dateien:** `src-tauri/tauri.conf.json:23`
+
+**Problem:** `connect-src 'self' ipc: … https: http:` erlaubt Verbindungen zu jedem beliebigen Host, auch unverschlüsselt. Für eine App, die genau einen konfigurierbaren Endpunkt anspricht, ist das unnötig weit — und `http:` bedeutet, dass das Shared Secret im Klartext über das Netz gehen kann.
+
+**Fix:** `http:` streichen (nur `https:` erlauben), im Einstellungsdialog HTTP-Endpunkte ablehnen oder mit deutlicher Warnung versehen. Die `http:`-Regel in `capabilities/default.json` entsprechend entfernen.
+
+**Fertig wenn:** Ein `http://`-Endpunkt wird beim Speichern abgelehnt; die CSP enthält kein `http:` mehr.
+
+---
+
+### [ ] I2 — Live-Push-Secret im Klartext gespeichert und angezeigt
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/livePublish.ts:24`, `src/pages/Settings.tsx`, `wordpress-plugin/boss-live-results/boss-live-results.php:210`
+
+**Problem:** Das gemeinsame Geheimnis liegt unverschlüsselt in `app_settings` (also in jedem `.db`-Backup, das der Nutzer weitergibt) und wird sowohl im Desktop-Einstellungsdialog als auch im WordPress-Adminbereich als `type="text"` im Klartext angezeigt.
+
+**Fix:** Im WordPress-Adminbereich `type="password"` mit „Anzeigen"-Umschalter; im Desktop dasselbe. Secret aus dem Vorlagen-Export und aus jeder Log-/Fehlerausgabe fernhalten (prüfen!). Optional: Speicherung im Betriebssystem-Schlüsselbund über ein Tauri-Plugin.
+
+**Fertig wenn:** Das Secret ist nirgends im Klartext sichtbar und in keiner exportierten Datei enthalten (außer bewusst im Backup, dann dokumentiert).
+
+---
+
+### [ ] I3 — WordPress-Endpunkt ohne Begrenzung, personenbezogene Daten öffentlich
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `wordpress-plugin/boss-live-results/boss-live-results.php:44-140`
+
+**Problem:** `/push` hat `permission_callback => '__return_true'` mit manueller Secret-Prüfung (korrekt via `hash_equals`), aber keine Ratenbegrenzung und keine Größenprüfung — der Payload wird 1:1 als Post-Inhalt gespeichert. `/tournaments` lädt mit `numberposts => -1` alles. Zudem veröffentlicht die Anwendung Vor- und Nachnamen sowie Vereinszugehörigkeit von Vereinsmitgliedern auf einer öffentlichen Website; das ist eine Verarbeitung personenbezogener Daten, für die es weder einen Hinweis noch eine Einwilligungsmöglichkeit gibt.
+
+**Fix:** Größenlimit und einfache Ratenbegrenzung für `/push`; `numberposts` begrenzen und paginieren; im Desktop beim Aktivieren von Live-Ergebnissen einen Datenschutzhinweis anzeigen und optional Anzeige nur mit abgekürztem Nachnamen („Max M.") oder ohne Verein anbieten.
+
+**Fertig wenn:** Endpunkte sind begrenzt; beim Aktivieren erscheint ein Datenschutzhinweis mit wählbarer Anonymisierungsstufe.
+
+---
+
+### [ ] I4 — „Ordner öffnen" funktioniert genau dann nicht, wenn man es braucht
+**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `src-tauri/src/lib.rs:180-206`
+
+**Problem:** `open_folder` verweigert jeden Pfad außerhalb des App-Datenverzeichnisses — bei einem benutzerdefinierten Datenbankordner (die Funktion, für die der Knopf existiert) schlägt er also immer fehl. Zusätzlich ist nur der Windows-Zweig implementiert; unter macOS und Linux gibt die Funktion stillschweigend `Ok(())` zurück, ohne etwas zu tun.
+
+**Fix:** Erlaubte Pfade auf „App-Datenverzeichnis **oder** konfigurierter DB-Ordner" erweitern; `open`/`xdg-open` für macOS und Linux ergänzen; bei nicht unterstützten Plattformen einen echten Fehler zurückgeben statt Erfolg vorzutäuschen.
+
+**Fertig wenn:** Der Knopf öffnet den tatsächlich verwendeten Datenbankordner auf allen unterstützten Plattformen — oder meldet verständlich, warum nicht.
+
+---
+
+### [ ] I5 — Backup-Datei ohne Integritätsschutz, kein automatisches Backup
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src-tauri/src/lib.rs:113`, `src/pages/Settings.tsx:182`
+
+**Problem:** Backups sind manuell und werden nur beim Restore per Header-Prüfung als SQLite erkannt (gut), aber es gibt keine Schema-Versionsprüfung: eine neuere Backup-Datei lässt sich in eine ältere App-Version einspielen. Ein automatisches Backup vor riskanten Aktionen (Restore, Wipe, Migration) existiert nicht — bei einem Turnier mit 60 Teilnehmern ist Datenverlust das teuerste Fehlerbild überhaupt.
+
+**Fix:** Schema-Version aus dem Backup lesen und bei Inkompatibilität ablehnen; automatisches Sicherheitsbackup (Rotation über die letzten 5) vor Restore, Wipe und jeder Migration; sichtbarer Hinweis, wo diese liegen.
+
+**Fertig wenn:** Vor jeder destruktiven Aktion entsteht automatisch ein Backup; inkompatible Backups werden mit klarer Meldung abgelehnt.
+
+---
+
+# J · Werkzeuge, Tests, Auslieferung, Dokumentation
+
+### [x] J1 — Keine kontinuierliche Integration für Qualitätsprüfungen — **erledigt**
+**Schwere:** hoch · **Aufwand:** XS · **Dateien:** `.github/workflows/ci.yml`
+
+**Problem:** Der einzige Workflow ist `release.yml` und läuft nur bei Tags. Typprüfung, Lint, i18n-Prüfung und Build laufen nie automatisch — deswegen sind 59 Lint-Fehler und 55 tote Übersetzungsschlüssel aufgelaufen.
+
+**Umgesetzt:** `ci.yml` läuft bei jedem Push und Pull Request, mit zwei Jobs:
+- **frontend** — `tsc -b`, `pnpm test:coverage`, `vite build` (blockierend); `pnpm lint` und `pnpm check:i18n` als Hinweis (`continue-on-error`), weil beide noch Altlasten melden.
+- **rust** — Linux-Build-Abhängigkeiten, Frontend-Build (für `generate_context!`), `cargo check --locked` (blockierend), `cargo clippy` als Hinweis.
+
+**Offen:** `continue-on-error` bei Lint entfernen, sobald D3 erledigt ist; dasselbe bei `check:i18n` nach H2. Beim ersten Lauf prüfen, ob `cargo check` in der Linux-Umgebung durchläuft (bisher wurde nur unter Windows/macOS gebaut — siehe J3).
+
+---
+
+### [x] J2 — Test-Infrastruktur einrichten — **erledigt**
+**Schwere:** hoch · **Aufwand:** S (Setup) · **Dateien:** `vitest.config.ts`, `tsconfig.test.json`, `src/test/factories.ts`, `src/test/migrations.test.ts`, `src/lib/*.test.ts`
+
+**Problem:** Voraussetzung für D4 und für die gesamte Phase 2 — ohne Tests ist der Umbau der Turnierlogik ein Blindflug.
+
+**Umgesetzt:** Vitest mit v8-Coverage; Skripte `test`, `test:watch`, `test:coverage`; eigenes TypeScript-Projekt `tsconfig.test.json` (Node-Typen), Testdateien aus dem App-Build ausgeschlossen. **130 Tests**, davon 11 als `it.fails` markierte Belege für bekannte Fehler:
+
+| Datei | Inhalt |
+|---|---|
+| `src/lib/scoring.test.ts` | Satzgültigkeit, Auto-Fill (inkl. Konsistenzprüfung über alle fünf Punktsysteme), Siegerermittlung, Einzel- und Team-Rangliste |
+| `src/lib/draw.test.ts` | Alle neun Formate: Rundenturnier, KO mit Setzliste, Zufallsdoppel, Mixed, Swiss, Monrad, King of the Court, Waterfall, Gruppenaufteilung |
+| `src/lib/restTime.test.ts` | Ruhezeiten inkl. Grenzwerte und Batch-/Einzelabgleich |
+| `src/lib/courtConflicts.test.ts` | Doppelbelegung von Spielern und Feldern |
+| `src/test/migrations.test.ts` | Führt die echte Migrationskette aus `lib.rs` gegen In-Memory-SQLite aus und prüft Tabellen, Spalten und Constraints |
+
+**Offen:** Weitere Module abdecken, sobald sie testbar sind (`stats.ts`, `groupProgress.ts`, `undoTarget.ts`, `livePublish.ts`-Snapshot); Komponententests erst nach D1/D2 sinnvoll.
+
+---
+
+### [ ] J3 — Release baut kein Linux-Paket
+**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `.github/workflows/release.yml`
+
+**Problem:** Die Matrix enthält Windows und zwei macOS-Ziele. Das README wirbt mit „cross-platform desktop application", Linux fehlt.
+
+**Fix:** `ubuntu-latest` mit den nötigen Systemabhängigkeiten ergänzen (AppImage/deb) — oder die Aussage im README auf Windows und macOS korrigieren. Passt inhaltlich zu I4 (plattformspezifischer Code nur für Windows).
+
+**Fertig wenn:** Entweder erzeugt der Release ein Linux-Artefakt, oder die Dokumentation nennt die unterstützten Plattformen korrekt.
+
+---
+
+### [ ] J4 — Versionsnummern an drei Stellen, `package.json` steht auf 0.0.0
+**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `package.json:4`, `src-tauri/tauri.conf.json:4`, `wordpress-plugin/boss-live-results/boss-live-results.php:5,22`
+
+**Problem:** `package.json` = `0.0.0`, `tauri.conf.json` = `2.9.0`, WordPress-Plugin = `1.0.5`. Die App-Version wird im Live-Snapshot mitgesendet — welche Quelle dort landet, ist nicht offensichtlich.
+
+**Fix:** Eine führende Quelle festlegen (`tauri.conf.json`) und die übrigen daraus generieren oder per Release-Skript synchronisieren; Kompatibilitätsmatrix App-Version ↔ Plugin-Version dokumentieren.
+
+**Fertig wenn:** Ein Versionssprung erfordert genau eine Änderung; alle angezeigten Versionen stimmen überein.
+
+---
+
+### [ ] J5 — Kein Diagnose-/Fehlerprotokoll für den Turnierleiter
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src-tauri/src/lib.rs:440` (Logger nur bei `debug_assertions`), `src/lib/ToastContext.tsx`
+
+**Problem:** `tauri-plugin-log` ist nur im Debug-Build aktiv. In der ausgelieferten Anwendung landen Fehler ausschließlich in der Browser-Konsole, an die der Nutzer nicht herankommt. Tritt in der Halle ein Fehler auf, gibt es nichts zu melden außer „ging nicht".
+
+**Fix:** Logging auch im Release aktivieren (Datei im App-Datenverzeichnis, Rotation), Frontend-Fehler (`console.error`, Error Boundary aus D6, Live-Push-Fehler) dorthin schreiben, und in den Einstellungen einen Knopf „Diagnosedaten exportieren" anbieten.
+
+**Fertig wenn:** Ein reproduzierter Fehler ist in einer exportierbaren Logdatei nachvollziehbar.
+
+---
+
+### [ ] J6 — Keine Entwicklerdokumentation zur Architektur
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `CLAUDE.md` oder `docs/ARCHITECTURE.md` (neu)
+
+**Problem:** Es gibt keine `CLAUDE.md` und keine Architekturübersicht. Wissen wie „`num_groups` speichert bei Swiss die Rundenzahl", „Monrad läuft unter `phase='swiss'`" oder „`qualify_per_group` enthält seit v2.6 die KO-Größe, nicht die Anzahl pro Gruppe" steckt ausschließlich in Kommentaren mitten im Code — genau solche Altlasten erzeugen die Fehler in diesem Backlog.
+
+**Fix:** Kurze Architekturseite: Datenmodell mit Diagramm, Bedeutung der Sonderfelder, Format-Matrix (welches Format nutzt welche Phasen/Spalten), Lebenszyklus eines Turniers, Live-Publishing-Ablauf. Zusätzlich `CLAUDE.md` mit Projektkonventionen für künftige Sitzungen.
+
+**Fertig wenn:** Ein neuer Mitwirkender versteht Datenmodell und Turnier-Lebenszyklus, ohne `TournamentView/index.tsx` zu lesen.
+
+---
+
+## Was bereits gut ist (nicht anfassen)
+
+- `src/lib/restTime.ts`, `src/lib/courtConflicts.ts`, `src/lib/groupProgress.ts`, `src/pages/TournamentView/lib/undoTarget.ts` — kleine, reine, sauber dokumentierte Module. Das ist der Zielzustand für den Rest.
+- Spielerkonflikt-Prüfung bei der Feldzuweisung (harte Sperre, kein Umgehen) — sachlich richtig gelöst.
+- Ruhezeiten-Warnung mit bewusstem Übergehen-Pfad — gute Unterscheidung zwischen „physisch unmöglich" und „unerwünscht".
+- Live-Publishing: Änderungssignatur zur Vermeidung überflüssiger Übertragungen, Backoff, Push-Protokoll, sparsamer öffentlicher Datensatz (keine Geburtsdaten, keine Zahlungsdaten).
+- WordPress-Frontend arbeitet konsequent mit `textContent` statt `innerHTML` — keine XSS-Fläche.
+- Sicherheitsprüfungen beim Wiederherstellen (SQLite-Header) und beim Löschen von Sportstätten (Nutzungsprüfung mit Begründung).
+- Der Wipe-über-Neustart-Marker ist die technisch korrekte Lösung — sie sollte auf Restore und Ordnerwechsel übertragen werden (A7).

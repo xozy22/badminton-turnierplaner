@@ -11,6 +11,7 @@
 // as part of the v2.7.5 directory split.
 
 import { useState } from "react";
+import type { ThemeColors } from "../../../lib/theme";
 import type { ConflictPlayer } from "../../../lib/courtConflicts";
 import { isSetComplete } from "../../../lib/scoring";
 import type { Match, GameSet } from "../../../lib/types";
@@ -57,7 +58,7 @@ export default function CompletedMatchesSection({
   onAnnounce: (court: number, team1: string, team2: string) => void;
   onReset: (matchId: number) => void;
   isActive: boolean;
-  theme: any;
+  theme: ThemeColors;
   hasOtherMatches: boolean;
   editingMatchIds: Set<number>;
   allMatches: Match[];

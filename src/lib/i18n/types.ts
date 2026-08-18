@@ -40,6 +40,7 @@ export interface Translations {
   common_courts: string;
   common_round: string;
   common_vs: string;
+  common_bye: string;
   common_set: string;
   common_sets: string;
   common_points: string;
@@ -93,6 +94,13 @@ export interface Translations {
   players_no_filter_results: string;
   players_delete_confirm_single: string;
   players_delete_confirm_multi: string;
+  players_archived_done: string;
+  players_restored_done: string;
+  players_show_archived: string;
+  players_restore: string;
+  players_archive_hint: string;
+  players_delete_done: string;
+  players_delete_blocked: string;
 
   // ===== Tournaments Page =====
   tournaments_title: string;
@@ -394,6 +402,33 @@ export interface Translations {
   tournament_view_edit: string;
   tournament_view_template: string;
   tournament_view_delete: string;
+  validation_min_players: string;
+  validation_mixed_needs_two_each: string;
+  validation_mixed_unbalanced: string;
+  validation_doubles_odd_players: string;
+  validation_ko_needs_two: string;
+  validation_ko_byes: string;
+  validation_groups_min: string;
+  validation_groups_too_many: string;
+  validation_ko_size_too_large: string;
+  validation_rounds_min: string;
+  validation_rounds_exceed_opponents: string;
+  validation_waterfall_sit_out: string;
+  validation_kotc_single_court: string;
+  validation_round_robin_long: string;
+  validation_random_doubles_remainder: string;
+  validation_teams_incomplete: string;
+  validation_errors_title: string;
+  validation_warnings_title: string;
+  export_results: string;
+  export_matches_csv: string;
+  export_standings_csv: string;
+  export_payments_csv: string;
+  export_json: string;
+  export_done: string;
+  export_failed: string;
+  tournament_view_round_byes: string;
+  tournament_view_start_failed: string;
   tournament_view_start: string;
   tournament_view_next_round: string;
   tournament_view_start_ko: string;
@@ -498,6 +533,8 @@ export interface Translations {
   standings_wins: string;
   standings_losses: string;
   standings_sets_header: string;
+  standings_buchholz: string;
+  standings_buchholz_hint: string;
   standings_points: string;
   standings_no_results: string;
 

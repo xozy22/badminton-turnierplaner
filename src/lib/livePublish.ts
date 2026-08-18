@@ -338,7 +338,7 @@ export function buildSnapshot(
       for (const m of groupMatches) {
         groupPlayerIds.add(m.team1_p1);
         if (m.team1_p2) groupPlayerIds.add(m.team1_p2);
-        groupPlayerIds.add(m.team2_p1);
+        if (m.team2_p1) groupPlayerIds.add(m.team2_p1);
         if (m.team2_p2) groupPlayerIds.add(m.team2_p2);
       }
       const groupPlayers = players.filter((p) => groupPlayerIds.has(p.id));

@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { getPlayers, createPlayer, updatePlayer, deletePlayer, isTauri } from "../lib/db";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { getPlayers, createPlayer, updatePlayer, removePlayer, restorePlayer, isTauri } from "../lib/db";
 import ExcelJS from "exceljs";
 import type { Player, Gender } from "../lib/types";
 import { calculateAge, playerDisplayName } from "../lib/types";
@@ -7,6 +7,7 @@ import ExcelImport from "../components/players/ExcelImport";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
+import { useToast } from "../lib/ToastContext";
 
 function ClubInput({ value, onChange, onKeyDown, className, placeholder, clubs }: {
   value: string;
@@ -57,6 +58,7 @@ type GenderFilter = "all" | "m" | "f";
 export default function Players() {
   const { theme } = useTheme();
   const { t } = useT();
+  const { showError, showSuccess, showInfo } = useToast();
   useDocumentTitle(t.nav_players);
   const [players, setPlayers] = useState<Player[]>([]);
   const [firstName, setFirstName] = useState("");
@@ -95,9 +97,15 @@ export default function Players() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<{ ids: number[]; displayNames: string[] } | null>(null);
 
-  const load = () => getPlayers().then((p) => { setPlayers(p); setSelectedIds(new Set()); });
+  // Archived players are hidden by default; the toggle brings them back
+  // into the list so they can be restored (REVIEW-BACKLOG.md C8).
+  const [showArchived, setShowArchived] = useState(false);
+  const load = useCallback(
+    () => getPlayers(showArchived).then((p) => { setPlayers(p); setSelectedIds(new Set()); }),
+    [showArchived],
+  );
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   // Unique clubs from existing players
   const existingClubs = useMemo(() => {
@@ -169,15 +177,45 @@ export default function Players() {
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
-    try {
-      for (const id of deleteTarget.ids) {
-        await deletePlayer(id);
+    // Players without history are deleted; players who have already played
+    // are archived so their name stays readable in finished tournaments
+    // (REVIEW-BACKLOG.md C8).
+    let deleted = 0;
+    const archived: string[] = [];
+    const failed: string[] = [];
+
+    for (const id of deleteTarget.ids) {
+      const p = players.find((pp) => pp.id === id);
+      const name = p ? playerDisplayName(p) : String(id);
+      try {
+        const outcome = await removePlayer(id);
+        if (outcome === "archived") archived.push(name);
+        else deleted++;
+      } catch (err) {
+        console.error("Error removing player:", err);
+        failed.push(name);
       }
-      setDeleteTarget(null);
-      load();
-    } catch (err) {
-      console.error("Error deleting player:", err);
     }
+
+    setDeleteTarget(null);
+    load();
+
+    if (failed.length > 0) {
+      showError(t.players_delete_blocked.replace("{players}", failed.join(" · ")));
+    }
+    if (archived.length > 0) {
+      showInfo(t.players_archived_done.replace("{players}", archived.join(" · ")));
+    }
+    if (deleted > 0) {
+      showSuccess(t.players_delete_done.replace("{count}", String(deleted)));
+    }
+  };
+
+  /** Brings an archived player back into the active roster. */
+  const handleRestorePlayer = async (id: number) => {
+    await restorePlayer(id);
+    load();
+    showSuccess(t.players_restored_done);
   };
 
   // Toggle selection
@@ -449,6 +487,15 @@ export default function Players() {
         {(genderFilter !== "all" || search) && (
           <div className={`px-5 py-1.5 text-xs ${theme.textMuted} border-b ${theme.cardBorder}`}>
             {t.players_shown_of_total.replace("{shown}", String(filteredPlayers.length)).replace("{total}", String(players.length))}
+            <label className={`ml-4 inline-flex items-center gap-1.5 cursor-pointer ${theme.textMuted}`} title={t.players_archive_hint}>
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                className="rounded accent-emerald-600"
+              />
+              {t.players_show_archived}
+            </label>
           </div>
         )}
 
@@ -502,7 +549,7 @@ export default function Players() {
                   key={p.id}
                   className={`border-b ${theme.cardBorder} last:border-0 transition-colors ${
                     isSelected ? theme.selectedBg : `hover:${theme.cardBg}`
-                  }`}
+                  } ${p.archived_at ? "opacity-60" : ""}`}
                 >
                   <td className="px-3 py-3 text-center align-middle">
                     <input
@@ -614,18 +661,29 @@ export default function Players() {
                       </div>
                     ) : (
                       <div className="flex gap-3 justify-end">
-                        <button
-                          onClick={() => handleEdit(p)}
-                          className={`${theme.textMuted} hover:${theme.activeBadgeText} text-sm transition-colors`}
-                        >
-                          {t.common_edit}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteSingle(p)}
-                          className={`${theme.textMuted} hover:text-rose-600 text-sm transition-colors`}
-                        >
-                          {t.common_delete}
-                        </button>
+                        {p.archived_at ? (
+                          <button
+                            onClick={() => handleRestorePlayer(p.id)}
+                            className={`${theme.textMuted} hover:${theme.activeBadgeText} text-sm transition-colors`}
+                          >
+                            {t.players_restore}
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleEdit(p)}
+                              className={`${theme.textMuted} hover:${theme.activeBadgeText} text-sm transition-colors`}
+                            >
+                              {t.common_edit}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSingle(p)}
+                              className={`${theme.textMuted} hover:text-rose-600 text-sm transition-colors`}
+                            >
+                              {t.common_delete}
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </td>

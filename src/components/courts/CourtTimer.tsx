@@ -1,23 +1,13 @@
 import { useTimer } from "../../hooks/useTimer";
 import { useTheme } from "../../lib/ThemeContext";
 import { useT } from "../../lib/I18nContext";
-
-const SETTINGS_KEY = "turnierplaner_settings";
+import { loadSettings } from "../../lib/appSettings";
 
 function getThresholds(): { warningMin: number; dangerMin: number } {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) {
-      const s = JSON.parse(raw);
-      return {
-        warningMin: s.timerWarningMin ?? 20,
-        dangerMin: s.timerDangerMin ?? 30,
-      };
-    }
-  } catch (err) {
-    console.error("getThresholds: failed to load timer settings from localStorage:", err);
-  }
-  return { warningMin: 20, dangerMin: 30 };
+  // Read synchronously while rendering — the mirror is kept in step by
+  // appSettings (REVIEW-BACKLOG.md C4).
+  const settings = loadSettings();
+  return { warningMin: settings.timerWarningMin, dangerMin: settings.timerDangerMin };
 }
 
 interface Props {

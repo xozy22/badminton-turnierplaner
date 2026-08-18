@@ -358,13 +358,17 @@ export function BracketMatch({
   tournamentStatus?: TournamentStatus;
 }) {
   const { theme } = useTheme();
+  const { t } = useT();
 
   const team1Label = match.team1_p2
     ? `${playerName(match.team1_p1)} / ${playerName(match.team1_p2)}`
     : playerName(match.team1_p1);
-  const team2Label = match.team2_p2
-    ? `${playerName(match.team2_p1)} / ${playerName(match.team2_p2)}`
-    : playerName(match.team2_p1);
+  // A bye has no opponent at all — label it instead of rendering "-".
+  const team2Label = match.team2_p1 === null
+    ? t.common_bye
+    : match.team2_p2
+      ? `${playerName(match.team2_p1)} / ${playerName(match.team2_p2)}`
+      : playerName(match.team2_p1);
 
   // JSX renderer with inline ⏱ rest indicator. Only active non-completed
   // matches get the icon; placeholder slots already skip this path.
@@ -373,7 +377,10 @@ export function BracketMatch({
     minRestMinutes > 0 &&
     match.status !== "completed" &&
     !!allMatches;
-  const renderTeam = (p1: number, p2: number | null) => (
+  const renderTeam = (p1: number | null, p2: number | null) =>
+    p1 === null ? (
+      <span className="italic opacity-70">{t.common_bye}</span>
+    ) : (
     <>
       <span>{playerName(p1)}</span>
       {showRestIcons && (

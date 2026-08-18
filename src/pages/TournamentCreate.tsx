@@ -15,11 +15,14 @@ import {
   getSportstaetten,
   updateTournamentPhase,
   setTournamentSeeds,
+  updatePlannedRounds,
 } from "../lib/db";
 import { getSessions, attachTournamentToSession, detachTournamentFromSession } from "../lib/sessions";
 import type { Player, TournamentMode, TournamentFormat, Sportstaette, HallConfig } from "../lib/types";
 import { parseHallConfig, hallConfigTotalCourts, playerDisplayName } from "../lib/types";
 import { formFixedDoubleTeams, formFixedMixedTeams, recommendedSwissRounds } from "../lib/draw";
+import { validateTournamentSetup, canStart } from "../lib/tournamentValidation";
+import type { ValidationIssue } from "../lib/tournamentValidation";
 import { SCORING_MODES, getScoringModeId, type ScoringModeId } from "../lib/scoring";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
@@ -89,6 +92,8 @@ export default function TournamentCreate() {
   const [sessions, setSessions] = useState<{ id: number; name: string; venue_id: number | null; status: string }[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<number | "">("");
   const [numGroups, setNumGroups] = useState(2);
+  // Number of rounds for the formats that run a fixed count.
+  const [plannedRounds, setPlannedRounds] = useState(5);
   const [qualifyPerGroup, setQualifyPerGroup] = useState(8);
   const [useEntryFee, setUseEntryFee] = useState(false);
   const [entryFeeSingle, setEntryFeeSingle] = useState<string>("5");
@@ -130,17 +135,21 @@ export default function TournamentCreate() {
       try {
         await updateTournament(
           id, finalName, mode, format, setsToWin, pointsPerSet, courts,
-          (format === "group_ko" || format === "swiss" || format === "monrad" || format === "waterfall") ? numGroups : 0,
+          format === "group_ko" ? numGroups : 0,
           format === "group_ko" ? qualifyPerGroup : 0,
           feeSingle, feeDouble, cap, rest,
           enableThirdPlace && (format === "elimination" || format === "group_ko" || format === "double_elimination")
+        );
+        await updatePlannedRounds(
+          id,
+          format === "swiss" || format === "monrad" || format === "waterfall" ? plannedRounds : null,
         );
       } catch (err) {
         console.error("Auto-save error:", err);
       }
     }, 1000);
     return () => clearTimeout(timer);
-  }, [isEditMode, editLoaded, editId, name, mode, format, setsToWin, pointsPerSet, cap, courts, numGroups, qualifyPerGroup, useEntryFee, entryFeeSingle, entryFeeDouble, useMinRest, minRestMinutes, enableThirdPlace]);
+  }, [isEditMode, editLoaded, editId, name, mode, format, setsToWin, pointsPerSet, cap, courts, numGroups, plannedRounds, qualifyPerGroup, useEntryFee, entryFeeSingle, entryFeeDouble, useMinRest, minRestMinutes, enableThirdPlace]);
 
   // Auto-save player selection when it changes
   useEffect(() => {
@@ -232,6 +241,9 @@ export default function TournamentCreate() {
         setSelectedHallIndices(new Set([0]));
       }
       setNumGroups(td.num_groups || 2);
+      // Swiss / Monrad / Waterfall keep their round count in its own
+      // column; older drafts may still carry it in num_groups.
+      setPlannedRounds(td.planned_rounds || td.num_groups || 5);
       setQualifyPerGroup(td.qualify_per_group || 8);
       if (td.entry_fee_single > 0 || td.entry_fee_double > 0) {
         setUseEntryFee(true);
@@ -352,7 +364,7 @@ export default function TournamentCreate() {
       id = Number(editId);
       await updateTournament(
         id, finalName, mode, format, setsToWin, pointsPerSet, courts,
-        (format === "group_ko" || format === "swiss" || format === "monrad" || format === "waterfall") ? numGroups : 0,
+        format === "group_ko" ? numGroups : 0,
         format === "group_ko" ? qualifyPerGroup : 0,
         feeSingle, feeDouble, cap, rest,
         ttp
@@ -373,7 +385,7 @@ export default function TournamentCreate() {
     } else {
       id = await createTournament(
         finalName, mode, format, setsToWin, pointsPerSet, courts,
-        (format === "group_ko" || format === "swiss" || format === "monrad" || format === "waterfall") ? numGroups : 0,
+        format === "group_ko" ? numGroups : 0,
         format === "group_ko" ? qualifyPerGroup : 0,
         feeSingle, feeDouble, cap, rest,
         ttp
@@ -419,6 +431,12 @@ export default function TournamentCreate() {
     } else {
       await setTournamentSeeds(id, []);
     }
+
+    // Rounds for the formats that run a fixed count (B7).
+    await updatePlannedRounds(
+      id,
+      format === "swiss" || format === "monrad" || format === "waterfall" ? plannedRounds : null,
+    );
 
     // Persist hall config + venue
     await updateHallConfig(id, selectedHalls.length > 0 ? selectedHalls : null);
@@ -502,6 +520,7 @@ export default function TournamentCreate() {
   };
 
   const minPlayers = mode === "singles" ? 2 : 4;
+
   const formatsWithoutTeamPairing: TournamentFormat[] = ["random_doubles", "swiss", "monrad", "king_of_court", "waterfall"];
   const needsTeamPairing = (mode === "doubles" || mode === "mixed") && !formatsWithoutTeamPairing.includes(format);
 
@@ -515,6 +534,36 @@ export default function TournamentCreate() {
   const poolPlayers = useMemo(() => {
     return players.filter((p) => selectedPlayerIds.has(p.id) && !pairedIds.has(p.id));
   }, [players, selectedPlayerIds, pairedIds]);
+
+  /**
+   * Format-specific checks (REVIEW-BACKLOG.md B13). Errors block the start,
+   * warnings are shown but do not stand in the way.
+   */
+  // Cheap enough to run on every render — a handful of array passes over the
+  // selected players, and memoizing it around a Set dependency buys nothing.
+  const validationIssues: ValidationIssue[] = validateTournamentSetup({
+    mode,
+    format,
+    genders: [...selectedPlayerIds]
+      .map((id) => players.find((p) => p.id === id)?.gender)
+      .filter((g): g is "m" | "f" => g === "m" || g === "f"),
+    numGroups,
+    koSize: qualifyPerGroup,
+    plannedRounds,
+    courts,
+    teamCount: needsTeamPairing ? manualTeams.length : undefined,
+  });
+  const validationErrors = validationIssues.filter((i) => i.level === "error");
+  const validationWarnings = validationIssues.filter((i) => i.level === "warning");
+
+  /** Fills {placeholders} in a validation message. */
+  const formatIssue = (issue: ValidationIssue): string => {
+    let text = (t as unknown as Record<string, string>)[issue.key] ?? issue.key;
+    for (const [key, value] of Object.entries(issue.params ?? {})) {
+      text = text.replace(`{${key}}`, String(value));
+    }
+    return text;
+  };
 
   const handlePoolClick = (playerId: number) => {
     if (firstPick === null) {
@@ -554,6 +603,8 @@ export default function TournamentCreate() {
   }, [selectedPlayerIds, editLoaded, isEditMode]);
 
   const settingsValid = name.trim().length > 0;
+
+
   const playersValid = selectedPlayerIds.size >= minPlayers;
   const teamsValid = !needsTeamPairing || (manualTeams.length > 0 && poolPlayers.length < 2);
 
@@ -685,7 +736,7 @@ export default function TournamentCreate() {
                         const newFormat = e.target.value as TournamentFormat;
                         setFormat(newFormat);
                         setManualTeams([]); setFirstPick(null);
-                        if (newFormat === "swiss" || newFormat === "monrad" || newFormat === "waterfall") setNumGroups(recommendedSwissRounds(selectedPlayerIds.size));
+                        if (newFormat === "swiss" || newFormat === "monrad" || newFormat === "waterfall") setPlannedRounds(recommendedSwissRounds(selectedPlayerIds.size));
                         if (!nameManuallyEdited) setName(generateName(mode, newFormat));
                       }}
                       className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
@@ -969,8 +1020,8 @@ export default function TournamentCreate() {
                       {t.tournament_swiss_rounds}
                     </label>
                     <select
-                      value={numGroups || recommendedSwissRounds(selectedPlayerIds.size)}
-                      onChange={(e) => setNumGroups(Number(e.target.value))}
+                      value={plannedRounds || recommendedSwissRounds(selectedPlayerIds.size)}
+                      onChange={(e) => setPlannedRounds(Number(e.target.value))}
                       className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
                       {[3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
@@ -1369,10 +1420,41 @@ export default function TournamentCreate() {
                 <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_name}</span> {name || "—"}</div>
                 <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_mode}</span> {({singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed} as Record<string, string>)[mode]} · {({round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall} as Record<string, string>)[format]}</div>
                 {(format === "swiss" || format === "monrad" || format === "waterfall") && (
-                  <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_swiss_rounds}:</span> {numGroups}</div>
+                  <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_swiss_rounds}:</span> {plannedRounds}</div>
                 )}
                 <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_rules}</span> {t[`scoring_mode_${scoringMode}` as keyof typeof t] as string} · {setsToWin === 1 ? t.best_of_1 : setsToWin === 2 ? t.best_of_3 : t.best_of_5} · {courts} {courts === 1 ? t.common_field : t.common_fields}</div>
                 <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_players}</span> {t.common_selected.replace("{count}", String(selectedPlayerIds.size))} {selectedPlayerIds.size < minPlayers && <span className="text-orange-500">{t.tournament_min_players.replace("{count}", String(minPlayers))}</span>}</div>
+
+                {/* Format-specific findings: errors block the start button,
+                    warnings are informational (REVIEW-BACKLOG.md B13). */}
+                {validationErrors.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-rose-700">
+                      {t.validation_errors_title}
+                    </div>
+                    <ul className="mt-1 space-y-0.5">
+                      {validationErrors.map((issue, i) => (
+                        <li key={`${issue.key}-${i}`} className="text-sm text-rose-700">
+                          · {formatIssue(issue)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {validationWarnings.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                      {t.validation_warnings_title}
+                    </div>
+                    <ul className="mt-1 space-y-0.5">
+                      {validationWarnings.map((issue, i) => (
+                        <li key={`${issue.key}-${i}`} className="text-sm text-amber-700">
+                          · {formatIssue(issue)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {needsTeamPairing && (
                   <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_teams}</span> {manualTeams.length} {poolPlayers.length > 1 && <span className="text-orange-500">{t.tournament_teams_open.replace("{count}", String(poolPlayers.length))}</span>}</div>
                 )}
@@ -1390,7 +1472,7 @@ export default function TournamentCreate() {
             {/* Create button */}
             <button
               onClick={handleCreate}
-              disabled={creating || selectedVenueId === "" || selectedPlayerIds.size < minPlayers || (needsTeamPairing && poolPlayers.length >= 2)}
+              disabled={creating || selectedVenueId === "" || selectedPlayerIds.size < minPlayers || !canStart(validationIssues) || (needsTeamPairing && poolPlayers.length >= 2)}
               title={selectedVenueId === "" ? t.tournament_venue_required : undefined}
               className={`w-full ${theme.primaryBg} text-white px-5 py-3.5 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-lg transition-all disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none font-semibold text-base`}
             >

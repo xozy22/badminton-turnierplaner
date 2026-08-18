@@ -8,19 +8,17 @@ import { playerDisplayName } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
 
 interface RanglisteTabProps {
-  tournament: Tournament;
-  players: Player[];
+  /** Angenommen, aber nicht gebraucht - haelt die Aufrufe der Tabs symmetrisch. */
+  tournament?: Tournament;
+  players?: Player[];
   standings: StandingEntry[];
   theme: ThemeColors;
 }
 
-export default function RanglisteTab({
-  tournament: _tournament,
-  players: _players,
-  standings,
-  theme,
-}: RanglisteTabProps) {
+export default function RanglisteTab({ standings, theme }: RanglisteTabProps) {
   const { t } = useT();
+  // Buchholz only exists for Swiss/Monrad tables — the column appears with it.
+  const showBuchholz = standings.some((s) => s.buchholz !== undefined);
   const rankMedal = (i: number) => {
     if (i === 0) return "\u{1F947}";
     if (i === 1) return "\u{1F948}";
@@ -46,6 +44,11 @@ export default function RanglisteTab({
               <th className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`}>{t.standings_losses}</th>
               <th className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`}>{t.standings_sets_header}</th>
               <th className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`}>{t.standings_points}</th>
+              {showBuchholz && (
+                <th className={`px-3 py-2.5 text-center ${theme.textSecondary} font-medium`} title={t.standings_buchholz_hint}>
+                  {t.standings_buchholz}
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -74,6 +77,11 @@ export default function RanglisteTab({
                 <td className={`px-3 py-2.5 text-center font-mono ${theme.textSecondary}`}>
                   {s.pointsWon}:{s.pointsLost}
                 </td>
+                {showBuchholz && (
+                  <td className={`px-3 py-2.5 text-center font-mono ${theme.textSecondary}`}>
+                    {s.buchholz ?? 0}
+                  </td>
+                )}
               </tr>
             ))}
             {standings.length === 0 && (

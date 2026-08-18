@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { loadSettings, saveSettings, syncSettingsFromDb, type AppSettings } from "../lib/appSettings";
 import { wipeAllPlayers, wipeAllTournaments, wipeEntireDatabase, getAppSetting, setAppSetting, deleteAppSetting, isTauri } from "../lib/db";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
@@ -18,39 +19,6 @@ import {
 import { usePushStatuses } from "../lib/useLivePublisher";
 
 type ConfirmTarget = "players" | "tournaments" | "wipe" | null;
-
-const SETTINGS_KEY = "turnierplaner_settings";
-
-interface AppSettings {
-  timerWarningMin: number;  // yellow threshold in minutes
-  timerDangerMin: number;   // red threshold in minutes
-}
-
-const DEFAULT_SETTINGS: AppSettings = {
-  timerWarningMin: 20,
-  timerDangerMin: 30,
-};
-
-export function loadSettings(): AppSettings {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      // Drop legacy defaultCourts/defaultHalls — venues are now mandatory
-      // and halls are defined per-venue in /sportstaetten.
-      if ("defaultCourts" in parsed) delete parsed.defaultCourts;
-      if ("defaultHalls" in parsed) delete parsed.defaultHalls;
-      return { ...DEFAULT_SETTINGS, ...parsed };
-    }
-  } catch (err) {
-    console.error("loadSettings: failed to parse settings from localStorage:", err);
-  }
-  return { ...DEFAULT_SETTINGS };
-}
-
-function saveSettings(s: AppSettings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
-}
 
 // Collapsible Section Component
 function Section({
@@ -101,7 +69,12 @@ export default function Settings() {
   const [changing, setChanging] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<ConfirmTarget>(null);
   const [confirmText, setConfirmText] = useState("");
+  // Values come from the database; the local mirror only bridges the first
+  // render (REVIEW-BACKLOG.md C4).
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
+  useEffect(() => {
+    syncSettingsFromDb().then(setSettings);
+  }, []);
 
   useEffect(() => {
     loadDbPath();
@@ -153,12 +126,12 @@ export default function Settings() {
       if (!selected) return;
       setChanging(true);
       const { invoke } = await import("@tauri-apps/api/core");
-      const newPath = await invoke<string>("change_db_dir", { newDir: selected });
-      setDbPath(newPath);
+      // Feedback vor dem Aufruf: der Prozess wird durch den Neustart
+      // beendet, danach laeuft hier nichts mehr.
       showSuccess(t.settings_db_copied_message);
+      await invoke("change_db_dir", { newDir: selected });
     } catch (err) {
       showError(`${err}`);
-    } finally {
       setChanging(false);
     }
   };
@@ -167,13 +140,10 @@ export default function Settings() {
     if (!isTauri()) return;
     try {
       const { invoke } = await import("@tauri-apps/api/core");
-      const { appDataDir } = await import("@tauri-apps/api/path");
-      const { remove } = await import("@tauri-apps/plugin-fs");
-      const dir = await appDataDir();
-      await remove(dir + "db_config.json");
+      // Der Speicherort wird beim Neustart umgestellt - solange die
+      // Verbindung offen ist, schreibt die App weiter in die alte Datei.
       showSuccess(t.settings_db_reset_message);
-      const path = await invoke<string>("get_db_path");
-      setDbPath(path);
+      await invoke("reset_db_dir");
     } catch (err) {
       showError(`${err}`);
     }
@@ -220,8 +190,8 @@ export default function Settings() {
         { title: t.settings_backup_restore, kind: "warning", okLabel: t.settings_backup_restore, cancelLabel: t.common_cancel }
       );
       if (!confirmed) return;
-      await invoke("restore_db", { sourcePath: selected });
       showSuccess(t.settings_backup_restored);
+      await invoke("restore_db", { sourcePath: selected });
     } catch (err) {
       showError(`${err}`);
     }

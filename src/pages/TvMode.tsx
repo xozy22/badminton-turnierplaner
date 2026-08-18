@@ -395,7 +395,8 @@ export default function TvMode() {
     );
   };
 
-  const renderTeam = (p1: number, p2: number | null, m: Match) => {
+  const renderTeam = (p1: number | null, p2: number | null, m: Match) => {
+    if (p1 === null) return <span className="italic text-gray-400">{t.common_bye}</span>;
     const wantIcons = showRestIcons && m.status !== "completed";
     return (
       <>

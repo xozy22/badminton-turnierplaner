@@ -33,8 +33,6 @@ import {
   getRounds,
   getAllMatchesByTournament,
   getAllSetsByTournament,
-  createRound,
-  createMatch,
   upsertSet,
   updateMatchResult,
   updateMatchCourt,
@@ -42,17 +40,20 @@ import {
   reopenMatch,
   updateTournament,
   updateTournamentStatus,
-  updateTournamentPhase,
   deleteTournament,
   addPlayerToTournament,
   removePlayerFromTournament,
   retirePlayerFromTournament,
   unretirePlayerFromTournament,
-  deleteRound,
   getRetiredPlayerIds,
   getTournamentPlayersDetailed,
   isTauri,
   updateTournamentKoScoring,
+  createSchedule,
+  setMatchWalkover,
+  getKingOfCourtQueue,
+  setKingOfCourtQueue,
+  deleteRoundsAtomically,
 } from "../../lib/db";
 import {
   generateRoundRobinSingles,
@@ -71,9 +72,11 @@ import {
   generateSwissFirstRoundDoubles,
   generateSwissRound,
   generateSwissRoundDoubles,
+  pickByePlayer,
   generateMonradRound,
   generateMonradRoundDoubles,
   generateKingOfCourtMatch,
+  advanceKingOfCourtQueue,
   generateWaterfallRound,
   advanceWaterfall,
   shufflePlayers,
@@ -85,7 +88,12 @@ import {
   getMaxScore,
   autoFillOpponentScore,
   getScoringDescription,
+  rankAcrossGroups,
+  limitStandingsToTopN,
+  limitTeamStandingsToTopN,
 } from "../../lib/scoring";
+import type { MatchSpec, RoundSpec } from "../../lib/db";
+import type { BracketMatch } from "../../lib/draw";
 import type {
   Tournament,
   Player,
@@ -120,6 +128,19 @@ import ReopenConfirmModal from "./components/modals/ReopenConfirmModal";
 import UndoRoundModal from "./components/modals/UndoRoundModal";
 import { getEffectiveScoring } from "./lib/effectiveScoring";
 import { getUndoTarget } from "./lib/undoTarget";
+import {
+  nextDoubleEliminationRounds,
+  bronzeCandidates,
+  type BracketMatchState,
+} from "../../lib/doubleElimination";
+import { getGrandFinalRounds, markGrandFinalRounds } from "../../lib/db";
+import {
+  matchesToCsv,
+  standingsToCsv,
+  paymentsToCsv,
+  toJsonExport,
+  exportFileName,
+} from "../../lib/resultExport";
 import { useSessionContext } from "../../lib/sessionContext";
 import { getSession } from "../../lib/sessions";
 import type { Session } from "../../lib/types";
@@ -128,13 +149,20 @@ import type { Session } from "../../lib/types";
 export default function TournamentView() {
   const { theme } = useTheme();
   const { t } = useT();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showInfo } = useToast();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const navSeeds = (location.state as any)?.seeds as number[] | undefined;
-  const navTeamsFromState = (location.state as any)?.teams as [number, number][] | undefined;
-  const navSavedSuccess = !!(location.state as any)?.savedSuccess;
+  // What the wizard may hand over when navigating here. Seeds are only a
+  // fallback these days — the draw reads them from the database (A4).
+  const navState = (location.state ?? null) as {
+    seeds?: number[];
+    teams?: [number, number][];
+    savedSuccess?: boolean;
+  } | null;
+  const navSeeds = navState?.seeds;
+  const navTeamsFromState = navState?.teams;
+  const navSavedSuccess = !!navState?.savedSuccess;
   const [tournament, setTournament] = useState<Tournament | null>(null);
   useDocumentTitle(tournament?.name ?? t.nav_tournaments);
   const navTeams = useMemo(() => {
@@ -196,6 +224,9 @@ export default function TournamentView() {
   // returns EMPTY for null session_id, so we can wire it unconditionally.
   const sessionCtx = useSessionContext(tournament?.session_id ?? null);
   const [sessionMeta, setSessionMeta] = useState<Session | null>(null);
+  // Round ids that hold a grand final. Stored per tournament because the
+  // match itself lives in the winners bracket (B4).
+  const [grandFinalRoundIds, setGrandFinalRoundIds] = useState<Set<number>>(new Set());
   // Lazy-loaded venue hall_config for the session's venue. Used to override
   // the tournament's local hall_config when participating in a session, so
   // every sibling sees the same physical court grid.
@@ -262,13 +293,19 @@ export default function TournamentView() {
     setSetsByMatch(sbm);
     setAllMatches(allMatches);
 
+    if (td.format === "double_elimination") {
+      setGrandFinalRoundIds(new Set(await getGrandFinalRounds(tournamentId)));
+    }
+
     const retiredIds = await getRetiredPlayerIds(tournamentId);
     setRetiredPlayerIds(new Set(retiredIds));
 
     const pd = await getTournamentPlayersDetailed(tournamentId);
     setPaymentData(pd);
 
-    const s = calculateStandings(p, allMatches, sbm);
+    // Swiss and Monrad award byes as wins and rank by Buchholz.
+    const swissLike = td.format === "swiss" || td.format === "monrad";
+    const s = calculateStandings(p, allMatches, sbm, swissLike ? { byesCountAsWins: true, withBuchholz: true } : {});
     setStandings(s);
 
     if (r.length > 0) {
@@ -293,7 +330,7 @@ export default function TournamentView() {
         setActiveRound((prev) => prev ?? r[0].id);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [tournamentId]);
 
   useEffect(() => {
@@ -315,196 +352,190 @@ export default function TournamentView() {
     return p ? playerDisplayName(p) : "?";
   };
 
+  /**
+   * Seed order for draws, taken from the persisted `seed_rank` column.
+   *
+   * The wizard writes seeds via setTournamentSeeds, so they survive a
+   * reload, a restart, or starting the tournament days later. The router
+   * state (`navSeeds`) used to be the only source, which silently dropped
+   * the seeding whenever the tournament was not started straight out of
+   * the wizard (REVIEW-BACKLOG.md A4) — it now only fills in before the
+   * first load of `paymentData` has arrived.
+   */
+  const seedOrder = useMemo(() => {
+    const persisted = paymentData
+      .filter((pd) => pd.seed_rank != null && pd.seed_rank > 0)
+      .sort((a, b) => (a.seed_rank ?? 0) - (b.seed_rank ?? 0))
+      .map((pd) => pd.player.id);
+    return persisted.length > 0 ? persisted : navSeeds ?? [];
+  }, [paymentData, navSeeds]);
+
+  /**
+   * Team seeding for doubles/mixed knockouts: a team inherits the best
+   * seed rank of its two players, and teams are ordered by that rank.
+   * Unseeded teams stay out of the list and are drawn at random.
+   */
+  const seedTeams = useCallback(
+    (teams: [number, number][]): [number, number][] => {
+      const rankOf = new Map<number, number>();
+      seedOrder.forEach((playerId, i) => rankOf.set(playerId, i));
+      return teams
+        .map((team) => {
+          const ranks = team.map((id) => rankOf.get(id)).filter((r): r is number => r !== undefined);
+          return { team, rank: ranks.length > 0 ? Math.min(...ranks) : Infinity };
+        })
+        .filter((entry) => entry.rank !== Infinity)
+        .sort((a, b) => a.rank - b.rank)
+        .map((entry) => entry.team);
+    },
+    [seedOrder],
+  );
+
+  /** Turns a bracket entry into a match spec; byes are stored as decided. */
+  const bracketToSpec = (m: BracketMatch, court: number | null): MatchSpec => ({
+    team1_p1: m.team1_p1,
+    team1_p2: m.team1_p2,
+    team2_p1: m.team2_p1,
+    team2_p2: m.team2_p2,
+    // A bye occupies no court and is complete on creation: the player
+    // advances, and generateNextKoRound picks them up like any winner.
+    court: m.team2_p1 === null ? null : court,
+    completed: m.team2_p1 === null,
+  });
+
   const handleStartTournament = async (playersOverride?: Player[]) => {
     if (!tournament) return;
 
     // Use override (from attendance check) or fall back to current state
     const ep = playersOverride ?? players;
 
-    await updateTournamentStatus(tournamentId, "active");
-
     const numCourts = tournament.courts || 1;
     // Bei mehreren Feldern: kein Court vorbelegen, Timer startet erst bei manueller Zuweisung
     // Bei 1 Feld: automatisch Feld 1 zuweisen (kein Drag&Drop noetig)
-    const autoAssign = numCourts === 1;
+    const court = numCourts === 1 ? 1 : null;
+
+    const fixedTeams = (): [number, number][] =>
+      navTeams && navTeams.length > 0
+        ? navTeams
+        : tournament.mode === "mixed"
+          ? formFixedMixedTeams(ep)
+          : formFixedDoubleTeams(ep);
+
+    // Everything is collected first and written in one transaction below,
+    // so a failure halfway cannot leave an active tournament with half a
+    // schedule (REVIEW-BACKLOG.md A6).
+    const schedule: RoundSpec[] = [];
+    let phase: string | null | undefined;
+    let roundNumber = 1;
 
     if (tournament.format === "round_robin" && tournament.mode === "singles") {
-      const allRounds = generateRoundRobinSingles(ep);
-      for (let i = 0; i < allRounds.length; i++) {
-        const roundId = await createRound(tournamentId, i + 1);
-        for (let mi = 0; mi < allRounds[i].length; mi++) {
-          const m = allRounds[i][mi];
-          const court = autoAssign ? 1 : null;
-          await createMatch(roundId, m.team1_p1, null, m.team2_p1, null, court);
-        }
+      for (const round of generateRoundRobinSingles(ep)) {
+        schedule.push({
+          roundNumber: roundNumber++,
+          matches: round.map((m) => ({ team1_p1: m.team1_p1, team2_p1: m.team2_p1, court })),
+        });
       }
-    } else if (tournament.format === "elimination" && tournament.mode === "singles") {
-      const matches = generateEliminationBracket(ep, navSeeds);
-      const roundId = await createRound(tournamentId, 1);
-      for (const m of matches) {
-        if (m.team2_p1 !== -1) {
-          const court = autoAssign ? 1 : null;
-          await createMatch(roundId, m.team1_p1, null, m.team2_p1, null, court);
-        }
+    } else if (tournament.format === "round_robin") {
+      for (const round of generateRoundRobinDoubles(fixedTeams())) {
+        schedule.push({
+          roundNumber: roundNumber++,
+          matches: round.map((m) => ({ ...m, court })),
+        });
       }
-    } else if (tournament.format === "elimination" && tournament.mode !== "singles") {
-      // Doppel/Mixed KO: Manuelle Teams oder automatisch bilden
-      const teams = navTeams && navTeams.length > 0
-        ? navTeams
-        : tournament.mode === "mixed"
-          ? formFixedMixedTeams(ep)
-          : formFixedDoubleTeams(ep);
-      const matches = generateEliminationBracketDoubles(teams);
-      const roundId = await createRound(tournamentId, 1);
-      for (const m of matches) {
-        const court = autoAssign ? 1 : null;
-        await createMatch(roundId, m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2, court);
-      }
+    } else if (tournament.format === "elimination") {
+      const bracket =
+        tournament.mode === "singles"
+          ? generateEliminationBracket(ep, seedOrder)
+          : generateEliminationBracketDoubles(fixedTeams(), seedTeams(fixedTeams()));
+      schedule.push({
+        roundNumber: roundNumber++,
+        matches: bracket.map((m) => bracketToSpec(m, court)),
+      });
     } else if (tournament.format === "group_ko") {
-      // Gruppenphase starten
-      await updateTournamentPhase(tournamentId, "group");
-      const groups = splitIntoGroups(ep, tournament.num_groups || 2, navSeeds);
-      let roundCounter = 1;
-
+      phase = "group";
       if (tournament.mode === "singles") {
-        // Einzel: Round-Robin innerhalb jeder Gruppe
+        const groups = splitIntoGroups(ep, tournament.num_groups || 2, seedOrder);
         for (let g = 0; g < groups.length; g++) {
-          const groupPlayers = groups[g];
-          if (groupPlayers.length < 2) continue;
-          const groupRounds = generateRoundRobinSingles(groupPlayers);
-          for (let r = 0; r < groupRounds.length; r++) {
-            const roundId = await createRound(tournamentId, roundCounter++, "group", g + 1);
-            for (const m of groupRounds[r]) {
-              const court = autoAssign ? 1 : null;
-              await createMatch(roundId, m.team1_p1, null, m.team2_p1, null, court);
-            }
+          if (groups[g].length < 2) continue;
+          for (const round of generateRoundRobinSingles(groups[g])) {
+            schedule.push({
+              roundNumber: roundNumber++,
+              phase: "group",
+              groupNumber: g + 1,
+              matches: round.map((m) => ({ team1_p1: m.team1_p1, team2_p1: m.team2_p1, court })),
+            });
           }
         }
       } else {
-        // Doppel/Mixed: Feste Teams, Round-Robin innerhalb jeder Gruppe
-        // Erst Teams bilden, dann in Gruppen aufteilen
-        const allTeams = navTeams && navTeams.length > 0
-          ? navTeams
-          : tournament.mode === "mixed"
-            ? formFixedMixedTeams(ep)
-            : formFixedDoubleTeams(ep);
-        const teamGroups = splitTeamsIntoGroups(allTeams, tournament.num_groups || 2);
-
+        const teams = fixedTeams();
+        const teamGroups = splitTeamsIntoGroups(teams, tournament.num_groups || 2, seedTeams(teams));
         for (let g = 0; g < teamGroups.length; g++) {
-          const groupTeams = teamGroups[g];
-          if (groupTeams.length < 2) continue;
-          const groupRounds = generateRoundRobinDoubles(groupTeams);
-          for (let r = 0; r < groupRounds.length; r++) {
-            const roundId = await createRound(tournamentId, roundCounter++, "group", g + 1);
-            for (const m of groupRounds[r]) {
-              const court = autoAssign ? 1 : null;
-              await createMatch(roundId, m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2, court);
-            }
+          if (teamGroups[g].length < 2) continue;
+          for (const round of generateRoundRobinDoubles(teamGroups[g])) {
+            schedule.push({
+              roundNumber: roundNumber++,
+              phase: "group",
+              groupNumber: g + 1,
+              matches: round.map((m) => ({ ...m, court })),
+            });
           }
         }
       }
-    } else if (tournament.format === "round_robin" && tournament.mode !== "singles") {
-      // Doppel/Mixed Round-Robin: Feste Teams
-      const teams = navTeams && navTeams.length > 0
-        ? navTeams
-        : tournament.mode === "mixed"
-          ? formFixedMixedTeams(ep)
-          : formFixedDoubleTeams(ep);
-      const allRounds = generateRoundRobinDoubles(teams);
-      for (let i = 0; i < allRounds.length; i++) {
-        const roundId = await createRound(tournamentId, i + 1);
-        for (const m of allRounds[i]) {
-          const court = autoAssign ? 1 : null;
-          await createMatch(roundId, m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2, court);
-        }
-      }
-    } else if (tournament.format === "random_doubles") {
-      await generateNextRound();
-    } else if (tournament.format === "swiss") {
-      await updateTournamentPhase(tournamentId, "swiss");
-      if (tournament.mode === "singles") {
-        const matches = generateSwissFirstRound(ep);
-        const roundId = await createRound(tournamentId, 1, "swiss");
-        for (const m of matches) {
-          const court = autoAssign ? 1 : null;
-          await createMatch(roundId, m.team1_p1, null, m.team2_p1, null, court);
-        }
-      } else {
-        const teams = navTeams && navTeams.length > 0
-          ? navTeams
-          : tournament.mode === "mixed"
-            ? formFixedMixedTeams(ep)
-            : formFixedDoubleTeams(ep);
-        const matches = generateSwissFirstRoundDoubles(teams);
-        const roundId = await createRound(tournamentId, 1, "swiss");
-        for (const m of matches) {
-          const court = autoAssign ? 1 : null;
-          await createMatch(roundId, m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2, court);
-        }
-      }
-    } else if (tournament.format === "monrad") {
-      // Monrad: reuse Swiss infrastructure with random first round
-      await updateTournamentPhase(tournamentId, "swiss");
-      if (tournament.mode === "singles") {
-        const matches = generateSwissFirstRound(ep);
-        const roundId = await createRound(tournamentId, 1, "swiss");
-        for (const m of matches) {
-          const court = autoAssign ? 1 : null;
-          await createMatch(roundId, m.team1_p1, null, m.team2_p1, null, court);
-        }
-      } else {
-        const teams = navTeams && navTeams.length > 0
-          ? navTeams
-          : tournament.mode === "mixed"
-            ? formFixedMixedTeams(ep)
-            : formFixedDoubleTeams(ep);
-        const matches = generateSwissFirstRoundDoubles(teams);
-        const roundId = await createRound(tournamentId, 1, "swiss");
-        for (const m of matches) {
-          const court = autoAssign ? 1 : null;
-          await createMatch(roundId, m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2, court);
-        }
-      }
-    } else if (tournament.format === "king_of_court") {
-      // King of the Court: shuffle players, generate first match
-      const shuffled = shufflePlayers(ep.map((p) => p.id));
-      if (shuffled.length < 2) return;
-      const { team1_p1, team2_p1 } = generateKingOfCourtMatch(shuffled);
-      const roundId = await createRound(tournamentId, 1);
-      const court = autoAssign ? 1 : null;
-      await createMatch(roundId, team1_p1, null, team2_p1, null, court);
-    } else if (tournament.format === "waterfall") {
-      // Waterfall: shuffle players, assign to courts, generate first round
-      const shuffled = shufflePlayers(ep.map((p) => p.id));
-      const waterfallMatches = generateWaterfallRound(shuffled);
-      const roundId = await createRound(tournamentId, 1);
-      for (const m of waterfallMatches) {
-        await createMatch(roundId, m.team1_p1, null, m.team2_p1, null, m.court);
-      }
+    } else if (tournament.format === "swiss" || tournament.format === "monrad") {
+      // Monrad reuses the Swiss infrastructure; both open with a random round.
+      phase = "swiss";
+      const matches =
+        tournament.mode === "singles"
+          ? generateSwissFirstRound(ep).map((m) => ({ team1_p1: m.team1_p1, team2_p1: m.team2_p1, court }))
+          : generateSwissFirstRoundDoubles(fixedTeams()).map((m) => ({ ...m, court }));
+      schedule.push({ roundNumber: roundNumber++, phase: "swiss", matches });
     } else if (tournament.format === "double_elimination") {
-      await updateTournamentPhase(tournamentId, "winners");
-      if (tournament.mode === "singles") {
-        const matches = generateEliminationBracket(ep, navSeeds);
-        const roundId = await createRound(tournamentId, 1, "winners");
-        for (const m of matches) {
-          if (m.team2_p1 !== -1) {
-            const court = autoAssign ? 1 : null;
-            await createMatch(roundId, m.team1_p1, null, m.team2_p1, null, court);
-          }
-        }
-      } else {
-        const teams = navTeams && navTeams.length > 0
-          ? navTeams
-          : tournament.mode === "mixed"
-            ? formFixedMixedTeams(ep)
-            : formFixedDoubleTeams(ep);
-        const matches = generateEliminationBracketDoubles(teams);
-        const roundId = await createRound(tournamentId, 1, "winners");
-        for (const m of matches) {
-          const court = autoAssign ? 1 : null;
-          await createMatch(roundId, m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2, court);
-        }
-      }
+      phase = "winners";
+      const bracket =
+        tournament.mode === "singles"
+          ? generateEliminationBracket(ep, seedOrder)
+          : generateEliminationBracketDoubles(fixedTeams(), seedTeams(fixedTeams()));
+      schedule.push({
+        roundNumber: roundNumber++,
+        phase: "winners",
+        matches: bracket.map((m) => bracketToSpec(m, court)),
+      });
+    } else if (tournament.format === "king_of_court") {
+      const queue = shufflePlayers(ep.map((p) => p.id));
+      if (queue.length < 2) return;
+      const { team1_p1, team2_p1 } = generateKingOfCourtMatch(queue);
+      // The drawn order is the queue for the rest of the tournament.
+      await setKingOfCourtQueue(tournamentId, queue);
+      schedule.push({ roundNumber: roundNumber++, matches: [{ team1_p1, team2_p1, court }] });
+    } else if (tournament.format === "waterfall") {
+      const assignments = shufflePlayers(ep.map((p) => p.id));
+      const drawn = generateWaterfallRound(assignments, numCourts);
+      schedule.push({
+        roundNumber: roundNumber++,
+        matches: drawn.matches.map((m) => ({
+          team1_p1: m.team1_p1,
+          team2_p1: m.team2_p1,
+          court: m.court,
+        })),
+      });
+    } else if (tournament.format === "random_doubles") {
+      // Draws its first round through the same path as every later one.
+      await updateTournamentStatus(tournamentId, "active");
+      await generateNextRound();
+      return;
+    }
+
+    if (schedule.length === 0) {
+      showError(t.tournament_view_start_failed);
+      return;
+    }
+
+    try {
+      await createSchedule(tournamentId, schedule, { status: "active", phase });
+    } catch (err) {
+      console.error("handleStartTournament: schedule creation failed:", err);
+      showError(t.tournament_view_start_failed);
+      return;
     }
 
     loadAll();
@@ -553,28 +584,28 @@ export default function TournamentView() {
       }
     }
 
-    let newMatches: {
-      team1_p1: number;
-      team1_p2: number;
-      team2_p1: number;
-      team2_p2: number;
-    }[] = [];
+    const drawn =
+      tournament.mode === "mixed"
+        ? generateMixedDoublesRound(activePlayers, prevPairings, matchCounts, pairingCounts)
+        : generateRandomDoublesRound(activePlayers, prevPairings, matchCounts, pairingCounts);
 
-    if (tournament.mode === "mixed") {
-      newMatches = generateMixedDoublesRound(activePlayers, prevPairings);
-    } else {
-      newMatches = generateRandomDoublesRound(activePlayers, prevPairings, matchCounts, pairingCounts);
-    }
-
-    if (newMatches.length === 0) return;
+    if (drawn.matches.length === 0) return;
 
     const numCourts = tournament.courts || 1;
-    const autoAssign = numCourts === 1;
-    const roundId = await createRound(tournamentId, nextRoundNum);
-    for (let mi = 0; mi < newMatches.length; mi++) {
-      const m = newMatches[mi];
-      const court = autoAssign ? 1 : null;
-      await createMatch(roundId, m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2, court);
+    const court = numCourts === 1 ? 1 : null;
+    const [roundId] = await createSchedule(tournamentId, [
+      { roundNumber: nextRoundNum, matches: drawn.matches.map((m) => ({ ...m, court })) },
+    ]);
+
+    // Name everyone sitting this round out. Up to three players can be left
+    // over in doubles, and previously none of them were reported.
+    if (drawn.byePlayers.length > 0) {
+      showInfo(
+        t.tournament_view_round_byes.replace(
+          "{players}",
+          drawn.byePlayers.map((pid) => playerName(pid)).join(", "),
+        ),
+      );
     }
 
     // Only auto-navigate to the new round tab if the previous round was already complete.
@@ -583,6 +614,23 @@ export default function TournamentView() {
       setActiveRound(roundId);
     }
     loadAll();
+  };
+
+  /**
+   * How often each player has already had a bye, read straight from the
+   * stored bye matches (team2_p1 === null). Feeds pickByePlayer so the same
+   * player does not sit out every round (REVIEW-BACKLOG.md B2).
+   */
+  const countByes = (matches: Match[]): Map<number, number> => {
+    const counts = new Map<number, number>();
+    for (const m of matches) {
+      if (m.team2_p1 !== null) continue;
+      for (const pid of [m.team1_p1, m.team1_p2]) {
+        if (pid === null) continue;
+        counts.set(pid, (counts.get(pid) ?? 0) + 1);
+      }
+    }
+    return counts;
   };
 
   const generateNextSwissRound = async () => {
@@ -600,6 +648,7 @@ export default function TournamentView() {
     // Build previousMatchups set
     const previousMatchups = new Set<string>();
     for (const m of allSwissMatches) {
+      if (m.team2_p1 === null) continue; // bye: no matchup to remember
       if (tournament.mode === "singles") {
         const ids = [m.team1_p1, m.team2_p1].sort((a, b) => a - b);
         previousMatchups.add(`${ids[0]}-${ids[1]}`);
@@ -617,23 +666,41 @@ export default function TournamentView() {
     const nextRoundNum = rounds.length + 1;
 
     if (tournament.mode === "singles") {
-      const swissStandings = calculateStandings(activePlayers, allSwissMatches, allSwissSets);
-      const newMatches = generateSwissRound(swissStandings, previousMatchups);
+      // Swiss counts a bye as a win and ranks by Buchholz — the strength of
+      // the opponents faced (REVIEW-BACKLOG.md B2).
+      const swissStandings = calculateStandings(activePlayers, allSwissMatches, allSwissSets, {
+        byesCountAsWins: true,
+        withBuchholz: true,
+      });
+      const byePlayer = pickByePlayer(swissStandings, countByes(allSwissMatches));
+      const newMatches = generateSwissRound(swissStandings, previousMatchups, byePlayer);
       if (newMatches.length === 0) return;
-      const roundId = await createRound(tournamentId, nextRoundNum, "swiss");
-      for (const m of newMatches) {
-        const court = autoAssign ? 1 : null;
-        await createMatch(roundId, m.team1_p1, null, m.team2_p1, null, court);
+
+      const roundMatches: MatchSpec[] = newMatches.map((m) => ({
+        team1_p1: m.team1_p1,
+        team2_p1: m.team2_p1,
+        court: autoAssign ? 1 : null,
+      }));
+      // The bye is stored as a decided match, so it shows up in the history
+      // and the next round knows who has already sat out.
+      if (byePlayer != null) {
+        roundMatches.push({ team1_p1: byePlayer, team2_p1: null, completed: true });
       }
+
+      await createSchedule(tournamentId, [
+        { roundNumber: nextRoundNum, phase: "swiss", matches: roundMatches },
+      ]);
     } else {
       const teamStandings = calculateTeamStandings(activePlayers, allSwissMatches, allSwissSets);
       const newMatches = generateSwissRoundDoubles(teamStandings, previousMatchups);
       if (newMatches.length === 0) return;
-      const roundId = await createRound(tournamentId, nextRoundNum, "swiss");
-      for (const m of newMatches) {
-        const court = autoAssign ? 1 : null;
-        await createMatch(roundId, m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2, court);
-      }
+      await createSchedule(tournamentId, [
+        {
+          roundNumber: nextRoundNum,
+          phase: "swiss",
+          matches: newMatches.map((m) => ({ ...m, court: autoAssign ? 1 : null })),
+        },
+      ]);
     }
 
     loadAll();
@@ -656,24 +723,53 @@ export default function TournamentView() {
     const autoAssign = numCourts === 1;
     const nextRoundNum = rounds.length + 1;
 
-    if (tournament.mode === "singles") {
-      const monradStandings = calculateStandings(activePlayers, allMonradMatches, allMonradSets);
-      const newMatches = generateMonradRound(monradStandings);
-      if (newMatches.length === 0) return;
-      const roundId = await createRound(tournamentId, nextRoundNum, "swiss");
-      for (const m of newMatches) {
-        const court = autoAssign ? 1 : null;
-        await createMatch(roundId, m.team1_p1, null, m.team2_p1, null, court);
+    // Monrad pairs by rank but must not repeat a matchup, so it needs the
+    // same history as Swiss (REVIEW-BACKLOG.md B3).
+    const monradHistory = new Set<string>();
+    for (const m of allMonradMatches) {
+      if (m.team2_p1 === null) continue;
+      if (tournament.mode === "singles") {
+        const ids = [m.team1_p1, m.team2_p1].sort((a, b) => a - b);
+        monradHistory.add(`${ids[0]}-${ids[1]}`);
+      } else {
+        const t1Key = [m.team1_p1, m.team1_p2!].sort((a, b) => a - b).join("-");
+        const t2Key = [m.team2_p1, m.team2_p2!].sort((a, b) => a - b).join("-");
+        const parts = [t1Key, t2Key].sort();
+        monradHistory.add(`${parts[0]}-${parts[1]}`);
       }
+    }
+
+    if (tournament.mode === "singles") {
+      const monradStandings = calculateStandings(activePlayers, allMonradMatches, allMonradSets, {
+        byesCountAsWins: true,
+      });
+      const byePlayer = pickByePlayer(monradStandings, countByes(allMonradMatches));
+      const newMatches = generateMonradRound(monradStandings, monradHistory, byePlayer);
+      if (newMatches.length === 0) return;
+
+      const roundMatches: MatchSpec[] = newMatches.map((m) => ({
+        team1_p1: m.team1_p1,
+        team2_p1: m.team2_p1,
+        court: autoAssign ? 1 : null,
+      }));
+      if (byePlayer != null) {
+        roundMatches.push({ team1_p1: byePlayer, team2_p1: null, completed: true });
+      }
+
+      await createSchedule(tournamentId, [
+        { roundNumber: nextRoundNum, phase: "swiss", matches: roundMatches },
+      ]);
     } else {
       const teamStandings = calculateTeamStandings(activePlayers, allMonradMatches, allMonradSets);
-      const newMatches = generateMonradRoundDoubles(teamStandings);
+      const newMatches = generateMonradRoundDoubles(teamStandings, monradHistory);
       if (newMatches.length === 0) return;
-      const roundId = await createRound(tournamentId, nextRoundNum, "swiss");
-      for (const m of newMatches) {
-        const court = autoAssign ? 1 : null;
-        await createMatch(roundId, m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2, court);
-      }
+      await createSchedule(tournamentId, [
+        {
+          roundNumber: nextRoundNum,
+          phase: "swiss",
+          matches: newMatches.map((m) => ({ ...m, court: autoAssign ? 1 : null })),
+        },
+      ]);
     }
 
     loadAll();
@@ -696,27 +792,29 @@ export default function TournamentView() {
     if (completedMatches.length === 0) return;
 
     const lastMatch = completedMatches[0];
+    if (lastMatch.team2_p1 === null) return; // bye — no challenger to rotate
     const winner = lastMatch.winner_team === 1 ? lastMatch.team1_p1 : lastMatch.team2_p1;
     const loser = lastMatch.winner_team === 1 ? lastMatch.team2_p1 : lastMatch.team1_p1;
 
-    // Build queue: winner first, then all other players who aren't winner/loser, then loser at back
-    const allPlayerIds = players.filter((p) => !retiredPlayerIds.has(p.id)).map((p) => p.id);
-    const inMatch = new Set([winner, loser]);
-    const others = allPlayerIds.filter((id) => !inMatch.has(id));
+    const active = new Set(players.filter((p) => !retiredPlayerIds.has(p.id)).map((p) => p.id));
 
-    // Reconstruct remaining queue from previous state
-    // The queue order is: winner (stays), then others in previous order, then loser at back
-    const newQueue = [winner, ...others, loser];
+    // The stored queue is the source of truth. Tournaments started before
+    // the queue was persisted fall back to the current player order once.
+    const storedQueue = await getKingOfCourtQueue(tournamentId);
+    const baseQueue = storedQueue.length > 0
+      ? storedQueue
+      : [winner, ...[...active].filter((id) => id !== winner && id !== loser), loser];
 
+    const newQueue = advanceKingOfCourtQueue(baseQueue, winner, loser, active);
     if (newQueue.length < 2) return;
 
     const { team1_p1, team2_p1 } = generateKingOfCourtMatch(newQueue);
     const numCourts = tournament.courts || 1;
-    const autoAssign = numCourts === 1;
     const nextRoundNum = rounds.length + 1;
-    const roundId = await createRound(tournamentId, nextRoundNum);
-    const court = autoAssign ? 1 : null;
-    await createMatch(roundId, team1_p1, null, team2_p1, null, court);
+    await setKingOfCourtQueue(tournamentId, newQueue);
+    await createSchedule(tournamentId, [
+      { roundNumber: nextRoundNum, matches: [{ team1_p1, team2_p1, court: numCourts === 1 ? 1 : null }] },
+    ]);
 
     loadAll();
   };
@@ -732,7 +830,7 @@ export default function TournamentView() {
     // Build results from last round
     const results: { court: number; winner: number; loser: number }[] = [];
     for (const m of lastMatches) {
-      if (!m.winner_team || !m.court) continue;
+      if (!m.winner_team || !m.court || m.team2_p1 === null) continue;
       results.push({
         court: m.court,
         winner: m.winner_team === 1 ? m.team1_p1 : m.team2_p1,
@@ -747,7 +845,7 @@ export default function TournamentView() {
     const sortedMatches = [...lastMatches].sort((a, b) => (a.court || 0) - (b.court || 0));
     for (const m of sortedMatches) {
       currentAssignments.push(m.team1_p1);
-      currentAssignments.push(m.team2_p1);
+      if (m.team2_p1 !== null) currentAssignments.push(m.team2_p1);
     }
     // Add any sitting-out players
     const inMatch = new Set(currentAssignments);
@@ -757,14 +855,43 @@ export default function TournamentView() {
       }
     }
 
-    // Advance
+    // How often each player has sat out so far, so the next rest goes to
+    // whoever has had the fewest (REVIEW-BACKLOG.md B6).
+    const restCounts = new Map<number, number>();
+    for (const round of rounds) {
+      const roundMatches = matchesByRound.get(round.id) || [];
+      if (roundMatches.length === 0) continue;
+      const playedThisRound = new Set<number>();
+      for (const m of roundMatches) {
+        playedThisRound.add(m.team1_p1);
+        if (m.team2_p1 !== null) playedThisRound.add(m.team2_p1);
+      }
+      for (const p of players) {
+        if (retiredPlayerIds.has(p.id)) continue;
+        if (!playedThisRound.has(p.id)) {
+          restCounts.set(p.id, (restCounts.get(p.id) ?? 0) + 1);
+        }
+      }
+    }
+
     const newAssignments = advanceWaterfall(currentAssignments, results);
-    const waterfallMatches = generateWaterfallRound(newAssignments);
+    const drawn = generateWaterfallRound(newAssignments, tournament.courts || 1, restCounts);
 
     const nextRoundNum = rounds.length + 1;
-    const roundId = await createRound(tournamentId, nextRoundNum);
-    for (const m of waterfallMatches) {
-      await createMatch(roundId, m.team1_p1, null, m.team2_p1, null, m.court);
+    await createSchedule(tournamentId, [
+      {
+        roundNumber: nextRoundNum,
+        matches: drawn.matches.map((m) => ({ team1_p1: m.team1_p1, team2_p1: m.team2_p1, court: m.court })),
+      },
+    ]);
+
+    if (drawn.byePlayers.length > 0) {
+      showInfo(
+        t.tournament_view_round_byes.replace(
+          "{players}",
+          drawn.byePlayers.map((pid) => playerName(pid)).join(", "),
+        ),
+      );
     }
 
     loadAll();
@@ -783,7 +910,7 @@ export default function TournamentView() {
     const pIds = new Set<number>();
     for (const m of gMatches) {
       pIds.add(m.team1_p1); if (m.team1_p2) pIds.add(m.team1_p2);
-      pIds.add(m.team2_p1); if (m.team2_p2) pIds.add(m.team2_p2);
+      if (m.team2_p1) pIds.add(m.team2_p1); if (m.team2_p2) pIds.add(m.team2_p2);
     }
     return { gMatches, gSets, pIds };
   };
@@ -809,30 +936,52 @@ export default function TournamentView() {
       : rawQualify * numGroups; // old format (per group) → calculate total
     const qualifyPerGroup = Math.floor(koSize / numGroups);
 
-    await updateTournamentPhase(tournamentId, "ko");
-
+    // The phase flip travels with the schedule write below: setting it here
+    // would strand the tournament in the KO phase whenever the bracket
+    // cannot be built (REVIEW-BACKLOG.md A6).
     const numCourts = tournament.courts || 1;
-    const autoAssign = numCourts === 1;
-    const koRoundId = await createRound(tournamentId, rounds.length + 1, "ko", null);
+    const court = numCourts === 1 ? 1 : null;
+    const koRoundNumber = rounds.length + 1;
+    let koMatchSpecs: MatchSpec[] = [];
 
     if (isDoubles) {
       // Doppel/Mixed: Qualifizierte TEAMS sammeln
       const qualifiedTeams: [number, number][] = [];
-      const runnersUp: { team: [number, number]; wins: number; losses: number; setsWon: number; setsLost: number; pointsWon: number; pointsLost: number }[] = [];
+      const groupTables: { group: number; standings: ReturnType<typeof calculateTeamStandings>; data: ReturnType<typeof getGroupData>; players: Player[] }[] = [];
 
       for (let g = 1; g <= numGroups; g++) {
-        const { gMatches, gSets, pIds } = getGroupData(g);
-        const gPlayers = players.filter((p) => pIds.has(p.id));
-        const teamStandings = calculateTeamStandings(gPlayers, gMatches, gSets);
-        for (let i = 0; i < teamStandings.length; i++) {
-          const ts = teamStandings[i];
+        const data = getGroupData(g);
+        const gPlayers = players.filter((p) => data.pIds.has(p.id));
+        groupTables.push({
+          group: g,
+          standings: calculateTeamStandings(gPlayers, data.gMatches, data.gSets),
+          data,
+          players: gPlayers,
+        });
+      }
+
+      // Comparable records across groups of different sizes: results
+      // against the bottom-placed teams of the larger groups are dropped
+      // (REVIEW-BACKLOG.md B11).
+      const smallestGroup = Math.min(...groupTables.map((t) => t.standings.length));
+      const runnersUp: { team: [number, number]; wins: number; setsWon: number; setsLost: number; pointsWon: number; pointsLost: number }[] = [];
+
+      for (const table of groupTables) {
+        const comparable = limitTeamStandingsToTopN(
+          table.standings, table.players, table.data.gMatches, table.data.gSets, smallestGroup,
+        );
+        const comparableByKey = new Map(comparable.map((e) => [e.teamKey, e]));
+
+        for (let i = 0; i < table.standings.length; i++) {
+          const ts = table.standings[i];
           if (i < qualifyPerGroup) {
             qualifiedTeams.push([ts.player1.id, ts.player2.id]);
           } else {
+            const c = comparableByKey.get(ts.teamKey) ?? ts;
             runnersUp.push({
               team: [ts.player1.id, ts.player2.id],
-              wins: ts.wins, losses: ts.losses, setsWon: ts.setsWon, setsLost: ts.setsLost,
-              pointsWon: ts.pointsWon, pointsLost: ts.pointsLost,
+              wins: c.wins, setsWon: c.setsWon, setsLost: c.setsLost,
+              pointsWon: c.pointsWon, pointsLost: c.pointsLost,
             });
           }
         }
@@ -841,50 +990,52 @@ export default function TournamentView() {
       // Fill up with best runners-up, sorted by percentage-based criteria
       const target = koSize > qualifiedTeams.length ? koSize : nextPowerOf2(qualifiedTeams.length);
       if (qualifiedTeams.length < target && runnersUp.length > 0) {
-        runnersUp.sort((a, b) => {
-          // 1. Match win percentage (wins / total matches)
-          const matchPctA = (a.wins + a.losses) > 0 ? a.wins / (a.wins + a.losses) : 0;
-          const matchPctB = (b.wins + b.losses) > 0 ? b.wins / (b.wins + b.losses) : 0;
-          if (matchPctB !== matchPctA) return matchPctB - matchPctA;
-          // 2. Set win percentage (setsWon / total sets)
-          const setPctA = (a.setsWon + a.setsLost) > 0 ? a.setsWon / (a.setsWon + a.setsLost) : 0;
-          const setPctB = (b.setsWon + b.setsLost) > 0 ? b.setsWon / (b.setsWon + b.setsLost) : 0;
-          if (setPctB !== setPctA) return setPctB - setPctA;
-          // 3. Point win percentage (pointsWon / total points)
-          const ptPctA = (a.pointsWon + a.pointsLost) > 0 ? a.pointsWon / (a.pointsWon + a.pointsLost) : 0;
-          const ptPctB = (b.pointsWon + b.pointsLost) > 0 ? b.pointsWon / (b.pointsWon + b.pointsLost) : 0;
-          return ptPctB - ptPctA;
-        });
+        const ranked = rankAcrossGroups(runnersUp, (r) => r.team[0]);
         const needed = target - qualifiedTeams.length;
-        for (let i = 0; i < Math.min(needed, runnersUp.length); i++) {
-          qualifiedTeams.push(runnersUp[i].team);
+        for (let i = 0; i < Math.min(needed, ranked.length); i++) {
+          qualifiedTeams.push(ranked[i].team);
         }
       }
 
       if (qualifiedTeams.length < 2) return;
-      const koMatches = generateEliminationBracketDoubles(qualifiedTeams);
-      for (const m of koMatches) {
-        const court = autoAssign ? 1 : null;
-        await createMatch(koRoundId, m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2, court);
-      }
+      // Qualifiers arrive in group order (winners first), which doubles as
+      // the seeding order for the bracket.
+      koMatchSpecs = generateEliminationBracketDoubles(qualifiedTeams, qualifiedTeams)
+        .map((m) => bracketToSpec(m, court));
     } else {
       // Einzel: Qualifizierte SPIELER sammeln
       const qualified: number[] = [];
-      const runnersUp: { playerId: number; wins: number; losses: number; setsWon: number; setsLost: number; pointsWon: number; pointsLost: number }[] = [];
+      const groupTables = [];
 
       for (let g = 1; g <= numGroups; g++) {
-        const { gMatches, gSets, pIds } = getGroupData(g);
-        const gPlayers = players.filter((p) => pIds.has(p.id));
-        const gStandings = calculateStandings(gPlayers, gMatches, gSets);
-        for (let i = 0; i < gStandings.length; i++) {
+        const data = getGroupData(g);
+        const gPlayers = players.filter((p) => data.pIds.has(p.id));
+        groupTables.push({
+          standings: calculateStandings(gPlayers, data.gMatches, data.gSets),
+          data,
+        });
+      }
+
+      // Same comparability correction as in the doubles branch above.
+      const smallestGroup = Math.min(...groupTables.map((t) => t.standings.length));
+      const runnersUp: { playerId: number; wins: number; setsWon: number; setsLost: number; pointsWon: number; pointsLost: number }[] = [];
+
+      for (const table of groupTables) {
+        const comparable = limitStandingsToTopN(
+          table.standings, table.data.gMatches, table.data.gSets, smallestGroup,
+        );
+        const comparableById = new Map(comparable.map((e) => [e.player.id, e]));
+
+        for (let i = 0; i < table.standings.length; i++) {
+          const entry = table.standings[i];
           if (i < qualifyPerGroup) {
-            qualified.push(gStandings[i].player.id);
+            qualified.push(entry.player.id);
           } else {
-            const s = gStandings[i];
+            const c = comparableById.get(entry.player.id) ?? entry;
             runnersUp.push({
-              playerId: s.player.id,
-              wins: s.wins, losses: s.losses, setsWon: s.setsWon, setsLost: s.setsLost,
-              pointsWon: s.pointsWon, pointsLost: s.pointsLost,
+              playerId: entry.player.id,
+              wins: c.wins, setsWon: c.setsWon, setsLost: c.setsLost,
+              pointsWon: c.pointsWon, pointsLost: c.pointsLost,
             });
           }
         }
@@ -893,23 +1044,10 @@ export default function TournamentView() {
       // Fill up with best runners-up, sorted by percentage-based criteria
       const target = koSize > qualified.length ? koSize : nextPowerOf2(qualified.length);
       if (qualified.length < target && runnersUp.length > 0) {
-        runnersUp.sort((a, b) => {
-          // 1. Match win percentage
-          const matchPctA = (a.wins + a.losses) > 0 ? a.wins / (a.wins + a.losses) : 0;
-          const matchPctB = (b.wins + b.losses) > 0 ? b.wins / (b.wins + b.losses) : 0;
-          if (matchPctB !== matchPctA) return matchPctB - matchPctA;
-          // 2. Set win percentage
-          const setPctA = (a.setsWon + a.setsLost) > 0 ? a.setsWon / (a.setsWon + a.setsLost) : 0;
-          const setPctB = (b.setsWon + b.setsLost) > 0 ? b.setsWon / (b.setsWon + b.setsLost) : 0;
-          if (setPctB !== setPctA) return setPctB - setPctA;
-          // 3. Point win percentage
-          const ptPctA = (a.pointsWon + a.pointsLost) > 0 ? a.pointsWon / (a.pointsWon + a.pointsLost) : 0;
-          const ptPctB = (b.pointsWon + b.pointsLost) > 0 ? b.pointsWon / (b.pointsWon + b.pointsLost) : 0;
-          return ptPctB - ptPctA;
-        });
+        const ranked = rankAcrossGroups(runnersUp, (r) => r.playerId);
         const needed = target - qualified.length;
-        for (let i = 0; i < Math.min(needed, runnersUp.length); i++) {
-          qualified.push(runnersUp[i].playerId);
+        for (let i = 0; i < Math.min(needed, ranked.length); i++) {
+          qualified.push(ranked[i].playerId);
         }
       }
 
@@ -917,175 +1055,115 @@ export default function TournamentView() {
       const qualifiedPlayers = qualified
         .map((id) => players.find((p) => p.id === id))
         .filter((p): p is NonNullable<typeof p> => !!p);
-      const koMatches = generateEliminationBracket(qualifiedPlayers);
-      for (const m of koMatches) {
-        if (m.team2_p1 !== -1) {
-          const court = autoAssign ? 1 : null;
-          await createMatch(koRoundId, m.team1_p1, null, m.team2_p1, null, court);
-        }
-      }
+      // Group order (winners first) is the seeding order, so group winners
+      // are kept apart and get the byes when the field is not a power of two.
+      koMatchSpecs = generateEliminationBracket(qualifiedPlayers, qualified)
+        .map((m) => bracketToSpec(m, court));
     }
+
+    if (koMatchSpecs.length === 0) return;
+
+    const [koRoundId] = await createSchedule(
+      tournamentId,
+      [{ roundNumber: koRoundNumber, phase: "ko", matches: koMatchSpecs }],
+      { phase: "ko" },
+    );
 
     setActiveRound(koRoundId);
     loadAll();
   };
 
+  /**
+   * Translates the stored rounds into the shape the bracket module works
+   * on. `grand_final` is stored as a winners round with a single match, so
+   * it is recognised by being the last winners round with one match after a
+   * losers champion exists — see `phaseOfRound`.
+   */
+  const doubleEliminationState = useMemo((): BracketMatchState[] => {
+    if (tournament?.format !== "double_elimination") return [];
+
+    const state: BracketMatchState[] = [];
+    for (const round of rounds) {
+      if (round.phase !== "winners" && round.phase !== "losers" && round.phase !== "third_place") continue;
+      const roundMatches = matchesByRound.get(round.id) || [];
+      for (const m of roundMatches) {
+        if (round.phase === "third_place") continue; // bronze sits outside the bracket
+        state.push({
+          phase: round.phase === "winners" && m.status === "completed" && grandFinalRoundIds.has(round.id)
+            ? "grand_final"
+            : (round.phase as "winners" | "losers"),
+          roundNumber: round.round_number,
+          team1: { p1: m.team1_p1, p2: m.team1_p2 },
+          team2: m.team2_p1 === null ? null : { p1: m.team2_p1, p2: m.team2_p2 },
+          winner: m.winner_team,
+        });
+      }
+    }
+    return state;
+     
+  }, [tournament?.format, rounds, matchesByRound, grandFinalRoundIds]);
+
   const advanceDoubleElimination = async () => {
     if (!tournament || tournament.format !== "double_elimination") return;
 
-    const winnersRounds = rounds.filter((r) => r.phase === "winners");
-    const losersRounds = rounds.filter((r) => r.phase === "losers");
+    const nextRounds = nextDoubleEliminationRounds(doubleEliminationState);
+    if (nextRounds.length === 0) return;
 
     const numCourts = tournament.courts || 1;
-    const autoAssign = numCourts === 1;
-    const nextRoundNum = rounds.length + 1;
+    const court = numCourts === 1 ? 1 : null;
+    let nextRoundNum = rounds.length + 1;
+    const schedule: RoundSpec[] = [];
 
-    // Find last completed round in each bracket
-    const lastCompletedWinners = [...winnersRounds].reverse().find((r) => allRoundMatchesCompleted(r.id));
-    const lastCompletedLosers = [...losersRounds].reverse().find((r) => allRoundMatchesCompleted(r.id));
-
-    // Check if we already created the next round for each bracket
-    const lastWinnersRound = winnersRounds[winnersRounds.length - 1];
-    const lastLosersRound = losersRounds.length > 0 ? losersRounds[losersRounds.length - 1] : null;
-
-    // Process completed winners round: winners go to next winners round, losers drop to losers bracket
-    if (lastCompletedWinners && lastCompletedWinners === lastWinnersRound) {
-      const wMatches = matchesByRound.get(lastCompletedWinners.id) || [];
-
-      const winners: { p1: number; p2: number | null }[] = [];
-      const losers: { p1: number; p2: number | null }[] = [];
-
-      for (const m of wMatches) {
-        if (!m.winner_team) continue;
-        if (m.winner_team === 1) {
-          winners.push({ p1: m.team1_p1, p2: m.team1_p2 });
-          losers.push({ p1: m.team2_p1, p2: m.team2_p2 });
-        } else {
-          winners.push({ p1: m.team2_p1, p2: m.team2_p2 });
-          losers.push({ p1: m.team1_p1, p2: m.team1_p2 });
-        }
-      }
-
-      // Create next winners round (if more than 1 winner)
-      if (winners.length >= 2) {
-        const wRoundId = await createRound(tournamentId, nextRoundNum, "winners");
-        for (let i = 0; i < winners.length - 1; i += 2) {
-          const w1 = winners[i];
-          const w2 = winners[i + 1];
-          const court = autoAssign ? 1 : null;
-          await createMatch(wRoundId, w1.p1, w1.p2, w2.p1, w2.p2, court);
-        }
-      }
-
-      // Create losers bracket round from dropped players
-      if (losers.length >= 2) {
-        // If losers bracket already has players waiting, combine them
-        // For simplicity: losers from winners bracket form new losers round
-        const lRoundId = await createRound(tournamentId, nextRoundNum + 1, "losers");
-        for (let i = 0; i < losers.length - 1; i += 2) {
-          const l1 = losers[i];
-          const l2 = losers[i + 1];
-          const court = autoAssign ? 1 : null;
-          await createMatch(lRoundId, l1.p1, l1.p2, l2.p1, l2.p2, court);
-        }
-      } else if (losers.length === 1 && winners.length === 1) {
-        // Grand Final: last winner vs last loser bracket winner (or this loser)
-        // Check if losers bracket has a remaining player
-        const lastLosersMatches = lastLosersRound ? matchesByRound.get(lastLosersRound.id) || [] : [];
-        const losersComplete = lastLosersRound ? allRoundMatchesCompleted(lastLosersRound.id) : true;
-        let losersChampion: { p1: number; p2: number | null } | null = null;
-
-        if (losersComplete && lastLosersMatches.length === 1 && lastLosersMatches[0].winner_team) {
-          const lm = lastLosersMatches[0];
-          losersChampion = lm.winner_team === 1
-            ? { p1: lm.team1_p1, p2: lm.team1_p2 }
-            : { p1: lm.team2_p1, p2: lm.team2_p2 };
-        }
-
-        if (losersChampion) {
-          // Grand Final
-          const gfRoundId = await createRound(tournamentId, nextRoundNum, "winners");
-          const court = autoAssign ? 1 : null;
-          await createMatch(gfRoundId, winners[0].p1, winners[0].p2, losersChampion.p1, losersChampion.p2, court);
-        }
+    // Optional bronze match: the two players who lost the round before the
+    // losers final. Created once, alongside the grand final.
+    const wantsBronze =
+      tournament.enable_third_place === 1 &&
+      nextRounds.some((r) => r.phase === "grand_final" && !r.isBracketReset) &&
+      !rounds.some((r) => r.phase === "third_place");
+    if (wantsBronze) {
+      const candidates = bronzeCandidates(doubleEliminationState);
+      if (candidates.length === 2) {
+        schedule.push({
+          roundNumber: nextRoundNum++,
+          phase: "third_place",
+          matches: [{
+            team1_p1: candidates[0].p1, team1_p2: candidates[0].p2,
+            team2_p1: candidates[1].p1, team2_p2: candidates[1].p2,
+            court,
+          }],
+        });
       }
     }
 
-    // Process completed losers round: winners advance, losers eliminated
-    if (lastCompletedLosers && lastCompletedLosers === lastLosersRound) {
-      const lMatches = matchesByRound.get(lastCompletedLosers.id) || [];
+    for (const round of nextRounds) {
+      // The grand final is stored in the winners bracket: it is the match
+      // the winners champion plays, and keeping the phase avoids a schema
+      // change for a single match.
+      const phase = round.phase === "grand_final" ? "winners" : round.phase;
+      schedule.push({
+        roundNumber: nextRoundNum++,
+        phase,
+        matches: round.pairings.map((pairing) => ({
+          team1_p1: pairing.team1.p1,
+          team1_p2: pairing.team1.p2,
+          team2_p1: pairing.team2?.p1 ?? null,
+          team2_p2: pairing.team2?.p2 ?? null,
+          court: pairing.team2 === null ? null : court,
+          completed: pairing.team2 === null,
+        })),
+      });
+    }
 
-      const losersWinners: { p1: number; p2: number | null }[] = [];
-      for (const m of lMatches) {
-        if (!m.winner_team) continue;
-        if (m.winner_team === 1) {
-          losersWinners.push({ p1: m.team1_p1, p2: m.team1_p2 });
-        } else {
-          losersWinners.push({ p1: m.team2_p1, p2: m.team2_p2 });
-        }
-      }
+    const createdIds = await createSchedule(tournamentId, schedule);
 
-      if (losersWinners.length >= 2) {
-        const lRoundId = await createRound(tournamentId, nextRoundNum, "losers");
-        for (let i = 0; i < losersWinners.length - 1; i += 2) {
-          const w1 = losersWinners[i];
-          const w2 = losersWinners[i + 1];
-          const court = autoAssign ? 1 : null;
-          await createMatch(lRoundId, w1.p1, w1.p2, w2.p1, w2.p2, court);
-        }
-      } else if (losersWinners.length === 1) {
-        // Check if winners bracket also has 1 remaining player for Grand Final
-        const lastWinnersMatches = lastWinnersRound ? matchesByRound.get(lastWinnersRound.id) || [] : [];
-        const winnersComplete = lastWinnersRound ? allRoundMatchesCompleted(lastWinnersRound.id) : false;
-
-        if (winnersComplete && lastWinnersMatches.length === 1 && lastWinnersMatches[0].winner_team) {
-          // Bronze playoff (only if toggle enabled and an LB-semifinal exists):
-          // pair LB-final-loser with LB-semifinal-loser, played alongside the GF.
-          if (tournament.enable_third_place === 1) {
-            // LB-final-loser: from the just-completed lMatches (reuse from above scope)
-            let lbFinalLoser: { p1: number; p2: number | null } | null = null;
-            for (const m of lMatches) {
-              if (!m.winner_team) continue;
-              lbFinalLoser = m.winner_team === 1
-                ? { p1: m.team2_p1, p2: m.team2_p2 }
-                : { p1: m.team1_p1, p2: m.team1_p2 };
-              break;
-            }
-            // LB-semifinal-loser: from the previous LB round (if any)
-            const lbRounds = rounds.filter((r) => r.phase === "losers");
-            const lbSemiRound = lbRounds.length >= 2 ? lbRounds[lbRounds.length - 2] : null;
-            const lbSemiMatches = lbSemiRound ? matchesByRound.get(lbSemiRound.id) || [] : [];
-            let lbSemiLoser: { p1: number; p2: number | null } | null = null;
-            for (const m of lbSemiMatches) {
-              if (!m.winner_team) continue;
-              lbSemiLoser = m.winner_team === 1
-                ? { p1: m.team2_p1, p2: m.team2_p2 }
-                : { p1: m.team1_p1, p2: m.team1_p2 };
-              break;
-            }
-            if (lbFinalLoser && lbSemiLoser) {
-              const bronzeRoundId = await createRound(tournamentId, nextRoundNum, "third_place", null);
-              const court = autoAssign ? 1 : null;
-              await createMatch(
-                bronzeRoundId,
-                lbFinalLoser.p1, lbFinalLoser.p2,
-                lbSemiLoser.p1, lbSemiLoser.p2,
-                court,
-              );
-            }
-          }
-
-          const wm = lastWinnersMatches[0];
-          const winnersChampion = wm.winner_team === 1
-            ? { p1: wm.team1_p1, p2: wm.team1_p2 }
-            : { p1: wm.team2_p1, p2: wm.team2_p2 };
-
-          // Grand Final
-          const gfRoundId = await createRound(tournamentId, nextRoundNum, "winners");
-          const court = autoAssign ? 1 : null;
-          await createMatch(gfRoundId, winnersChampion.p1, winnersChampion.p2, losersWinners[0].p1, losersWinners[0].p2, court);
-        }
-      }
+    // Remember which winners rounds are grand finals, so the state mapper
+    // classifies them correctly on the next pass.
+    const grandFinalIndexes = schedule
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => r.phase === "winners" && r.matches.length === 1 && nextRounds.some((n) => n.phase === "grand_final"))
+      .map(({ i }) => createdIds[i]);
+    if (grandFinalIndexes.length > 0) {
+      await markGrandFinalRounds(tournamentId, [...grandFinalRoundIds, ...grandFinalIndexes]);
     }
 
     loadAll();
@@ -1371,63 +1449,58 @@ export default function TournamentView() {
     return pending;
   };
 
+  /**
+   * The fixed partner of a player, read from the persisted team list.
+   *
+   * `team_config` is where the wizard stores the pairings, so it is the
+   * only reliable source: scanning the match list for the first row that
+   * mentions the player returns whoever they happened to play with in a
+   * random-partner format, and in singles it returns an opponent
+   * (REVIEW-BACKLOG.md B12). Returns null in singles and in formats where
+   * partners change every round.
+   */
+  const getFixedPartner = useCallback(
+    (playerId: number): number | null => {
+      if (!tournament) return null;
+      if (tournament.mode === "singles") return null;
+      if (tournament.format === "random_doubles") return null;
+
+      for (const [a, b] of navTeams ?? []) {
+        if (a === playerId) return b;
+        if (b === playerId) return a;
+      }
+      return null;
+    },
+    [tournament, navTeams],
+  );
+
   // Mark player as injured/retired for the entire tournament
   // - Persists in DB so future rounds exclude the player
-  // - All pending matches become walkovers for the opponent
-  // - For fixed teams (not random_doubles): partner is also retired
+  // - All open matches are awarded to the opponent as walkovers
+  // - For fixed teams: the partner retires as well, the team is out
   const handlePlayerRetire = async (playerId: number) => {
     if (!tournament) return;
 
-    // Determine players to retire
-    const playersToRetire: number[] = [playerId];
-
-    // For fixed-team modes (not random_doubles), also retire the partner
-    if (tournament.format !== "random_doubles") {
-      // Find partner from any match
-      for (const m of allMatches) {
-        if (m.team1_p1 === playerId && m.team1_p2) {
-          if (!playersToRetire.includes(m.team1_p2)) playersToRetire.push(m.team1_p2);
-          break;
-        }
-        if (m.team1_p2 === playerId) {
-          if (!playersToRetire.includes(m.team1_p1)) playersToRetire.push(m.team1_p1);
-          break;
-        }
-        if (m.team2_p1 === playerId && m.team2_p2) {
-          if (!playersToRetire.includes(m.team2_p2)) playersToRetire.push(m.team2_p2);
-          break;
-        }
-        if (m.team2_p2 === playerId) {
-          if (!playersToRetire.includes(m.team2_p1)) playersToRetire.push(m.team2_p1);
-          break;
-        }
-      }
-    }
+    const partner = getFixedPartner(playerId);
+    const playersToRetire = partner !== null ? [playerId, partner] : [playerId];
 
     // Persist retired status in DB
     for (const pid of playersToRetire) {
       await retirePlayerFromTournament(tournamentId, pid);
     }
 
-    // Walk over all pending matches involving any retired player
+    // Award every open match to the opponent — as a walkover, not as an
+    // invented 21:0 scoreline (REVIEW-BACKLOG.md B8).
     for (const pid of playersToRetire) {
       const pendingMatches = getPlayerPendingMatches(pid);
       for (const m of pendingMatches) {
-        // Skip if already completed (may have been handled by partner retirement)
+        // Skip if already handled (e.g. through the partner's retirement)
         if (m.status === "completed") continue;
+        // A bye has no opponent to award it to.
+        if (m.team2_p1 === null) continue;
 
         const isTeam1 = m.team1_p1 === pid || m.team1_p2 === pid;
-        const winnerTeam: 1 | 2 = isTeam1 ? 2 : 1;
-
-        const maxSets = effectiveScoring.setsToWin;
-        for (let s = 1; s <= maxSets; s++) {
-          await upsertSet(
-            m.id, s,
-            isTeam1 ? 0 : effectiveScoring.pointsPerSet,
-            isTeam1 ? effectiveScoring.pointsPerSet : 0
-          );
-        }
-        await updateMatchResult(m.id, winnerTeam);
+        await setMatchWalkover(m.id, isTeam1 ? 2 : 1);
       }
     }
 
@@ -1436,16 +1509,9 @@ export default function TournamentView() {
 
   const handlePlayerUnretire = async (playerId: number) => {
     if (!tournament) return;
-    // Unretire the player (and partner for fixed teams)
-    const playersToUnretire: number[] = [playerId];
-    if (tournament.format !== "random_doubles" && tournament.mode !== "singles") {
-      for (const m of allMatches) {
-        if (m.team1_p1 === playerId && m.team1_p2) { playersToUnretire.push(m.team1_p2); break; }
-        if (m.team1_p2 === playerId) { playersToUnretire.push(m.team1_p1); break; }
-        if (m.team2_p1 === playerId && m.team2_p2) { playersToUnretire.push(m.team2_p2); break; }
-        if (m.team2_p2 === playerId) { playersToUnretire.push(m.team2_p1); break; }
-      }
-    }
+    // Same partner rule as retiring, so both directions stay symmetric.
+    const partner = getFixedPartner(playerId);
+    const playersToUnretire = partner !== null ? [playerId, partner] : [playerId];
     for (const pid of playersToUnretire) {
       await unretirePlayerFromTournament(tournamentId, pid);
     }
@@ -1506,6 +1572,9 @@ export default function TournamentView() {
   }, [tournamentId]);
 
   const [showUndoRound, setShowUndoRound] = useState(false);
+  // Export dropdown next to the print button (C9). Declared with the
+  // other state so the hook order stays identical on every render.
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   /**
    * Memoized "what does the next undo step delete?" computation. Returns
@@ -1543,19 +1612,26 @@ export default function TournamentView() {
       return;
     }
 
-    // Delete by descending id so the youngest-inserted round goes first.
-    // Order doesn't matter for correctness (FK cascade handles dependents)
-    // but it keeps the DB state predictable during the operation.
-    for (const r of [...target.rounds].sort((a, b) => b.id - a.id)) {
-      await deleteRound(r.id);
-    }
-
-    if (target.resetStatusToDraft) {
-      await updateTournamentStatus(tournamentId, "draft");
-      await updateTournamentPhase(tournamentId, "ready");
-    } else if (target.isGroupKoBackToGroup) {
-      await updateTournamentPhase(tournamentId, "group");
-      await updateTournamentKoScoring(tournamentId, null, null, null);
+    // Deletes and the follow-up state change go together: a half-applied
+    // undo would leave the tournament in a phase that no longer matches its
+    // rounds (REVIEW-BACKLOG.md A6). Descending id keeps the order
+    // predictable while the transaction runs.
+    const roundIds = [...target.rounds].sort((a, b) => b.id - a.id).map((r) => r.id);
+    try {
+      await deleteRoundsAtomically(
+        tournamentId,
+        roundIds,
+        target.resetStatusToDraft
+          ? { status: "draft", phase: "ready" }
+          : target.isGroupKoBackToGroup
+            ? { phase: "group", clearKoScoring: true }
+            : {},
+      );
+    } catch (err) {
+      console.error("performUndo: failed:", err);
+      showError(String(err));
+      setShowUndoRound(false);
+      return;
     }
 
     setShowUndoRound(false);
@@ -1727,7 +1803,8 @@ export default function TournamentView() {
     const winners: { p1: number; p2: number | null }[] = [];
     for (const m of lastKoMatches) {
       if (!m.winner_team) continue;
-      if (m.winner_team === 1) {
+      // team2_p1 === null is a bye: team 1 advances without having played.
+      if (m.team2_p1 === null || m.winner_team === 1) {
         winners.push({ p1: m.team1_p1, p2: m.team1_p2 });
       } else {
         winners.push({ p1: m.team2_p1, p2: m.team2_p2 });
@@ -1737,19 +1814,23 @@ export default function TournamentView() {
     if (winners.length < 2) return;
 
     const numCourts = tournament.courts || 1;
-    const autoAssign = numCourts === 1;
+    const court = numCourts === 1 ? 1 : null;
     const nextRoundNum = rounds.length + 1;
     const phase = isElimination ? null : "ko";
 
+    const schedule: RoundSpec[] = [];
+
     // SF -> Final transition: if the just-completed KO round had exactly 2
     // matches (i.e. the semi-finals) and the per-tournament toggle is
-    // enabled, create the bronze playoff alongside the Final.
+    // enabled, create the bronze playoff alongside the Final. Both rounds
+    // are written together — a final without its bronze match (or the
+    // reverse) is not a state the bracket view knows how to render.
     const isSfToFinal = lastKoMatches.length === 2;
     const wantsBronze = tournament.enable_third_place === 1 && isSfToFinal;
     if (wantsBronze) {
       const sfLosers: { p1: number; p2: number | null }[] = [];
       for (const m of lastKoMatches) {
-        if (!m.winner_team) continue;
+        if (!m.winner_team || m.team2_p1 === null) continue;
         if (m.winner_team === 1) {
           sfLosers.push({ p1: m.team2_p1, p2: m.team2_p2 });
         } else {
@@ -1757,26 +1838,33 @@ export default function TournamentView() {
         }
       }
       if (sfLosers.length === 2) {
-        const bronzeRoundId = await createRound(tournamentId, nextRoundNum, "third_place", null);
-        const court = autoAssign ? 1 : null;
-        await createMatch(
-          bronzeRoundId,
-          sfLosers[0].p1, sfLosers[0].p2,
-          sfLosers[1].p1, sfLosers[1].p2,
-          court,
-        );
+        schedule.push({
+          roundNumber: nextRoundNum,
+          phase: "third_place",
+          matches: [{
+            team1_p1: sfLosers[0].p1, team1_p2: sfLosers[0].p2,
+            team2_p1: sfLosers[1].p1, team2_p2: sfLosers[1].p2,
+            court,
+          }],
+        });
       }
     }
 
-    const roundId = await createRound(tournamentId, nextRoundNum, phase, null);
-
     // Pair winners: 1v2, 3v4, etc.
+    const nextRoundMatches: MatchSpec[] = [];
     for (let i = 0; i < winners.length - 1; i += 2) {
       const w1 = winners[i];
       const w2 = winners[i + 1];
-      const court = autoAssign ? 1 : null;
-      await createMatch(roundId, w1.p1, w1.p2, w2.p1, w2.p2, court);
+      nextRoundMatches.push({
+        team1_p1: w1.p1, team1_p2: w1.p2,
+        team2_p1: w2.p1, team2_p2: w2.p2,
+        court,
+      });
     }
+    schedule.push({ roundNumber: nextRoundNum, phase, matches: nextRoundMatches });
+
+    const createdIds = await createSchedule(tournamentId, schedule);
+    const roundId = createdIds[createdIds.length - 1];
 
     setActiveRound(roundId);
     loadAll();
@@ -1797,7 +1885,8 @@ export default function TournamentView() {
   // Swiss: Check if next round can be generated
   const isSwiss = tournament?.format === "swiss";
   const swissRounds = rounds.filter((r) => r.phase === "swiss");
-  const swissMaxRounds = tournament?.num_groups || 5; // num_groups stores swiss round count
+  // Rounds to play, from its own column since migration v15 (B7).
+  const swissMaxRounds = tournament?.planned_rounds || 5;
   const lastSwissRound = swissRounds.length > 0 ? swissRounds[swissRounds.length - 1] : null;
   const lastSwissRoundComplete = lastSwissRound ? allRoundMatchesCompleted(lastSwissRound.id) : false;
   const canGenerateNextSwissRound = isSwiss &&
@@ -1809,7 +1898,7 @@ export default function TournamentView() {
   // Monrad: Check if next round can be generated (reuses swiss phase)
   const isMonrad = tournament?.format === "monrad";
   const monradRounds = isMonrad ? rounds.filter((r) => r.phase === "swiss") : [];
-  const monradMaxRounds = isMonrad ? (tournament?.num_groups || 5) : 0;
+  const monradMaxRounds = isMonrad ? (tournament?.planned_rounds || 5) : 0;
   const lastMonradRound = monradRounds.length > 0 ? monradRounds[monradRounds.length - 1] : null;
   const lastMonradRoundComplete = lastMonradRound ? allRoundMatchesCompleted(lastMonradRound.id) : false;
   const canGenerateNextMonradRound = isMonrad &&
@@ -1831,7 +1920,7 @@ export default function TournamentView() {
 
   // Waterfall: Check if next round can be generated
   const isWaterfall = tournament?.format === "waterfall";
-  const waterfallMaxRounds = isWaterfall ? (tournament?.num_groups || 5) : 0;
+  const waterfallMaxRounds = isWaterfall ? (tournament?.planned_rounds || 5) : 0;
   const lastWaterfallRound = isWaterfall && rounds.length > 0 ? rounds[rounds.length - 1] : null;
   const lastWaterfallComplete = lastWaterfallRound ? allRoundMatchesCompleted(lastWaterfallRound.id) : false;
   const canGenerateNextWaterfallRound = isWaterfall &&
@@ -1844,21 +1933,14 @@ export default function TournamentView() {
   const isDoubleElimination = tournament?.format === "double_elimination";
   const winnersRounds = rounds.filter((r) => r.phase === "winners");
   const losersRounds = rounds.filter((r) => r.phase === "losers");
-  const canAdvanceDoubleElimination = (() => {
-    if (!isDoubleElimination || tournament?.status !== "active" || rounds.length === 0) return false;
-    const lastWR = winnersRounds.length > 0 ? winnersRounds[winnersRounds.length - 1] : null;
-    const lastLR = losersRounds.length > 0 ? losersRounds[losersRounds.length - 1] : null;
-    const winnersComplete = lastWR ? allRoundMatchesCompleted(lastWR.id) : false;
-    const losersComplete = lastLR ? allRoundMatchesCompleted(lastLR.id) : false;
-    const lastWMatches = lastWR ? matchesByRound.get(lastWR.id) || [] : [];
-    const lastLMatches = lastLR ? matchesByRound.get(lastLR.id) || [] : [];
-    // Can advance if winners bracket last round is complete and has more than final match
-    // or losers bracket last round is complete and has more than one match
-    if (winnersComplete && lastWMatches.length > 1) return true;
-    if (winnersComplete && losersRounds.length === 0 && lastWMatches.length >= 1) return true; // need to create losers bracket
-    if (losersComplete && lastLMatches.length >= 1) return true;
-    return false;
-  })();
+  // The bracket module is the single authority on whether anything can be
+  // created — the length checks this replaces disagreed with it in exactly
+  // the situations that mattered (REVIEW-BACKLOG.md B4).
+  const canAdvanceDoubleElimination =
+    isDoubleElimination &&
+    tournament?.status === "active" &&
+    rounds.length > 0 &&
+    nextDoubleEliminationRounds(doubleEliminationState).length > 0;
 
   // Pruefe ob noch offene Spiele existieren (ueber alle Runden)
   const hasOpenMatches = (() => {
@@ -1877,6 +1959,67 @@ export default function TournamentView() {
   }, [sessionCtx.tournaments, tournament?.session_id, tournament?.id]);
 
   if (!tournament) return <div>{t.common_loading}</div>;
+
+  /**
+   * Writes one of the export files. In the packaged app a native save
+   * dialog picks the location; in the browser the file is downloaded
+   * (REVIEW-BACKLOG.md C9).
+   */
+  const handleExport = async (kind: "matches" | "standings" | "payments" | "json") => {
+    if (!tournament) return;
+    setShowExportMenu(false);
+
+    const allSets: GameSet[] = [];
+    for (const list of setsByMatch.values()) allSets.push(...list);
+
+    const input = {
+      tournament,
+      players,
+      rounds,
+      matches: allMatches,
+      sets: allSets,
+      standings,
+      paymentData,
+      locale: undefined,
+    };
+
+    const isJson = kind === "json";
+    const content = isJson
+      ? toJsonExport(input)
+      : kind === "matches"
+        ? matchesToCsv(input)
+        : kind === "standings"
+          ? standingsToCsv(input)
+          : paymentsToCsv(input);
+    const fileName = exportFileName(tournament, kind, isJson ? "json" : "csv");
+
+    try {
+      if (isTauri()) {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+        const path = await save({
+          defaultPath: fileName,
+          filters: [{ name: isJson ? "JSON" : "CSV", extensions: [isJson ? "json" : "csv"] }],
+        });
+        if (!path) return;
+        // BOM so Excel opens the file as UTF-8 instead of mangling umlauts.
+        await writeTextFile(path, isJson ? content : `\ufeff${content}`);
+      } else {
+        const blob = new Blob([isJson ? content : `\ufeff${content}`], {
+          type: isJson ? "application/json" : "text/csv;charset=utf-8",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+      showSuccess(t.export_done.replace("{file}", fileName));
+    } catch (err) {
+      showError(t.export_failed.replace("{error}", String(err)));
+    }
+  };
 
   const handleArchive = async () => {
     await updateTournamentStatus(tournamentId, "archived");
@@ -2243,6 +2386,36 @@ export default function TournamentView() {
             >
               📦 {t.tournament_view_archive}
             </button>
+          )}
+          {rounds.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setShowExportMenu((v) => !v)}
+                className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
+              >
+                ⬇️ {t.export_results}
+              </button>
+              {showExportMenu && (
+                <div
+                  className={`absolute right-0 mt-1 z-30 min-w-[13rem] ${theme.cardBg} border ${theme.cardBorder} rounded-xl shadow-lg overflow-hidden`}
+                >
+                  {([
+                    ["matches", t.export_matches_csv],
+                    ["standings", t.export_standings_csv],
+                    ["payments", t.export_payments_csv],
+                    ["json", t.export_json],
+                  ] as const).map(([kind, label]) => (
+                    <button
+                      key={kind}
+                      onClick={() => handleExport(kind)}
+                      className={`block w-full text-left px-4 py-2 text-sm ${theme.textSecondary} hover:${theme.selectedBg} transition-colors`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
           {rounds.length > 0 && (
             <button

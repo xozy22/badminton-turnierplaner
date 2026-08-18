@@ -12,6 +12,12 @@ export interface Player {
   birth_date: string | null;
   club: string | null;
   created_at: string;
+  /**
+   * Set when the player was archived: they disappear from the pickers but
+   * stay readable in every tournament they took part in. Players without
+   * history are deleted outright (REVIEW-BACKLOG.md C8). Migration v17.
+   */
+  archived_at?: string | null;
 }
 
 export function playerDisplayName(p: { first_name: string; last_name: string }): string {
@@ -91,6 +97,13 @@ export interface Tournament {
   venue_id: number | null;
   min_rest_minutes: number;
   /**
+   * How many rounds a Swiss / Monrad / Waterfall tournament runs. NULL for
+   * every other format. Before migration v15 this number was squeezed into
+   * `num_groups`, which every other reader treats as a group count
+   * (REVIEW-BACKLOG.md B7).
+   */
+  planned_rounds: number | null;
+  /**
    * 0 = no 3rd-place playoff. 1 = automatically create a "Spiel um Platz 3"
    * match (semifinal losers in elimination/group_ko, LB-final-loser vs.
    * LB-semifinal-loser in double_elimination). Persisted via migration v11.
@@ -166,10 +179,24 @@ export interface Match {
   court_assigned_at: string | null;
   team1_p1: number;
   team1_p2: number | null;
-  team2_p1: number;
+  /**
+   * NULL means the match has no opponent: a bye. The player in team 1
+   * advances without playing, and the match is stored as already completed
+   * with `winner_team = 1`. Nullable since migration v14 — see
+   * REVIEW-BACKLOG.md A2, where byes used to make players disappear from
+   * the bracket entirely.
+   */
+  team2_p1: number | null;
   team2_p2: number | null;
   winner_team: 1 | 2 | null;
   status: MatchStatus;
+  /**
+   * 1 = awarded without play (retirement, no-show). Counts as a win for
+   * the opponent but contributes no sets or points to any table — see
+   * REVIEW-BACKLOG.md B8, where walkovers used to be stored as invented
+   * 21:0 sets. Persisted via migration v15.
+   */
+  walkover: number;
   started_at: string | null;
   completed_at: string | null;
 }
@@ -190,6 +217,12 @@ export interface StandingEntry {
   setsLost: number;
   pointsWon: number;
   pointsLost: number;
+  /**
+   * Buchholz score: the sum of the wins of all opponents faced. Only
+   * present for Swiss/Monrad tables, where it is the standard fine-scoring
+   * (REVIEW-BACKLOG.md B2).
+   */
+  buchholz?: number;
 }
 
 export interface LivePublishConfig {

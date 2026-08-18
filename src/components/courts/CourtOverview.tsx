@@ -109,7 +109,8 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
   // JSX renderer with inline ⏱ RestIndicator next to each resting player.
   // Active/non-completed matches only — the indicator is for scheduling clarity.
   const showRestIcons = tournamentStatus === "active" && minRestMinutes > 0;
-  const renderTeam = (p1: number, p2: number | null, m: Match) => {
+  const renderTeam = (p1: number | null, p2: number | null, m: Match) => {
+    if (p1 === null) return <span className="italic opacity-70">{t.common_bye}</span>;
     const scheduled = m.status !== "completed";
     const wantIcons = showRestIcons && scheduled;
     return (

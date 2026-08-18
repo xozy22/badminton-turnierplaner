@@ -112,7 +112,10 @@ export default function MatchCard({
   // match itself isn't completed yet (a completed match has no scheduling value).
   const showRestIcons =
     isActive && minRestMinutes > 0 && match.status !== "completed";
-  const renderTeam = (p1: number, p2: number | null) => (
+  const renderTeam = (p1: number | null, p2: number | null) =>
+    p1 === null ? (
+      <span className="italic opacity-70">{t.common_bye}</span>
+    ) : (
     <>
       <span>{playerName(p1)}</span>
       {showRestIcons && (

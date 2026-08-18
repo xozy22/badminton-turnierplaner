@@ -10,6 +10,7 @@ import { useT } from "../lib/I18nContext";
 import { useToast } from "../lib/ToastContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import type { Translations } from "../lib/i18n/types";
+import type { ThemeColors } from "../lib/theme";
 
 const DEFAULT_HALLS: HallConfig[] = [{ name: "Halle 1", courts: 2 }];
 
@@ -22,7 +23,7 @@ function HallEditor({
 }: {
   halls: HallConfig[];
   onChange: (h: HallConfig[]) => void;
-  theme: any;
+  theme: ThemeColors;
   t: Translations;
   compact?: boolean;
 }) {

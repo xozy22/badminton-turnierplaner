@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { getTournaments, deleteTournament, updateTournamentStatus, createTournament, createPlayer, getPlayers, addPlayerToTournament, updateTeamConfig, updateHallConfig, isTauri, getSportstaetten, createSportstaette, updateTournamentVenueId } from "../lib/db";
 import { hallConfigTotalCourts } from "../lib/types";
 import { getSessions } from "../lib/sessions";
-import type { Tournament, Gender, Session } from "../lib/types";
+import type { Tournament, Gender, Session, TournamentMode, TournamentFormat } from "../lib/types";
 import { getScoringModeId } from "../lib/scoring";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
@@ -142,8 +142,8 @@ export default function Tournaments() {
 
     const id = await createTournament(
       name,
-      mode as any,
-      format as any,
+      mode as TournamentMode,
+      format as TournamentFormat,
       setsToWin,
       pointsPerSet,
       courts,
@@ -178,8 +178,11 @@ export default function Tournaments() {
         birth_date: string | null;
         club: string | null;
       };
-      const tplPlayers: TplPlayer[] = (tpl.players as any[])
-        .map((tp: any): TplPlayer | null => {
+      // Template JSON is user-supplied: read it as unknown records and
+      // validate field by field rather than trusting a cast.
+      const rawPlayers = Array.isArray(tpl.players) ? (tpl.players as Record<string, unknown>[]) : [];
+      const tplPlayers: TplPlayer[] = rawPlayers
+        .map((tp): TplPlayer | null => {
           const gender: Gender = (tp.gender === "f" || tp.gender === "m") ? tp.gender : "m";
           if (typeof tp.first_name === "string" || typeof tp.last_name === "string") {
             const fn = String(tp.first_name || "").trim();
@@ -190,8 +193,8 @@ export default function Tournaments() {
               first_name: fn,
               last_name: ln,
               gender,
-              birth_date: tp.birth_date ?? null,
-              club: tp.club ?? null,
+              birth_date: typeof tp.birth_date === "string" ? tp.birth_date : null,
+              club: typeof tp.club === "string" ? tp.club : null,
             };
           }
           // v1 legacy: split full name on last space

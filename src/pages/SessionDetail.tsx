@@ -8,6 +8,7 @@
 // /sessions/:id/live (SessionDashboard).
 
 import { useEffect, useMemo, useState } from "react";
+import { formatDateTime } from "../lib/datetime";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   getSession,
@@ -174,8 +175,7 @@ export default function SessionDetail() {
   const formatTimestamp = (iso: string | null): string => {
     if (!iso) return "—";
     try {
-      const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
-      return d.toLocaleString();
+      return formatDateTime(iso);
     } catch {
       return iso;
     }

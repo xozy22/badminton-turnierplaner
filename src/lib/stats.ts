@@ -1,5 +1,6 @@
 import type { Tournament, Match, GameSet, Player, TournamentFormat, TournamentMode } from "./types";
 import { calculateAge } from "./types";
+import { dbDateToMillis } from "./datetime";
 
 // ===== Tournament Stats =====
 export interface TournamentStats {
@@ -50,8 +51,10 @@ export function calculateMatchStats(matches: Match[], sets: Map<number, GameSet[
   const durations: { matchId: number; minutes: number }[] = [];
   for (const m of completed) {
     if (m.started_at && m.completed_at) {
-      const start = new Date(m.started_at).getTime();
-      const end = new Date(m.completed_at).getTime();
+      // Through the shared parser: these may be SQLite's zoneless UTC.
+      const start = dbDateToMillis(m.started_at);
+      const end = dbDateToMillis(m.completed_at);
+      if (start === null || end === null) continue;
       const minutes = (end - start) / 60000;
       if (minutes > 0) {
         durations.push({ matchId: m.id, minutes });
@@ -127,7 +130,10 @@ export function calculateCourtStats(matches: Match[]): CourtStats {
     courtCounts.set(court, (courtCounts.get(court) || 0) + 1);
 
     if (m.started_at && m.completed_at) {
-      const minutes = (new Date(m.completed_at).getTime() - new Date(m.started_at).getTime()) / 60000;
+      const startMs = dbDateToMillis(m.started_at);
+      const endMs = dbDateToMillis(m.completed_at);
+      if (startMs === null || endMs === null) continue;
+      const minutes = (endMs - startMs) / 60000;
       if (minutes > 0) {
         const arr = courtDurations.get(court) || [];
         arr.push(minutes);

@@ -35,3 +35,6 @@ Thumbs.db
 
 # Tauri signing keys (KEEP SECRET!)
 src-tauri/.tauri/
+
+# Test coverage reports
+coverage
