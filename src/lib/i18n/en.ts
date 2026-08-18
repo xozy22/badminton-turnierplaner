@@ -544,6 +544,8 @@ export const en: Translations = {
   court_free_drag: "Free \u2013 Drag a match here",
   court_waiting: "Waiting for court ({count})",
   court_waiting_count: "{count} matches",
+  court_assign: "Assign court",
+  court_assign_to_match: "Assign a court to {team1} versus {team2}",
   court_choose_court: "Choose court",
   court_drag_or_double_click: "Drag to a court or double-click to assign",
   court_double_click_jump: "Double-click: Jump to match",

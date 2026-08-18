@@ -563,6 +563,8 @@ export interface Translations {
   court_free_drag: string;
   court_waiting: string;
   court_waiting_count: string;
+  court_assign: string;
+  court_assign_to_match: string;
   court_choose_court: string;
   court_drag_or_double_click: string;
   court_double_click_jump: string;

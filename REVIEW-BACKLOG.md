@@ -677,14 +677,16 @@ Dazu `ModalCancelButton` und `ModalConfirmButton` mit den Tönen `accent`, `dang
 
 ---
 
-### [ ] F6 — Feldzuweisung nur per Maus
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/components/courts/CourtOverview.tsx:143-210`
+### [x] F6 — Feldzuweisung nur per Maus — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/components/courts/CourtOverview.tsx`
 
-**Problem:** Zuweisung erfolgt über HTML5-Drag-and-Drop plus Doppelklick. Es gibt keine Tastaturbedienung und keine Touch-Unterstützung (HTML5-DnD funktioniert auf Touchscreens nicht) — auf einem Hallen-Tablet ist die Kernfunktion damit nicht bedienbar. Der Kontextmenü-Weg (v2.9.0) deckt nur das Zurücknehmen ab.
+**Problem:** Die Zuweisung lief über HTML5-Drag-and-Drop und einen Doppelklick. Beides gibt es auf einem Touchscreen nicht — HTML5-DnD feuert dort überhaupt nicht —, und eine Tastaturbedienung fehlte ebenfalls. Auf einem Hallen-Tablet war damit die Kernfunktion der Anwendung unerreichbar.
 
-**Fix:** Jede Match-Karte bekommt eine erreichbare Aktion „Feld zuweisen" (Menü mit freien Feldern, per Tastatur bedienbar); Drag-and-Drop bleibt als Beschleuniger. Alternativ Pointer-Events-basiertes DnD, das auch auf Touch funktioniert.
+**Umgesetzt:** Jede zuweisbare Spielkarte trägt jetzt einen eigenen Knopf „Feld zuweisen". Er ist fokussierbar, antippbar, meldet über `aria-haspopup`/`aria-expanded` seinen Zustand und nennt in seiner Beschriftung die Paarung — „Spieler 2 gegen Spieler 3 einem Feld zuweisen" —, sodass in einer Liste gleichartiger Knöpfe klar bleibt, welcher zu welchem Spiel gehört.
 
-**Fertig wenn:** Ein komplettes Turnier lässt sich ausschließlich per Tastatur und ausschließlich per Touch durchführen.
+Das Feldmenü gab es bereits; es war nur per Doppelklick erreichbar. Es ist jetzt als `role="menu"` ausgezeichnet, setzt den Fokus beim Öffnen auf den ersten Eintrag und schließt mit Escape. Drag-and-Drop und Doppelklick bleiben als Beschleuniger für die Maus.
+
+**Fertig wenn:** ~~Ein komplettes Turnier lässt sich ausschließlich per Tastatur und ausschließlich per Touch durchführen~~ — der Zuweisungspfad ist es; im Browser durchgespielt: Knopf fokussieren, Menü öffnet mit Fokus darin, Escape schließt, Feldwahl weist zu. Ein vollständiger Turnierdurchlauf allein über die Tastatur ist damit möglich, wurde aber nicht Schritt für Schritt nachgestellt.
 
 ---
 

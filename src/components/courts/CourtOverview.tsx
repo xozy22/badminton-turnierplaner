@@ -106,6 +106,12 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
       .sort((a, b) => (b.remaining - a.remaining) || (a.group - b.group));
   }, [unassigned, remainingByGroup, roundToGroup]);
 
+  /** Plain-text team name, for aria-labels where JSX cannot go. */
+  const teamLabel = (p1: number | null, p2: number | null): string => {
+    if (p1 === null) return t.common_bye;
+    return p2 ? `${playerName(p1)} / ${playerName(p2)}` : playerName(p1);
+  };
+
   // JSX renderer with inline ⏱ RestIndicator next to each resting player.
   // Active/non-completed matches only — the indicator is for scheduling clarity.
   const showRestIcons = tournamentStatus === "active" && minRestMinutes > 0;
@@ -393,14 +399,51 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
               </span>
               {isBlocked && (
                 <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-danger-text">
-                  <span>🚫</span>
+                  <span aria-hidden="true">🚫</span>
                   <span>{t.match_blocked_short}</span>
                 </div>
               )}
 
+              {/* The keyboard and touch path. HTML5 drag-and-drop does not
+                  fire on a touchscreen at all, so without this the core
+                  action of the app is unreachable on a hall tablet
+                  (REVIEW-BACKLOG.md F6). */}
+              {!isBlocked && freeCourts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDoubleClick(m.id);
+                  }}
+                  aria-haspopup="menu"
+                  aria-expanded={courtPickerMatchId === m.id}
+                  aria-label={t.court_assign_to_match
+                    .replace("{team1}", teamLabel(m.team1_p1, m.team1_p2))
+                    .replace("{team2}", teamLabel(m.team2_p1, m.team2_p2))}
+                  className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-lg border border-line-strong px-2 py-1 text-[10px] font-medium text-secondary transition-all hover:border-accent hover:text-accent"
+                >
+                  <span aria-hidden="true">⊕</span>
+                  {t.court_assign}
+                </button>
+              )}
+
               {/* Court picker popup */}
               {courtPickerMatchId === m.id && (
-                <div className={`absolute top-full left-0 mt-1 ${theme.cardBg} border ${theme.cardBorder} rounded-xl shadow-xl z-50 overflow-hidden`}>
+                <div
+                  role="menu"
+                  aria-label={t.court_choose_court}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Escape") return;
+                    e.stopPropagation();
+                    setCourtPickerMatchId(null);
+                  }}
+                  ref={(el) => {
+                    // Move into the menu when it opens, so the next Tab
+                    // walks the courts rather than the rest of the page.
+                    el?.querySelector<HTMLButtonElement>("button")?.focus();
+                  }}
+                  className={`absolute top-full left-0 mt-1 ${theme.cardBg} border ${theme.cardBorder} rounded-xl shadow-xl z-50 overflow-hidden`}
+                >
                   <div className={`px-3 py-1.5 text-[10px] font-bold ${theme.textMuted} uppercase tracking-wide border-b ${theme.cardBorder}`}>
                     {t.court_choose_court}
                   </div>

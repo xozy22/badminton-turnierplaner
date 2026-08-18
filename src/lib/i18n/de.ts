@@ -544,6 +544,8 @@ export const de: Translations = {
   court_free_drag: "Frei \u2013 Spiel hierher ziehen",
   court_waiting: "Warten auf Feld ({count})",
   court_waiting_count: "{count} Spiele",
+  court_assign: "Feld zuweisen",
+  court_assign_to_match: "{team1} gegen {team2} einem Feld zuweisen",
   court_choose_court: "Feld wählen",
   court_drag_or_double_click: "Drag auf ein Feld oder Doppelklick zum Zuweisen",
   court_double_click_jump: "Doppelklick: Zum Spiel springen",
