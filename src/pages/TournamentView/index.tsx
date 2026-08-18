@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import PrintDialog from "../../components/print/PrintDialog";
+import OverflowMenu from "../../components/ui/OverflowMenu";
 import { useTheme } from "../../lib/ThemeContext";
 import TemplateExportModal from "../../components/tournament/TemplateExportModal";
 import DeleteTournamentModal from "../../components/tournament/DeleteTournamentModal";
@@ -493,6 +494,33 @@ export default function TournamentView() {
   };
 
   /** Draws whatever the format has queued up next. */
+  /** Opens the TV display in its own window (Tauri) or tab (browser). */
+  const openTvWindow = async () => {
+    if (isTauri()) {
+      try {
+        const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+        const tvWin = new WebviewWindow(`tv-${tournamentId}`, {
+          url: `/tv/${tournamentId}`,
+          title: `${t.tournament_view_tv_mode}: ${tournament?.name ?? ""}`,
+          width: 1920,
+          height: 1080,
+          fullscreen: false,
+          maximized: true,
+          decorations: true,
+          dragDropEnabled: false,
+        });
+        tvWin.once("tauri://error", (e) => {
+          console.error("TV window error:", e);
+        });
+      } catch (err) {
+        console.error("Failed to open TV window:", err);
+      }
+    } else {
+      const url = `${window.location.origin}/tv/${tournamentId}`;
+      window.open(url, `tv-${tournamentId}`, "width=1920,height=1080,menubar=no,toolbar=no");
+    }
+  };
+
   const advanceFormat = async () => {
     const ctx = buildFormatContext();
     if (!ctx) return;
@@ -910,9 +938,6 @@ export default function TournamentView() {
   }, [tournamentId]);
 
   const [showUndoRound, setShowUndoRound] = useState(false);
-  // Export dropdown next to the print button (C9). Declared with the
-  // other state so the hook order stays identical on every render.
-  const [showExportMenu, setShowExportMenu] = useState(false);
 
   /**
    * Memoized "what does the next undo step delete?" computation. Returns
@@ -1201,7 +1226,6 @@ export default function TournamentView() {
    */
   const handleExport = async (kind: "matches" | "standings" | "payments" | "json") => {
     if (!tournament) return;
-    setShowExportMenu(false);
 
     const allSets: GameSet[] = [];
     for (const list of setsByMatch.values()) allSets.push(...list);
@@ -1424,7 +1448,11 @@ export default function TournamentView() {
       })()}
 
       {/* Header */}
-      <div className="flex justify-between items-start mb-6">
+      {/* The title block and the action row share a line while there is
+          room; below that the actions wrap underneath and get the full
+          width, instead of being squeezed into whatever the title leaves
+          (REVIEW-BACKLOG.md F3). */}
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-y-3">
         <div>
           <h1 className={`text-2xl font-extrabold ${theme.textPrimary} tracking-tight`}>
             {tournament.name}
@@ -1479,27 +1507,16 @@ export default function TournamentView() {
             </span>
           </div>
         </div>
-        <div className="flex gap-2">
+        {/* `shrink-0` and `whitespace-nowrap` on the buttons: without them
+            flex squeezed every label onto three lines and grew the header to
+            228 px. `flex-wrap` lets the row break between buttons instead of
+            inside them (REVIEW-BACKLOG.md F3). */}
+        <div className="flex grow flex-wrap items-start justify-end gap-2 [&>button]:shrink-0 [&>button]:whitespace-nowrap [&>div>button]:whitespace-nowrap">
+          {/* Draft: only the action that moves the tournament forward stays
+              in the row. Edit, template and delete sit in the ⋯ menu
+              (REVIEW-BACKLOG.md F3). */}
           {tournament.status === "draft" && (
             <>
-              <button
-                onClick={() => navigate(`/tournaments/${tournament.id}/edit`)}
-                className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
-              >
-                ✏️ {t.tournament_view_edit}
-              </button>
-              <button
-                onClick={() => setShowTemplateExport(true)}
-                className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
-              >
-                📋 {t.tournament_view_template}
-              </button>
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-danger hover:text-danger-text transition-all text-sm font-medium`}
-              >
-                🗑️ {t.tournament_view_delete}
-              </button>
               <button
                 onClick={() => setShowAttendance(true)}
                 disabled={tournament.current_phase !== "ready"}
@@ -1567,44 +1584,6 @@ export default function TournamentView() {
               className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-phase hover:text-phase-text transition-all text-sm font-medium`}
             >
               📦 {t.tournament_view_archive}
-            </button>
-          )}
-          {rounds.length > 0 && (
-            <div className="relative">
-              <button
-                onClick={() => setShowExportMenu((v) => !v)}
-                className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
-              >
-                ⬇️ {t.export_results}
-              </button>
-              {showExportMenu && (
-                <div
-                  className={`absolute right-0 mt-1 z-30 min-w-[13rem] ${theme.cardBg} border ${theme.cardBorder} rounded-xl shadow-lg overflow-hidden`}
-                >
-                  {([
-                    ["matches", t.export_matches_csv],
-                    ["standings", t.export_standings_csv],
-                    ["payments", t.export_payments_csv],
-                    ["json", t.export_json],
-                  ] as const).map(([kind, label]) => (
-                    <button
-                      key={kind}
-                      onClick={() => handleExport(kind)}
-                      className={`block w-full text-left px-4 py-2 text-sm ${theme.textSecondary} hover:${theme.selectedBg} transition-colors`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          {rounds.length > 0 && (
-            <button
-              onClick={() => setShowPrint(true)}
-              className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
-            >
-              🖨️ {t.tournament_view_print}
             </button>
           )}
           {/* Per-tournament Live publishing controls. Three UI states:
@@ -1687,57 +1666,65 @@ export default function TournamentView() {
                 </span>
               </div>
             );
-          })() : (() => {
-            const isDraft = tournament.status === "draft";
-            const tooltip = isDraft
-              ? t.tournament_live_publish_disabled_draft
-              : t.tournament_live_publish_id_hint.replace("{id}", String(tournamentId));
-            return (
-              <button
-                onClick={handleEnableLive}
-                title={tooltip}
-                disabled={liveBusy || isDraft}
-                className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-emerald-300 hover:text-emerald-600 transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                📡 {t.tournament_live_publish_enable}
-                <span className={`ml-2 px-1.5 py-0.5 rounded-md ${theme.inputBg} border ${theme.inputBorder} text-[11px] font-mono opacity-80`}>
-                  ID: {tournamentId}
-                </span>
-              </button>
-            );
-          })()}
-          {tournament.status === "active" && (
-            <button
-              onClick={async () => {
-                if (isTauri()) {
-                  try {
-                    const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-                    const tvWin = new WebviewWindow(`tv-${tournamentId}`, {
-                      url: `/tv/${tournamentId}`,
-                      title: `${t.tournament_view_tv_mode}: ${tournament.name}`,
-                      width: 1920,
-                      height: 1080,
-                      fullscreen: false,
-                      maximized: true,
-                      decorations: true,
-                      dragDropEnabled: false,
-                    });
-                    tvWin.once("tauri://error", (e) => {
-                      console.error("TV window error:", e);
-                    });
-                  } catch (err) {
-                    console.error("Failed to open TV window:", err);
-                  }
-                } else {
-                  const url = `${window.location.origin}/tv/${tournamentId}`;
-                  window.open(url, `tv-${tournamentId}`, "width=1920,height=1080,menubar=no,toolbar=no");
-                }
-              }}
-              className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
-            >
-              📺 {t.tournament_view_tv_mode}
-            </button>
-          )}
+          })() : null}
+          {/* Switching live publishing on is a one-off; only its running
+              states above stay in the row, where they carry status. */}
+          {/* Everything that is not what the tournament state is about
+              lives behind the ⋯ menu, so the row keeps a readable width and
+              a visible hierarchy (REVIEW-BACKLOG.md F3). */}
+          <OverflowMenu
+            items={[
+              ...(rounds.length > 0
+                ? [
+                    { icon: "🖨️", label: t.tournament_view_print, onClick: () => setShowPrint(true) },
+                    // The export dropdown used to be a button of its own with
+                    // its own menu; four entries here cost less width and one
+                    // interaction less (REVIEW-BACKLOG.md F3).
+                    { icon: "⬇️", label: t.export_matches_csv, onClick: () => handleExport("matches") },
+                    { icon: "⬇️", label: t.export_standings_csv, onClick: () => handleExport("standings") },
+                    { icon: "⬇️", label: t.export_payments_csv, onClick: () => handleExport("payments") },
+                    { icon: "⬇️", label: t.export_json, onClick: () => handleExport("json") },
+                  ]
+                : []),
+              ...(tournament.status === "active"
+                ? [{ icon: "📺", label: t.tournament_view_tv_mode, onClick: openTvWindow }]
+                : []),
+              ...(!liveActive
+                ? [
+                    {
+                      icon: "📡",
+                      label: t.tournament_live_publish_enable,
+                      onClick: handleEnableLive,
+                      disabled: liveBusy || tournament.status === "draft",
+                      title:
+                        tournament.status === "draft"
+                          ? t.tournament_live_publish_disabled_draft
+                          : t.tournament_live_publish_id_hint.replace("{id}", String(tournamentId)),
+                    },
+                  ]
+                : []),
+              ...(tournament.status === "draft"
+                ? [
+                    {
+                      icon: "✏️",
+                      label: t.tournament_view_edit,
+                      onClick: () => navigate(`/tournaments/${tournament.id}/edit`),
+                    },
+                    {
+                      icon: "📋",
+                      label: t.tournament_view_template,
+                      onClick: () => setShowTemplateExport(true),
+                    },
+                    {
+                      icon: "🗑️",
+                      label: t.tournament_view_delete,
+                      onClick: () => setShowDeleteConfirm(true),
+                      destructive: true,
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </div>
       </div>
 

@@ -59,6 +59,7 @@ export const en: Translations = {
   common_birth_date: "Date of Birth",
   common_club: "Club",
   common_action_irreversible: "This action cannot be undone.",
+  common_more_actions: "More actions",
   common_confirm: "Confirm",
   common_confirm_type: "Type {word} to confirm:",
   common_delete_permanently: "Delete permanently",

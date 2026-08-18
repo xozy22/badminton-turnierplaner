@@ -634,14 +634,22 @@ Der TV-Modus hat seine Vier-Themes-Tabelle verloren und nutzt `--accent-bright` 
 
 ---
 
-### [ ] F3 — Aktionsleiste im Turnier-Header überläuft
-**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/pages/TournamentView/index.tsx:2050-2260`
+### [x] F3 — Aktionsleiste im Turnier-Header überläuft — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/components/ui/OverflowMenu.tsx` (neu), `src/pages/TournamentView/index.tsx`
 
-**Problem:** Je nach Zustand stehen bis zu zehn Knöpfe nebeneinander in einem `flex gap-2` ohne Umbruch: Bearbeiten, Vorlage, Löschen, Start, Nächste Runde, KO starten, Nächste KO-Runde, Undo, Beenden, Drucken, Live, TV. Keine Hierarchie zwischen „das ist jetzt dran" und „selten gebraucht"; auf 1200 px Fensterbreite (der konfigurierten Standardgröße!) wird es eng.
+**Problem:** Je nach Zustand standen bis zu zehn gleichrangige Knöpfe nebeneinander in einem `flex gap-2` ohne Umbruch. Bei der voreingestellten Fensterbreite von 1200 px teilten sie sich den Rest, den der Turniertitel übrig ließ — gemessen 507 px für 895 px Bedarf. Die Folge: Jede Beschriftung brach intern auf drei Zeilen um, die Knöpfe wurden 82 px hoch und der Kopfbereich 228 px.
 
-**Fix:** Eine klar hervorgehobene Primäraktion („Was ist jetzt zu tun?"), zwei bis drei Sekundäraktionen, der Rest in ein Überlaufmenü (⋯). Zustandsabhängig statt kumulativ.
+**Umgesetzt, drei Eingriffe:**
 
-**Fertig wenn:** Bei 1200 px Breite steht in jedem Turnierzustand höchstens eine Knopfreihe ohne Umbruch.
+*Ein Überlaufmenü.* `OverflowMenu` nimmt auf, was gerade nicht zur Sache tut: Drucken, die vier Exportformate, TV-Modus, Live aktivieren und im Entwurf Bearbeiten, Vorlage und Löschen. Es ist tastaturbedienbar (`aria-haspopup`, `role="menu"`, Fokus auf den ersten Eintrag, Escape schließt und gibt den Fokus zurück), und destruktive Einträge stehen unter einem Trenner in der Gefahrenfarbe. Das eigene Export-Dropdown entfällt damit — vier Einträge im Menü kosten eine Interaktion weniger.
+
+*Knöpfe brechen nicht mehr intern um.* `whitespace-nowrap` und `shrink-0`: Die Reihe bricht jetzt zwischen Knöpfen um statt innerhalb ihrer Beschriftungen.
+
+*Der Kopf darf umbrechen.* Titelblock und Aktionsreihe teilen sich eine Zeile, solange Platz ist; darunter rutscht die Reihe unter den Titel und bekommt die volle Breite, statt sich mit dem Rest zu begnügen.
+
+**Was in der Reihe bleibt:** Was der Turnierzustand gerade verlangt — die Fortschrittsaktion, „Letzte Runde rückgängig", „Turnier beenden" — und die laufende Live-Anzeige, weil sie Status trägt.
+
+**Fertig wenn:** ~~Bei 1200 px Breite steht in jedem Turnierzustand höchstens eine Knopfreihe ohne Umbruch~~ — gemessen: eine Zeile, Knöpfe 42 statt 82 px hoch, Kopfbereich 118 statt 228 px.
 
 ---
 
