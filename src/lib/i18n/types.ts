@@ -57,6 +57,7 @@ export interface Translations {
   common_birth_date: string;
   common_club: string;
   common_action_irreversible: string;
+  common_confirm: string;
   common_confirm_type: string;
   common_delete_permanently: string;
   common_selected: string;
@@ -137,6 +138,7 @@ export interface Translations {
   tournament_format: string;
   tournament_sets_to_win: string;
   tournament_points_per_set: string;
+  score_input_label: string;
   score_error_negative: string;
   score_error_max: string;
   score_error_draw: string;

@@ -25,12 +25,14 @@ import type { Session, Sportstaette, Tournament, SessionStatus } from "../lib/ty
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
 import { useToast } from "../lib/ToastContext";
+import { useConfirm } from "../components/ui/ConfirmDialog";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 export default function SessionDetail() {
   const { theme } = useTheme();
   const { t } = useT();
   const { showError, showSuccess } = useToast();
+  const [confirmDialog, ask] = useConfirm();
   const navigate = useNavigate();
   const params = useParams<{ id: string }>();
   const sessionId = params.id ? Number(params.id) : null;
@@ -162,7 +164,16 @@ export default function SessionDetail() {
   };
 
   const handleDetach = async (tournamentId: number) => {
-    if (!confirm(t.session_detail_detach_confirm)) return;
+    // Was a native confirm(): unthemed, and it blocks the whole window
+    // (REVIEW-BACKLOG.md F4).
+    const ok = await ask({
+      title: t.session_detail_detach,
+      message: t.session_detail_detach_confirm,
+      icon: "🔗",
+      tone: "danger",
+      confirmLabel: t.session_detail_detach,
+    });
+    if (!ok) return;
     try {
       await detachTournamentFromSession(tournamentId);
       showSuccess(t.session_detail_detach + " ✓");
@@ -493,6 +504,8 @@ export default function SessionDetail() {
           </div>
         </div>
       )}
+
+      {confirmDialog}
     </div>
   );
 }

@@ -79,9 +79,15 @@ export function useToast() {
 
 function ToastStack() {
   const { toasts, dismissToast } = useContext(ToastContext);
-  if (toasts.length === 0) return null;
+  // The region stays mounted even when empty: a live region has to exist
+  // before its content changes, or screen readers miss the first message
+  // (REVIEW-BACKLOG.md G4).
   return (
-    <div className="fixed bottom-6 right-6 z-[1000] flex flex-col gap-2 items-end pointer-events-none">
+    <div
+      className="fixed bottom-6 right-6 z-[1000] flex flex-col gap-2 items-end pointer-events-none"
+      aria-live="polite"
+      aria-atomic="false"
+    >
       {toasts.map((t) => (
         <ToastItem key={t.id} toast={t} onDismiss={() => dismissToast(t.id)} />
       ))}
@@ -91,15 +97,16 @@ function ToastStack() {
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
   const palette: Record<ToastKind, { bg: string; icon: string }> = {
-    success: { bg: "bg-emerald-600", icon: "✓" },
+    success: { bg: "bg-success", icon: "✓" },
     error: { bg: "bg-danger", icon: "✕" },
-    info: { bg: "bg-sky-600", icon: "ℹ" },
+    info: { bg: "bg-info", icon: "ℹ" },
   };
   const { bg, icon } = palette[toast.kind];
   return (
     <div
       className={`flex items-center gap-2 ${bg} text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium pointer-events-auto max-w-sm`}
       role={toast.kind === "error" ? "alert" : "status"}
+      aria-live={toast.kind === "error" ? "assertive" : "polite"}
     >
       <span aria-hidden="true">{icon}</span>
       <span className="flex-1 whitespace-pre-line break-words">{toast.message}</span>

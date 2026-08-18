@@ -642,14 +642,18 @@ Der TV-Modus hat seine Vier-Themes-Tabelle verloren und nutzt `--accent-bright` 
 
 ---
 
-### [ ] F4 — Drei verschiedene Bestätigungsmuster
-**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/pages/SessionDetail.tsx:164`, `src/pages/Tournaments.tsx:322`, `src/pages/Settings.tsx:218`, diverse Modals
+### [x] F4 — Drei verschiedene Bestätigungsmuster — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/components/ui/ConfirmDialog.tsx` (neu), `src/pages/SessionDetail.tsx`, `src/pages/Tournaments.tsx`
 
-**Problem:** Es gibt gestylte Modals (DeleteTournamentModal, UndoRoundModal …), ein natives `confirm()` beim Lösen eines Turniers von einer Session, ein natives `alert()` beim Vorlagen-Import-Fehler und den Tauri-`ask()`-Dialog beim Restore. Optisch und im Verhalten drei verschiedene Welten — v2.8.3 hat genau das schon einmal für einen Fall repariert.
+**Problem:** Gestylte Modals, ein natives `confirm()` beim Lösen eines Turniers von einer Session und ein natives `alert()` beim Vorlagen-Importfehler — optisch und im Verhalten drei Welten. Die nativen ignorieren das Theme und blockieren das ganze Fenster.
 
-**Fix:** Eine `useConfirm()`-Funktion auf Basis eines generischen `<ConfirmDialog>` (Titel, Text, Gefahrenstufe, optionales Bestätigungswort), alle Aufrufstellen darauf umstellen; Fehler ausschließlich über den bestehenden Toast-Mechanismus.
+**Umgesetzt:** `useConfirm()` auf dem Modal-Fundament aus F5. Es liefert den Dialog und eine `ask`-Funktion, die auf die Antwort wartet: `if (!(await ask({ title, tone: "danger" }))) return;`. Titel, Text, Symbol, Gefahrenstufe, Beschriftungen und ein optionales Bestätigungswort sind Parameter.
 
-**Fertig wenn:** Keine Treffer mehr für `confirm(` und `alert(` in `src/`.
+Das `confirm()` in `SessionDetail` ist darauf umgestellt, das `alert()` in `Tournaments` geht durch den Toast-Mechanismus wie jede andere Fehlermeldung.
+
+**Nicht angetastet:** Die `save()`-Aufrufe aus `@tauri-apps/plugin-dialog` — das sind Dateiauswahl-Dialoge des Betriebssystems, die genau so aussehen sollen, wie der Nutzer sie kennt.
+
+**Fertig wenn:** ~~Keine Treffer mehr für `confirm(` und `alert(` in `src/`~~ — nur noch in Kommentaren, die die Umstellung beschreiben. Im Browser gegengeprüft.
 
 ---
 
@@ -773,14 +777,16 @@ Im dunklen Theme wird der Akzent **nicht** überschrieben. Emerald-600 wirkt auf
 
 ---
 
-### [ ] G4 — Formularfelder ohne Beschriftung, Statusänderungen ohne Ansage
+### [x] G4 — Formularfelder ohne Beschriftung, Statusänderungen ohne Ansage — **erledigt**
 **Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/pages/TournamentView/components/MatchCard.tsx`, `src/lib/ToastContext.tsx`
 
-**Problem:** Die Score-Eingabefelder sind nur visuell durch Position zugeordnet, ohne `<label>` oder `aria-label` („Satz 1, Punkte Team 1"). Toasts und Ergebnisänderungen werden nicht über `aria-live` angesagt.
+**Problem:** Die Punkteingabefelder waren nur durch ihre Position zugeordnet — ein Screenreader nannte beim Fokussieren nichts als „Eingabefeld". Toasts wurden nicht angesagt.
 
-**Fix:** `aria-label` je Eingabefeld aus Satznummer und Teamnamen erzeugen; Toast-Container als `aria-live="polite"` (Fehler `assertive`).
+**Umgesetzt:** Jedes Eingabefeld trägt eine Beschriftung aus Satznummer und Teamname, gebildet aus dem neuen Schlüssel `score_input_label` — im Browser geprüft: „Satz 1, Punkte für Spieler 2". Ungültige Eingaben sind zusätzlich mit `aria-invalid` ausgezeichnet, der Doppelpunkt zwischen den Feldern als dekorativ ausgeblendet.
 
-**Fertig wenn:** Screenreader nennt beim Fokussieren eines Score-Feldes Satz und Team; Toasts werden vorgelesen.
+Der Toast-Bereich ist eine `aria-live`-Region, die **dauerhaft im Baum bleibt** — eine Live-Region muss existieren, bevor sich ihr Inhalt ändert, sonst überhört ein Screenreader die erste Meldung. Fehler unterbrechen (`assertive`), alles andere wartet (`polite`).
+
+**Fertig wenn:** ~~Screenreader nennt beim Fokussieren eines Score-Feldes Satz und Team; Toasts werden vorgelesen~~ — erfüllt.
 
 ---
 

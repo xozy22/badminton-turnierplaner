@@ -378,6 +378,8 @@ export default function MatchCard({
                   onFocus={handleScoreFocus}
                   onKeyDown={(e) => handleScoreKeyDown(e, setNum, 1)}
                   disabled={inputsDisabled}
+                  aria-label={fill(t.score_input_label, { set: setNum, team: team1Label })}
+                  aria-invalid={!validation.valid}
                   className={`w-14 h-10 border-2 rounded-xl text-center text-base font-mono font-bold ${theme.inputBg} ${theme.inputText} disabled:opacity-60 outline-none transition-all ${
                     !validation.valid
                       ? "border-danger bg-danger-subtle text-danger-text"
@@ -386,7 +388,7 @@ export default function MatchCard({
                       : `${theme.inputBorder} ${theme.focusBorder} focus:ring-2 ${theme.focusRing}`
                   }`}
                 />
-                <span className="text-gray-300 font-bold">:</span>
+                <span className="font-bold text-muted" aria-hidden="true">:</span>
                 <input
                   type="number"
                   min={0}
@@ -405,6 +407,8 @@ export default function MatchCard({
                   onFocus={handleScoreFocus}
                   onKeyDown={(e) => handleScoreKeyDown(e, setNum, 2)}
                   disabled={inputsDisabled}
+                  aria-label={fill(t.score_input_label, { set: setNum, team: team2Label })}
+                  aria-invalid={!validation.valid}
                   className={`w-14 h-10 border-2 rounded-xl text-center text-base font-mono font-bold ${theme.inputBg} ${theme.inputText} disabled:opacity-60 outline-none transition-all ${
                     !validation.valid
                       ? "border-danger bg-danger-subtle text-danger-text"

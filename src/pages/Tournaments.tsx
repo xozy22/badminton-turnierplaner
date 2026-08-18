@@ -322,7 +322,10 @@ export default function Tournaments() {
       await applyTemplate(tpl);
     } catch (err) {
       console.error("Import failed:", err);
-      alert(`${t.tournaments_import_error}\n\n${err instanceof Error ? err.message : String(err)}`);
+      // Errors go through the toast mechanism like everywhere else; a
+      // native alert() ignores the theme and blocks the window
+      // (REVIEW-BACKLOG.md F4).
+      showError(`${t.tournaments_import_error}\n\n${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
