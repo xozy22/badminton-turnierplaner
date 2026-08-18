@@ -85,7 +85,14 @@ export default function NextStepBar(info: NextStepInfo) {
       aria-live="polite"
     >
       {info.roundCount > 0 && (
-        <span className="text-xs font-medium opacity-80">{progress} · </span>
+        <>
+          <span className="text-xs font-medium opacity-80">{progress}</span>
+          {/* Separate nodes rather than one string: the gap does the spacing
+              visually, and a reader gets two phrases instead of a run-on. */}
+          <span className="text-xs opacity-40" aria-hidden="true">
+            ·
+          </span>
+        </>
       )}
       <span className="font-medium">
         <span className="opacity-70">{t.next_step_label}: </span>
