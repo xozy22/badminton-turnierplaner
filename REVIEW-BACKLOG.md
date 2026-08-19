@@ -615,14 +615,16 @@ Das Polling bleibt als Sicherheitsnetz — für Änderungen, die ohne Meldung pa
 
 ---
 
-### [~] E5 — 145 KB CSS — **von 145 auf 64 KB, Ziel knapp verfehlt**
+### [~] E5 — 145 KB CSS — **von 145 auf 66 KB, Ziel knapp verfehlt**
 **Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/index.css`, projektweit
 
 **Problem:** Tailwind konnte kaum etwas entfernen, weil die Klassennamen in `theme.ts` als Strings zusammengesetzt und über Props verteilt wurden.
 
 **Stand:** Mit den Design-Tokens (F1) und der Umstellung der hartcodierten Farben (F2) ist das Bündel von 145 KB auf **64 KB** gefallen. Vier Farbtabellen mit je ~50 Klassennamen sind zu einer geschrumpft, und 384 Literale wurden durch eine Handvoll Token-Utilities ersetzt.
 
-**Was zu den letzten 4 KB fehlt:** Die Komponenten lesen ihre Klassen weiterhin über `theme.cardBg` statt sie direkt zu schreiben. Tailwind sieht dadurch beide Formen — die Utility und den Umweg — und behält Regeln, die nur über die Indirektion erreichbar sind. Das aufzulösen heißt, in rund 100 Dateien `${theme.x}` durch die Utility zu ersetzen; es ist derselbe Schritt, der auch den offenen dritten Teil von F1 schließt.
+**Nachgemessen zum Abschluss der Phase 6: 66,3 KB.** Die zwei Kilobyte kamen mit den neuen gemeinsamen Bausteinen (`Modal`, `States`, `Section`, `Icon`) und den zwei OSC-Farbschemata hinzu — der Kern des Punktes bleibt derselbe.
+
+**Was zu den letzten Kilobyte fehlt:** Die Komponenten lesen ihre Klassen weiterhin über `theme.cardBg` statt sie direkt zu schreiben. Tailwind sieht dadurch beide Formen — die Utility und den Umweg — und behält Regeln, die nur über die Indirektion erreichbar sind. Das aufzulösen heißt, in rund 100 Dateien `${theme.x}` durch die Utility zu ersetzen; es ist derselbe Schritt, der auch den offenen dritten Teil von F1 schließt.
 
 **Fertig wenn:** CSS-Bundle unter 60 KB.
 
