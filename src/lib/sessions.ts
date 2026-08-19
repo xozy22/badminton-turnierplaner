@@ -279,9 +279,11 @@ export async function attachTournamentToSession(
   const session = await getSession(sessionId);
   if (!session) throw new Error(`Session ${sessionId} not found`);
   if (session.status !== "active") {
-    throw new Error(
-      `Session "${session.name}" ist ${session.status === "ended" ? "beendet" : "archiviert"} — Turniere koennen nur an aktive Sessions angedockt werden.`,
-    );
+    // A code, not prose: this message reaches the interface, and the
+    // sentence for it already exists as a translation key
+    // (session_attach_blocked_status_hint). See lib/backendError.ts for
+    // the same treatment of the Rust-side errors.
+    throw new Error(`BOSS:session_not_active|${session.name}`);
   }
   if (isTauri()) {
     const d = await getDb();

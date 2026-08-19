@@ -41,6 +41,8 @@ const KEYS: Record<string, keyof Translations> = {
   path_unresolved: "backend_err_path_unresolved",
   queue_failed: "backend_err_queue_failed",
   safety_copy_failed: "backend_err_safety_copy_failed",
+  // Raised in TypeScript rather than Rust, but travels the same way.
+  session_not_active: "session_attach_blocked_status_hint",
   statement_failed: "backend_err_statement_failed",
   target_dir_missing: "backend_err_target_dir_missing",
 };

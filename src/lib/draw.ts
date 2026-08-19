@@ -257,20 +257,20 @@ type Participant = [number, number | null];
  */
 function buildBracket(ordered: Participant[]): BracketMatch[] {
   const size = nextPowerOf2(ordered.length);
-  const byeCount = size - ordered.length;
-  const positions = generateSeedOrder(size);
 
-  // The bye slots are the opponents of the top `byeCount` seeds. Marking
-  // them upfront keeps them empty while everyone else is placed.
-  const byeSlots = new Set(positions.slice(0, byeCount).map((slot) => slot ^ 1));
+  // `seedForSlot[i]` is the rank that belongs on slot i, zero-based. Read
+  // the other way round — "which slot does rank i go to" — the pairings
+  // come out inverted: the top seed would meet the middle of the field in
+  // round one instead of the bottom (REVIEW-BACKLOG.md A3).
+  const seedForSlot = generateSeedOrder(size);
 
-  const slots: (Participant | null)[] = new Array(size).fill(null);
-  let next = 0;
-  for (const slot of positions) {
-    if (byeSlots.has(slot)) continue;
-    if (next >= ordered.length) break;
-    slots[slot] = ordered[next++];
-  }
+  // A slot whose rank is past the end of the field stays empty, and that
+  // empty slot is the bye for its neighbour. No separate bookkeeping is
+  // needed: the highest ranks are paired with the top seeds by
+  // construction, so the byes land where the convention wants them.
+  const slots: (Participant | null)[] = seedForSlot.map(
+    (rank) => ordered[rank] ?? null,
+  );
 
   const matches: BracketMatch[] = [];
   for (let i = 0; i < size; i += 2) {

@@ -895,3 +895,61 @@ describe("pairing history", () => {
     expect(pairings.size).toBe(0);
   });
 });
+
+describe("bracket seeding — the standard pairings", () => {
+  /** Reads the bracket back as seed numbers, e.g. "1-8". */
+  const pairings = (count: number): string[] => {
+    const players = makePlayers(count);
+    const seedOf = new Map(players.map((p, i) => [p.id, i + 1]));
+    const label = (id: number | null) => (id === null ? "bye" : String(seedOf.get(id)));
+    return generateEliminationBracket(players, players.map((p) => p.id)).map(
+      (m) => `${label(m.team1_p1)}-${label(m.team2_p1)}`,
+    );
+  };
+
+  it("pairs first against last, second against second-last", () => {
+    // The seeding order was applied inverted, which produced 1-5 7-3 4-8 6-2
+    // for eight: the top seed drew the middle of the field, and two group
+    // winners could meet in the quarterfinal while two runners-up met in
+    // the other half (REVIEW-BACKLOG.md A3).
+    expect(pairings(4)).toEqual(["1-4", "2-3"]);
+    expect(pairings(8)).toEqual(["1-8", "4-5", "2-7", "3-6"]);
+  });
+
+  it("holds at sixteen, where the error was largest", () => {
+    expect(pairings(16)).toEqual([
+      "1-16", "8-9", "4-13", "5-12",
+      "2-15", "7-10", "3-14", "6-11",
+    ]);
+  });
+
+  it("keeps the top two seeds apart until the final at every size", () => {
+    for (const size of [4, 8, 16, 32]) {
+      const rows = pairings(size);
+      const halfOf = (seed: string) => {
+        const i = rows.findIndex((r) => r.split("-").includes(seed));
+        return i < rows.length / 2 ? "top" : "bottom";
+      };
+      expect(halfOf("1"), `size ${size}`).not.toBe(halfOf("2"));
+    }
+  });
+
+  it("gives the byes to the top seeds, in order", () => {
+    // Five players in an eight slot bracket: seeds 1, 2 and 3 sit out
+    // round one, seeds 4 and 5 play each other.
+    expect(pairings(5)).toEqual(["1-bye", "4-5", "2-bye", "3-bye"]);
+  });
+
+  it("seeds one and two are never the ones playing when byes exist", () => {
+    for (const count of [3, 5, 6, 7, 9, 11, 13]) {
+      const rows = pairings(count);
+      const byeSeeds = rows
+        .filter((r) => r.endsWith("-bye"))
+        .map((r) => Number(r.split("-")[0]));
+      // Byes go to a prefix of the ranking: 1, then 2, then 3 …
+      expect(byeSeeds.sort((a, b) => a - b), `${count} players`).toEqual(
+        Array.from({ length: byeSeeds.length }, (_, i) => i + 1),
+      );
+    }
+  });
+});

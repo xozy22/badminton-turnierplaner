@@ -84,6 +84,23 @@ Zwei Fallstricke schließen den naheliegenden Weg aus (beide im Code dokumentier
 
 ---
 
+**Nachtrag — die Setzliste wurde verkehrt herum angewandt.** Bei einer Logikprüfung des Turnierablaufs gefunden. `generateSeedOrder` liefert „welcher Gesetzte steht auf Feld *i*"; `buildBracket` las das als „auf welches Feld kommt der *i*-te Gesetzte" — die inverse Permutation. Ergebnis bei acht Teilnehmern:
+
+```
+heute:    1-5  7-3  4-8  6-2
+korrekt:  1-8  4-5  2-7  3-6
+```
+
+Der Erstgesetzte traf also in Runde eins auf die Mitte des Feldes statt auf den Letzten. Bei sechzehn war es ärger: 1 gegen 9 statt 1 gegen 16.
+
+**Warum es niemandem auffiel:** Der vorhandene Test setzt nur die halbe Teilnehmerzahl. Mit vier Gesetzten auf acht Plätzen liegt in **beiden** Lesarten jeder Gesetzte in einem eigenen Viertel, und die beiden Ersten in verschiedenen Hälften — der Test bestand also, während die Paarungen falsch waren.
+
+**Wo es weh tat:** Ein K.-o.-Feld aus einer Gruppenphase ist vollständig gesetzt. Dort landeten bei vier Gruppen **alle vier Gruppensieger in derselben Hälfte** — zwei von ihnen flogen im Viertelfinale raus, während in der anderen Hälfte vier Gruppenzweite unter sich waren und einer davon garantiert ins Finale einzog. Die Gruppenphase war damit praktisch entwertet.
+
+Die richtige Leserichtung macht die Funktion zugleich kürzer: Ein Feld, dessen Rang über die Teilnehmerzahl hinausgeht, bleibt leer — und dieses leere Feld **ist** das Freilos für seinen Nachbarn. Die gesonderte Freilos-Buchführung entfällt, und die Freilose landen von selbst bei den Erstgesetzten, weil die konstruktionsbedingt mit den höchsten Rängen gepaart sind.
+
+Fünf Tests sichern das jetzt ab, darunter die vollständige Paarungsliste für 4, 8 und 16 und die Freilos-Vergabe für jede ungerade Feldgröße von 3 bis 13.
+
 ### [x] A4 — Setzliste geht beim Start verloren, wenn nicht direkt aus dem Wizard gestartet wird — **erledigt**
 **Schwere:** hoch · **Aufwand:** S · **Dateien:** `src/pages/TournamentView/index.tsx`
 

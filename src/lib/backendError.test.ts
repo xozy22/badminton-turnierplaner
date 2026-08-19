@@ -55,3 +55,13 @@ describe("describeBackendError", () => {
     expect(describeBackendError(de, "")).toBe("");
   });
 });
+
+describe("describeBackendError — the TypeScript-side codes", () => {
+  it("translates the session attach guard", () => {
+    // Raised in lib/sessions.ts rather than Rust, but it reaches the user
+    // through the same showError path and gets the same treatment.
+    const out = describeBackendError(de, "BOSS:session_not_active|Dienstagsrunde");
+    expect(out).toContain(de.session_attach_blocked_status_hint);
+    expect(out).toContain("Dienstagsrunde");
+  });
+});
