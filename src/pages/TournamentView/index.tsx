@@ -1,16 +1,10 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { formatLabel, modeLabel } from "../../lib/i18n/labels";
 import Icon, { type IconName } from "../../components/ui/Icon";
 import { useConfirm } from "../../components/ui/ConfirmDialog";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import NextStepBar from "../../components/tournament/NextStepBar";
 import { LoadingState, NotFoundState } from "../../components/ui/States";
 import { useTheme } from "../../lib/ThemeContext";
-import RanglisteTab from "../../components/tournament/RanglisteTab";
-import GruppenTab from "../../components/tournament/GruppenTab";
-import VerwaltungTab from "../../components/tournament/VerwaltungTab";
-import BracketView from "../../components/bracket/BracketView";
-import BronzeMatchPanel from "../../components/bracket/BronzeMatchPanel";
 import {
   getTournamentPlayers,
   updateTournamentStatus,
@@ -45,6 +39,8 @@ import { useSessionContext } from "../../lib/sessionContext";
 import SessionBar from "./components/SessionBar";
 import TournamentHeader from "./components/TournamentHeader";
 import MatchesTab from "./components/MatchesTab";
+import DraftPanel from "./components/DraftPanel";
+import SecondaryTabs from "./components/SecondaryTabs";
 import TournamentModals from "./components/TournamentModals";
 import { useLiveControls } from "./lib/useLiveControls";
 import { useMatchActions } from "./lib/useMatchActions";
@@ -727,67 +723,11 @@ export default function TournamentView() {
         onNavigate={navigate}
       />
 
-      {/* Round Tabs - above everything */}
-      {rounds.length === 0 && tournament.status === "draft" && (
-        <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-8 mb-6`}>
-          <div className="text-center mb-6">
-                <div className={`text-lg font-semibold ${theme.textPrimary}`}>
-              {t.tournament_view_not_started}
-            </div>
-            <div className={`text-sm ${theme.textMuted} mt-1`}>
-              {t.tournament_view_not_started_hint}
-            </div>
-          </div>
-
-          {/* Tournament Summary */}
-          <div className={`${theme.inputBg} rounded-md p-5 border ${theme.inputBorder}`}>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.tournament_mode}</span>
-                <div className={`font-medium ${theme.textPrimary} mt-0.5`}>
-                  {modeLabel(t, tournament.mode)}
-                </div>
-              </div>
-              <div>
-                <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.tournament_format}</span>
-                <div className={`font-medium ${theme.textPrimary} mt-0.5`}>
-                  {formatLabel(t, tournament.format)}
-                </div>
-              </div>
-              <div>
-                <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.tournament_sets_to_win}</span>
-                <div className={`font-medium ${theme.textPrimary} mt-0.5`}>{t.tournaments_best_of.replace("{count}", String(tournament.sets_to_win * 2 - 1))}</div>
-              </div>
-              <div>
-                <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.tournament_points_per_set}</span>
-                <div className={`font-medium ${theme.textPrimary} mt-0.5`}>{tournament.points_per_set}</div>
-              </div>
-              <div>
-                <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.common_courts}</span>
-                <div className={`font-medium ${theme.textPrimary} mt-0.5`}>{tournament.courts}</div>
-              </div>
-              <div>
-                <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.stats_player}</span>
-                <div className={`font-medium ${theme.textPrimary} mt-0.5`}>{players.length}</div>
-              </div>
-            </div>
-            {players.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-line-strong dark:border-line-strong">
-                <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.management_participants.replace("{count}", String(players.length))}</span>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {players.map(p => (
-                    <span key={p.id} className={`text-xs px-2 py-0.5 rounded-full ${
-                      p.gender === "m" ? "bg-info-subtle text-info-text" : "bg-pink-100 text-pink-700"
-                    }`}>
-                      {playerDisplayName(p)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <DraftPanel
+        tournament={tournament}
+        players={players}
+        rounds={rounds}
+      />
 
       {/* One sentence naming what to do next (REVIEW-BACKLOG.md F9). */}
       <NextStepBar
@@ -878,130 +818,36 @@ export default function TournamentView() {
         playerName={playerName}
       />
 
-      {/* Tab: Gruppen */}
-      {viewTab === "gruppen" && isGroupKo && (
-        <GruppenTab
-          tournament={tournament}
-          players={players}
-          theme={theme}
-          rounds={rounds}
-          getGroupData={getGroupData}
-          seedRankByPlayer={derived.seedRankByPlayer}
-        />
-      )}
-
-      {/* Tab: Bracket */}
-      {viewTab === "bracket" && koRoundsForBracket.length > 0 && (isElimination || (isGroupKo && tournament.current_phase === "ko")) && (
-        <>
-          <BracketView
-            rounds={koRoundsForBracket}
-            matchesByRound={matchesByRound}
-            setsByMatch={setsByMatch}
-            playerName={playerName}
-            pointsPerSet={isGroupKo && tournament.ko_points_per_set != null ? tournament.ko_points_per_set : tournament.points_per_set}
-            cap={isGroupKo && tournament.ko_points_per_set != null ? tournament.ko_cap : tournament.cap}
-            allMatches={allMatches}
-            minRestMinutes={tournament.min_rest_minutes}
-            tournamentStatus={tournament.status}
-          />
-          {derived.thirdPlaceRound && (
-            <BronzeMatchPanel
-              bronzeRound={derived.thirdPlaceRound}
-              matches={matchesByRound.get(derived.thirdPlaceRound.id) || []}
-              setsByMatch={setsByMatch}
-              playerName={playerName}
-              pointsPerSet={isGroupKo && tournament.ko_points_per_set != null ? tournament.ko_points_per_set : tournament.points_per_set}
-              cap={isGroupKo && tournament.ko_points_per_set != null ? tournament.ko_cap : tournament.cap}
-              allMatches={allMatches}
-              minRestMinutes={tournament.min_rest_minutes}
-              tournamentStatus={tournament.status}
-            />
-          )}
-        </>
-      )}
-
-      {/* Tab: Bracket (Double Elimination) */}
-      {viewTab === "bracket" && isDoubleElimination && (winnersRounds.length > 0 || losersRounds.length > 0) && (
-        <div>
-          {winnersRounds.length > 0 && (
-            <>
-              <h3 className={`text-lg font-bold ${theme.textPrimary} mb-3`}>{t.bracket_winners_bracket}</h3>
-              <BracketView
-                rounds={winnersRounds}
-                matchesByRound={matchesByRound}
-                setsByMatch={setsByMatch}
-                playerName={playerName}
-                pointsPerSet={tournament.points_per_set}
-                cap={tournament.cap}
-                allMatches={allMatches}
-                minRestMinutes={tournament.min_rest_minutes}
-                tournamentStatus={tournament.status}
-              />
-            </>
-          )}
-          {losersRounds.length > 0 && (
-            <>
-              <h3 className={`text-lg font-bold ${theme.textPrimary} mb-3 mt-6`}>{t.bracket_losers_bracket}</h3>
-              <BracketView
-                rounds={losersRounds}
-                matchesByRound={matchesByRound}
-                setsByMatch={setsByMatch}
-                playerName={playerName}
-                pointsPerSet={tournament.points_per_set}
-                cap={tournament.cap}
-                allMatches={allMatches}
-                minRestMinutes={tournament.min_rest_minutes}
-                tournamentStatus={tournament.status}
-              />
-            </>
-          )}
-          {derived.thirdPlaceRound && (
-            <BronzeMatchPanel
-              bronzeRound={derived.thirdPlaceRound}
-              matches={matchesByRound.get(derived.thirdPlaceRound.id) || []}
-              setsByMatch={setsByMatch}
-              playerName={playerName}
-              pointsPerSet={tournament.points_per_set}
-              cap={tournament.cap}
-              allMatches={allMatches}
-              minRestMinutes={tournament.min_rest_minutes}
-              tournamentStatus={tournament.status}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Tab: Rangliste */}
-      {viewTab === "rangliste" && (
-        <RanglisteTab
-          tournament={tournament}
-          players={players}
-          standings={standings}
-          theme={theme}
-        />
-      )}
-
-      {/* Tab: Verwaltung (Teilnehmer + Startgeld kombiniert) */}
-      {viewTab === "verwaltung" && tournament && (
-        <VerwaltungTab
-          tournament={tournament}
-          players={players}
-          allPlayers={allPlayers}
-          paymentData={paymentData}
-          theme={theme}
-          collapsedClubs={collapsedClubs}
-          showAddPlayer={showAddPlayer}
-          allMatches={allMatches}
-          setShowAddPlayer={setShowAddPlayer}
-          handleAddPlayer={handleAddPlayer}
-          handleRemovePlayer={handleRemovePlayer}
-          setPaymentData={setPaymentData}
-          setCollapsedClubs={setCollapsedClubs}
-          setRetireTarget={setRetireTarget}
-          onUnretire={handlePlayerUnretire}
-          playerName={playerName}
-        />
-      )}
+      <SecondaryTabs
+        viewTab={viewTab}
+        tournament={tournament}
+        players={players}
+        allPlayers={allPlayers}
+        rounds={rounds}
+        allMatches={allMatches}
+        matchesByRound={matchesByRound}
+        setsByMatch={setsByMatch}
+        standings={standings}
+        paymentData={paymentData}
+        setPaymentData={setPaymentData}
+        collapsedClubs={collapsedClubs}
+        setCollapsedClubs={setCollapsedClubs}
+        showAddPlayer={showAddPlayer}
+        setShowAddPlayer={setShowAddPlayer}
+        setRetireTarget={setRetireTarget}
+        isGroupKo={isGroupKo}
+        isElimination={isElimination}
+        isDoubleElimination={isDoubleElimination}
+        koRoundsForBracket={koRoundsForBracket}
+        winnersRounds={winnersRounds}
+        losersRounds={losersRounds}
+        derived={derived}
+        getGroupData={getGroupData}
+        playerName={playerName}
+        onAddPlayer={handleAddPlayer}
+        onRemovePlayer={handleRemovePlayer}
+        onUnretire={handlePlayerUnretire}
+      />
     </div>
   );
 }
