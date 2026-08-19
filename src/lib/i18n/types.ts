@@ -138,6 +138,9 @@ export interface Translations {
   tournament_edit_title: string;
   tournament_name: string;
   tournament_name_placeholder: string;
+  tournament_play_date: string;
+  tournament_start_time: string;
+  print_oclock: string;
   tournament_mode: string;
   tournament_format: string;
   tournament_sets_to_win: string;

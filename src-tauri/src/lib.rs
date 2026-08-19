@@ -27,7 +27,7 @@ const BACKUP_KEEP: usize = 5;
 /// Wird gegen die Migrationsliste geprueft (`debug_assert` in `run`), damit
 /// die Konstante nicht stillschweigend veraltet, wenn eine Migration
 /// hinzukommt.
-const CURRENT_SCHEMA_VERSION: i64 = 18;
+const CURRENT_SCHEMA_VERSION: i64 = 19;
 
 /// Datum und Uhrzeit als `YYYY-MM-DD_HHMM`, aus Unix-Sekunden.
 ///
@@ -1282,6 +1282,22 @@ pub fn run() {
 
                 ALTER TABLE players DROP COLUMN age;
                 ALTER TABLE players DROP COLUMN birth_year;
+            ",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 19,
+            description: "record when a tournament is played, not just when it was created",
+            // `created_at` says when the row was written. Nothing said when
+            // people turn up and play, so no printout could name a date
+            // (FEATURE-BACKLOG.md A1).
+            //
+            // Both stay NULL for existing tournaments: guessing a play date
+            // from created_at would be wrong for every tournament that was
+            // set up in advance, which is most of them.
+            sql: "
+                ALTER TABLE tournaments ADD COLUMN play_date TEXT;
+                ALTER TABLE tournaments ADD COLUMN start_time TEXT;
             ",
             kind: MigrationKind::Up,
         },

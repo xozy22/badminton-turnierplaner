@@ -69,6 +69,10 @@ export default function TournamentCreate() {
   const [mode, setMode] = useState<TournamentMode>("doubles");
   const [format, setFormat] = useState<TournamentFormat>("random_doubles");
   const [name, setName] = useState(() => generateName("doubles", "random_doubles"));
+  // When it is played, as opposed to when the row is written. Defaults to
+  // today, because most tournaments are set up on the day (A1).
+  const [playDate, setPlayDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [startTime, setStartTime] = useState("");
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
   const [scoringMode, setScoringMode] = useState<ScoringModeId>("21_ext");
   const scoringPreset = SCORING_MODES.find((m) => m.id === scoringMode)!;
@@ -137,7 +141,8 @@ export default function TournamentCreate() {
           format === "group_ko" ? numGroups : 0,
           format === "group_ko" ? qualifyPerGroup : 0,
           feeSingle, feeDouble, cap, rest,
-          enableThirdPlace && (format === "elimination" || format === "group_ko" || format === "double_elimination")
+          enableThirdPlace && (format === "elimination" || format === "group_ko" || format === "double_elimination"),
+          { playDate: playDate || null, startTime: startTime || null }
         );
         await updatePlannedRounds(
           id,
@@ -148,7 +153,7 @@ export default function TournamentCreate() {
       }
     }, 1000);
     return () => clearTimeout(timer);
-  }, [isEditMode, editLoaded, editId, name, mode, format, setsToWin, pointsPerSet, cap, courts, numGroups, plannedRounds, qualifyPerGroup, useEntryFee, entryFeeSingle, entryFeeDouble, useMinRest, minRestMinutes, enableThirdPlace]);
+  }, [isEditMode, editLoaded, editId, name, mode, format, setsToWin, pointsPerSet, cap, courts, numGroups, plannedRounds, qualifyPerGroup, useEntryFee, entryFeeSingle, entryFeeDouble, useMinRest, minRestMinutes, enableThirdPlace, playDate, startTime]);
 
   // Auto-save player selection when it changes
   useEffect(() => {
@@ -254,6 +259,10 @@ export default function TournamentCreate() {
         setMinRestMinutes(String(td.min_rest_minutes));
       }
       setEnableThirdPlace(td.enable_third_place === 1);
+      // Tournaments from before v19 have neither; leave the fields empty
+      // rather than inventing a date for them.
+      if (td.play_date) setPlayDate(td.play_date);
+      if (td.start_time) setStartTime(td.start_time);
       setSelectedPlayerIds(new Set(tp.map((p) => p.id)));
 
       // Restore seeding state from persisted seed_rank (per migration v10)
@@ -366,7 +375,8 @@ export default function TournamentCreate() {
         format === "group_ko" ? numGroups : 0,
         format === "group_ko" ? qualifyPerGroup : 0,
         feeSingle, feeDouble, cap, rest,
-        ttp
+        ttp,
+        { playDate: playDate || null, startTime: startTime || null }
       );
       // Sync players: remove those no longer selected, add new ones
       const existingPlayers = await getTournamentPlayers(id);
@@ -387,7 +397,8 @@ export default function TournamentCreate() {
         format === "group_ko" ? numGroups : 0,
         format === "group_ko" ? qualifyPerGroup : 0,
         feeSingle, feeDouble, cap, rest,
-        ttp
+        ttp,
+        { playDate: playDate || null, startTime: startTime || null }
       );
       for (const pid of selectedPlayerIds) {
         await addPlayerToTournament(id, pid);
@@ -689,6 +700,42 @@ export default function TournamentCreate() {
                         <Icon name="refresh" />
                       </button>
                     )}
+                  </div>
+                </div>
+
+                {/* When it is played. The date defaults to today; the time
+                    is optional, because a club evening does not always have
+                    one worth writing down (FEATURE-BACKLOG.md A1). */}
+                <div className="flex flex-wrap gap-4">
+                  <div className="grow">
+                    <label
+                      htmlFor="tournament-play-date"
+                      className={`block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`}
+                    >
+                      {t.tournament_play_date}
+                    </label>
+                    <input
+                      id="tournament-play-date"
+                      type="date"
+                      value={playDate}
+                      onChange={(e) => setPlayDate(e.target.value)}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                    />
+                  </div>
+                  <div className="w-40">
+                    <label
+                      htmlFor="tournament-start-time"
+                      className={`block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`}
+                    >
+                      {t.tournament_start_time}
+                    </label>
+                    <input
+                      id="tournament-start-time"
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                    />
                   </div>
                 </div>
 

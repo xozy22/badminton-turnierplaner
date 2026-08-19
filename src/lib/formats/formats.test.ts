@@ -31,6 +31,8 @@ function makeTournament(overrides: Partial<Tournament> = {}): Tournament {
     min_rest_minutes: 0,
     enable_third_place: 0,
     session_id: null,
+    play_date: null,
+    start_time: null,
     planned_rounds: null,
     created_at: "2026-08-18T10:00:00.000Z",
     status: "draft",

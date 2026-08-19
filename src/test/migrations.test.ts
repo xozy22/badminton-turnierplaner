@@ -313,3 +313,50 @@ describe.skipIf(!DatabaseSync)("upgrade of an existing database", () => {
     db.close();
   });
 });
+
+describe("migration 19 — when the tournament is played", () => {
+  /** A database with the whole chain applied. */
+  function fresh(): SqliteDb {
+    const db = new DatabaseSync!(":memory:");
+    db.exec("PRAGMA foreign_keys = ON");
+    for (const m of migrations) db.exec(m.sql);
+    return db;
+  }
+
+  it("adds play_date and start_time", () => {
+    const db = fresh();
+    const cols = db
+      .prepare("PRAGMA table_info(tournaments)")
+      .all()
+      .map((c: unknown) => (c as { name: string }).name);
+    expect(cols).toContain("play_date");
+    expect(cols).toContain("start_time");
+    db.close();
+  });
+
+  it("leaves existing tournaments without a date rather than guessing one", () => {
+    // created_at says when the row was written. For anything planned in
+    // advance that is not the play date, so inventing one would be wrong.
+    const db = fresh();
+    db.prepare("INSERT INTO tournaments (name, mode, format) VALUES ('Alt', 'singles', 'round_robin')").run();
+    const [row] = db
+      .prepare("SELECT play_date, start_time FROM tournaments WHERE name = 'Alt'")
+      .all() as { play_date: string | null; start_time: string | null }[];
+    expect(row.play_date).toBeNull();
+    expect(row.start_time).toBeNull();
+    db.close();
+  });
+
+  it("stores and returns both", () => {
+    const db = fresh();
+    db.prepare(
+      "INSERT INTO tournaments (name, mode, format, play_date, start_time) VALUES ('Neu', 'singles', 'round_robin', '2026-08-19', '19:30')",
+    ).run();
+    const [row] = db
+      .prepare("SELECT play_date, start_time FROM tournaments WHERE name = 'Neu'")
+      .all() as { play_date: string; start_time: string }[];
+    expect(row.play_date).toBe("2026-08-19");
+    expect(row.start_time).toBe("19:30");
+    db.close();
+  });
+});

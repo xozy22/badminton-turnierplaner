@@ -122,7 +122,8 @@ const REQUIRED_SCHEMA: Record<string, string[]> = {
     "ko_points_per_set", "ko_sets_to_win", "ko_cap", "courts", "num_groups",
     "qualify_per_group", "current_phase", "entry_fee_single", "entry_fee_double",
     "team_config", "hall_config", "venue_id", "min_rest_minutes",
-    "enable_third_place", "session_id", "planned_rounds", "created_at", "status",
+    "enable_third_place", "session_id", "planned_rounds", "play_date", "start_time",
+    "created_at", "status",
   ],
   tournament_players: [
     "tournament_id", "player_id", "retired", "payment_status",
@@ -599,6 +600,21 @@ export async function getTournament(id: number): Promise<Tournament> {
   return normalizeTournament(t);
 }
 
+/**
+ * Fields added after the positional signature had already grown too long.
+ *
+ * `playDate` and `startTime` say when the tournament is played, as opposed
+ * to `created_at`, which says when the row was written (FEATURE-BACKLOG.md
+ * A1). Both may be null: a tournament set up on the spot has no separate
+ * date worth recording.
+ */
+export interface TournamentSchedule {
+  /** ISO date, YYYY-MM-DD. Absent on an update leaves the column alone. */
+  playDate?: string | null;
+  /** 24-hour clock, HH:MM. Absent on an update leaves the column alone. */
+  startTime?: string | null;
+}
+
 export async function createTournament(
   name: string,
   mode: TournamentMode,
@@ -612,14 +628,17 @@ export async function createTournament(
   entryFeeDouble: number = 0,
   cap: number | null = null,
   minRestMinutes: number = 0,
-  enableThirdPlace: boolean = false
+  enableThirdPlace: boolean = false,
+  schedule: TournamentSchedule = {}
 ): Promise<number> {
   const ttp = enableThirdPlace ? 1 : 0;
+  const playDate = schedule.playDate ?? null;
+  const startTime = schedule.startTime ?? null;
   if (isTauri()) {
     const d = await getTauriDb();
     const result = await d.execute(
-      "INSERT INTO tournaments (name, mode, format, sets_to_win, points_per_set, courts, num_groups, qualify_per_group, entry_fee_single, entry_fee_double, cap, min_rest_minutes, enable_third_place) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
-      [name, mode, format, setsToWin, pointsPerSet, courts, numGroups, qualifyPerGroup, entryFeeSingle, entryFeeDouble, cap, minRestMinutes, ttp]
+      "INSERT INTO tournaments (name, mode, format, sets_to_win, points_per_set, courts, num_groups, qualify_per_group, entry_fee_single, entry_fee_double, cap, min_rest_minutes, enable_third_place, play_date, start_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
+      [name, mode, format, setsToWin, pointsPerSet, courts, numGroups, qualifyPerGroup, entryFeeSingle, entryFeeDouble, cap, minRestMinutes, ttp, playDate, startTime]
     );
     return result.lastInsertId!;
   }
@@ -647,6 +666,8 @@ export async function createTournament(
     venue_id: null,
     min_rest_minutes: minRestMinutes,
     enable_third_place: ttp,
+    play_date: playDate,
+    start_time: startTime,
     session_id: null,
     planned_rounds: null,
     created_at: nowIso(),
@@ -670,14 +691,38 @@ export async function updateTournament(
   entryFeeDouble: number = 0,
   cap: number | null = null,
   minRestMinutes: number = 0,
-  enableThirdPlace: boolean = false
+  enableThirdPlace: boolean = false,
+  schedule: TournamentSchedule = {}
 ): Promise<void> {
   const ttp = enableThirdPlace ? 1 : 0;
+  // A key that is not there means "leave this column alone"; an explicit
+  // null clears it. Every other caller of this function passes no
+  // schedule at all, and the create wizard auto-saves once a second --
+  // writing null unconditionally erased the date the user had just typed.
+  const args: (string | number | null)[] = [
+    name, mode, format, setsToWin, pointsPerSet, courts, numGroups,
+    qualifyPerGroup, entryFeeSingle, entryFeeDouble, cap, minRestMinutes, ttp,
+  ];
+  const sets = [
+    "name=$1", "mode=$2", "format=$3", "sets_to_win=$4", "points_per_set=$5",
+    "courts=$6", "num_groups=$7", "qualify_per_group=$8", "entry_fee_single=$9",
+    "entry_fee_double=$10", "cap=$11", "min_rest_minutes=$12",
+    "enable_third_place=$13",
+  ];
+  if ("playDate" in schedule) {
+    args.push(schedule.playDate ?? null);
+    sets.push(`play_date=$${args.length}`);
+  }
+  if ("startTime" in schedule) {
+    args.push(schedule.startTime ?? null);
+    sets.push(`start_time=$${args.length}`);
+  }
   if (isTauri()) {
     const d = await getTauriDb();
+    args.push(id);
     await d.execute(
-      "UPDATE tournaments SET name=$1, mode=$2, format=$3, sets_to_win=$4, points_per_set=$5, courts=$6, num_groups=$7, qualify_per_group=$8, entry_fee_single=$9, entry_fee_double=$10, cap=$11, min_rest_minutes=$12, enable_third_place=$13 WHERE id=$14",
-      [name, mode, format, setsToWin, pointsPerSet, courts, numGroups, qualifyPerGroup, entryFeeSingle, entryFeeDouble, cap, minRestMinutes, ttp, id]
+      `UPDATE tournaments SET ${sets.join(", ")} WHERE id=$${args.length}`,
+      args
     );
     return;
   }
@@ -697,6 +742,8 @@ export async function updateTournament(
     t.entry_fee_double = entryFeeDouble;
     t.min_rest_minutes = minRestMinutes;
     t.enable_third_place = ttp;
+    if ("playDate" in schedule) t.play_date = schedule.playDate ?? null;
+    if ("startTime" in schedule) t.start_time = schedule.startTime ?? null;
   }
   saveStore(store);
 }

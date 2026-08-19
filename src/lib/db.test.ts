@@ -26,6 +26,7 @@ import {
   createTournament,
   getTournament,
   getTournaments,
+  updateTournament,
   updateTournamentStatus,
   updateTournamentPhase,
   updatePlannedRounds,
@@ -274,6 +275,56 @@ for (const backend of BACKENDS) {
         enable_third_place: 1,
         status: "draft",
       });
+    });
+
+    it("stores the play date and start time", async () => {
+      const id = await createTournament(
+        "Vereinsmeisterschaft", "singles", "round_robin", 2, 21, 2, 0, 0, 0, 0, 30, 0, false,
+        { playDate: "2026-08-19", startTime: "19:30" },
+      );
+      expect(await getTournament(id)).toMatchObject({
+        play_date: "2026-08-19",
+        start_time: "19:30",
+      });
+    });
+
+    it("leaves both null when no date is given", async () => {
+      // A tournament set up on the spot has no separate date worth
+      // recording, and created_at must not be mistaken for one.
+      const id = await createTournament("Spontan", "singles", "round_robin", 2, 21);
+      const t = await getTournament(id);
+      expect(t.play_date).toBeNull();
+      expect(t.start_time).toBeNull();
+    });
+
+    it("keeps the play date when an update does not mention it", async () => {
+      // The create wizard auto-saves once a second without a schedule, and
+      // the settings dialog inside a running tournament never passes one.
+      // Writing null unconditionally erased what the user had just typed.
+      const id = await createTournament(
+        "Vereinsmeisterschaft", "singles", "round_robin", 2, 21, 2, 0, 0, 0, 0, null, 0, false,
+        { playDate: "2026-08-19", startTime: "19:30" },
+      );
+      await updateTournament(id, "Umbenannt", "singles", "round_robin", 2, 21, 2, 0, 0);
+      expect(await getTournament(id)).toMatchObject({
+        name: "Umbenannt",
+        play_date: "2026-08-19",
+        start_time: "19:30",
+      });
+    });
+
+    it("clears the play date when an update passes null", async () => {
+      const id = await createTournament(
+        "Vereinsmeisterschaft", "singles", "round_robin", 2, 21, 2, 0, 0, 0, 0, null, 0, false,
+        { playDate: "2026-08-19", startTime: "19:30" },
+      );
+      await updateTournament(
+        id, "Vereinsmeisterschaft", "singles", "round_robin", 2, 21, 2, 0, 0, 0, 0, null, 0, false,
+        { playDate: null, startTime: null },
+      );
+      const t = await getTournament(id);
+      expect(t.play_date).toBeNull();
+      expect(t.start_time).toBeNull();
     });
 
     it("lists the newest tournament first", async () => {

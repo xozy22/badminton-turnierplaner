@@ -12,6 +12,7 @@ import type {
 } from "../../lib/types";
 import { playerDisplayName } from "../../lib/types";
 import { formatLabel, modeLabel } from "../../lib/i18n/labels";
+import { formatDate } from "../../lib/datetime";
 import { isSetComplete, getScoringDescription, calculateStandings, calculateTeamStandings } from "../../lib/scoring";
 import { calculateHighlights } from "../../lib/highlights";
 import type { PrintColors } from "../../lib/theme";
@@ -78,6 +79,12 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>
               <span aria-hidden="true">🏸</span> {tournament.name}
             </h1>
+            {tournament.play_date && (
+              <div style={{ fontSize: 12, color: "#333", marginTop: 3, fontWeight: 600 }}>
+                {formatDate(tournament.play_date, locale, { dateStyle: "full" })}
+                {tournament.start_time && <> &middot; {tournament.start_time} {t.print_oclock}</>}
+              </div>
+            )}
             <div style={{ fontSize: 11, color: "#666", marginTop: 4 }}>
               {modeLabel(t, tournament.mode)} &middot;{" "}
               {formatLabel(t, tournament.format)} &middot; Best of{" "}

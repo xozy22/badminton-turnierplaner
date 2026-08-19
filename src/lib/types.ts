@@ -116,6 +116,16 @@ export interface Tournament {
    * session. NULL = standalone tournament (default behavior). Migration v13.
    */
   session_id: number | null;
+  /**
+   * When the tournament is played, as opposed to `created_at`, which is
+   * when the row was written. NULL for tournaments set up on the spot and
+   * for everything created before migration v19 — guessing a play date
+   * from the creation date would be wrong for anything planned in advance
+   * (FEATURE-BACKLOG.md A1).
+   */
+  play_date: string | null;
+  /** Start time on the play date, 24-hour clock. */
+  start_time: string | null;
   created_at: string;
   status: TournamentStatus;
 }
