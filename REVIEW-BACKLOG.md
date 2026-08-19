@@ -458,14 +458,23 @@ Die Coverage-Schwellen in `vitest.config.ts` sind eine Ratsche: pro Modul hoch, 
 
 ---
 
-### [~] D5 — `Settings.tsx` (1513 Zeilen) vermischt Konfiguration, Datenbankverwaltung und Bildbearbeitung — **aufgeteilt, Ziel knapp verfehlt**
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/Settings.tsx`, `src/pages/settings/*`
+### [x] D5 — `Settings.tsx` vermischt Konfiguration, Datenbankverwaltung und Bildbearbeitung — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/pages/Settings.tsx`, `src/pages/settings/` (sieben Dateien)
 
-**Bisher umgesetzt:** Vier eigenständige Module — `LogoSettings` (361 Zeilen, Upload und Zuschnitt), `LivePublishSettings` (352, WordPress-Anbindung und Push-Protokoll), `AppearanceSettings` (173, Thema, Sprache, Schrift) und `UpdateSettings` (152, Aktualisierungen). `Settings.tsx` ist von 1513 auf **499 Zeilen** geschrumpft und im Wesentlichen eine Seite aus Abschnitten.
+**Zuvor:** 1513 Zeilen, dann 608 nach der ersten Aufteilung (Aussehen, Logo, Aktualisierung, Live-Veröffentlichung).
 
-**Was fehlt:** Das Kriterium lautete „unter 200 Zeilen". Die verbleibenden 499 sind überwiegend Datenbankverwaltung — Speicherort, Sicherung, Wiederherstellung, Zurücksetzen —, die als fünftes Modul herausgelöst gehört.
+**Jetzt: 153 Zeilen.** Was blieb, war die Datenbankverwaltung — Speicherort, Backup, Diagnose und die Gefahrenzone: 146 Zeilen Markup über 205 Zeilen Ereignisbehandlung, die es für nichts anderes gibt. Das ist keine Einstellung in dem Sinn, in dem der Rest der Seite eine ist; es ist Administration, die zufällig denselben Bildschirm teilt. Sie liegt jetzt in `settings/DatabaseSettings.tsx`.
 
-**Fertig wenn:** `Settings.tsx` ist eine Seite mit Abschnitts-Komponenten, unter 200 Zeilen.
+`Section` — die aufklappbare Karte — hat eine eigene Datei bekommen. Ich hatte sie zunächst als Prop durchgereicht; das erzeugte prompt einen Typkonflikt und las sich wie ein Behelf für genau die fehlende Datei. `Settings.tsx` ist damit fast nur noch Zusammensetzung.
+
+**Beim Verschieben zwei Dinge gefunden:**
+
+- **Der Bestätigungsdialog wäre fast verlorengegangen.** Er hing am Ende der Datei, weit entfernt von den Knöpfen, die ihn auslösen. Beim ersten Herausziehen blieb er zurück — das Löschen hätte danach ohne Rückfrage stattgefunden. Aufgefallen an drei „nie gelesen"-Meldungen des Übersetzers, nicht am Augenschein.
+- **Er war das letzte handgebaute Overlay der Einstellungen**, ohne Fokusfalle und ohne Escape, mit einer eigenen Nachbildung der Tippbestätigung. Da er ohnehin bewegt wurde, sitzt er jetzt auf `useConfirm`. Die drei Ziele verlangen weiterhin verschiedene Wörter (`PLAYERS`, `TOURNAMENTS`, `RESET`) — wer die Spielerliste leeren wollte, soll nicht aus Gewohnheit die Datenbank löschen. In der laufenden Anwendung nachgeprüft.
+
+Der Schlüssel `common_confirm_type` wurde damit doppelt — wortgleich zu `confirm_type_word` — und ist entfernt.
+
+**Fertig wenn:** ~~`Settings.tsx` unter 200 Zeilen; jede Unterkomponente eigenständig prüfbar~~ — erfüllt.
 
 ---
 

@@ -65,7 +65,6 @@ export const en: Translations = {
   common_action_irreversible: "This action cannot be undone.",
   common_more_actions: "More actions",
   common_confirm: "Confirm",
-  common_confirm_type: "Type {word} to confirm:",
   common_delete_permanently: "Delete permanently",
   common_selected: "{count} selected",
   common_and_more: "... and {count} more",

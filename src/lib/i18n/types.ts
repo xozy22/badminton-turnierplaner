@@ -63,7 +63,6 @@ export interface Translations {
   common_action_irreversible: string;
   common_more_actions: string;
   common_confirm: string;
-  common_confirm_type: string;
   common_delete_permanently: string;
   common_selected: string;
   common_and_more: string;

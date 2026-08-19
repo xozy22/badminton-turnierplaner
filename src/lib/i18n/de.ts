@@ -65,7 +65,6 @@ export const de: Translations = {
   common_action_irreversible: "Diese Aktion kann nicht rückgängig gemacht werden.",
   common_more_actions: "Weitere Aktionen",
   common_confirm: "Bestätigen",
-  common_confirm_type: "Tippe {word} zur Bestätigung:",
   common_delete_permanently: "Endgültig löschen",
   common_selected: "{count} ausgewählt",
   common_and_more: "... und {count} weitere",
