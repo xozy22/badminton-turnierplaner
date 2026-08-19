@@ -1,6 +1,9 @@
 import { useState, useRef } from "react";
 import { formatLabel, modeLabel } from "../../lib/i18n/labels";
-import Icon from "../../components/ui/Icon";
+import Modal, {
+  ModalCancelButton,
+  ModalConfirmButton,
+} from "../ui/Modal";
 import PrintView from "./PrintView";
 import type { PrintMode } from "./PrintView";
 import { generateCertificates } from "./CertificateGenerator";
@@ -241,25 +244,33 @@ export default function PrintDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col border ${theme.cardBorder}`}>
-        {/* Header */}
-        <div className={`px-6 py-4 border-b ${theme.cardBorder} flex justify-between items-center`}>
-          <div>
-            <h2 className={`font-bold text-lg ${theme.textPrimary}`}><Icon name="printer" /> {t.print_title}</h2>
-            <p className={`text-xs ${theme.textSecondary} mt-0.5`}>{tournament.name}</p>
-          </div>
-          <button
-            onClick={onClose} aria-label={t.common_close}
-            className={`${theme.textMuted} hover:${theme.textSecondary} text-xl leading-none w-8 h-8 flex items-center justify-center rounded-sm transition-colors`}
+    <Modal
+      open
+      onClose={onClose}
+      size="xl"
+      icon="printer"
+      title={t.print_title}
+      description={tournament.name}
+      footer={
+        <>
+          <ModalCancelButton onClick={onClose} />
+          <ModalCancelButton onClick={handleSavePdf} disabled={pdfLoading}>
+            {pdfLoading ? t.pdf_saving : t.pdf_save}
+          </ModalCancelButton>
+          <ModalCancelButton
+            onClick={handleCertificates}
+            disabled={certLoading || standings.length < 1}
           >
-            <Icon name="x" />
-          </button>
-        </div>
-
-        {/* Print Mode Selection */}
-        <div className={`px-6 py-3 border-b ${theme.cardBorder}`}>
-          <div className="flex gap-2">
+            {certLoading ? t.pdf_saving : t.certificate_generate}
+          </ModalCancelButton>
+          <ModalConfirmButton onClick={handlePrint}>{t.print_button}</ModalConfirmButton>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        {/* Which of the five sheets to produce. */}
+        <div>
+          <div className="flex flex-wrap gap-2">
             {PRINT_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -279,9 +290,11 @@ export default function PrintDialog({
           </p>
         </div>
 
-        {/* Preview */}
-        <div className="flex-1 overflow-auto p-4 bg-gray-100 dark-mode:bg-gray-800">
-          <div className="bg-white shadow-lg rounded-sm mx-auto" style={{ maxWidth: 800 }}>
+        {/* The sheet itself, scrolling inside the dialog rather than
+            pushing it past the viewport. Deliberately on white: it is a
+            preview of paper, not of the interface. */}
+        <div className="-mx-6 max-h-[55vh] overflow-auto border-y border-line bg-surface-sunken px-6 py-4">
+          <div className="mx-auto rounded-sm bg-white shadow-lg" style={{ maxWidth: 800 }}>
             <PrintView
               ref={printRef}
               tournament={tournament}
@@ -296,37 +309,7 @@ export default function PrintDialog({
             />
           </div>
         </div>
-
-        {/* Footer */}
-        <div className={`px-6 py-4 border-t ${theme.cardBorder} flex justify-end gap-3`}>
-          <button
-            onClick={onClose}
-            className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-5 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
-          >
-            {t.common_cancel}
-          </button>
-          <button
-            onClick={handleSavePdf}
-            disabled={pdfLoading}
-            className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-5 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium disabled:opacity-50`}
-          >
-            <Icon name="file" /> {pdfLoading ? t.pdf_saving : t.pdf_save}
-          </button>
-          <button
-            onClick={handleCertificates}
-            disabled={certLoading || standings.length < 1}
-            className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-5 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium disabled:opacity-50`}
-          >
-            <Icon name="trophy" /> {certLoading ? t.pdf_saving : t.certificate_generate}
-          </button>
-          <button
-            onClick={handlePrint}
-            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all text-sm font-medium`}
-          >
-            <Icon name="printer" /> {t.print_button}
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

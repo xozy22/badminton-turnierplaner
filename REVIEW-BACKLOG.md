@@ -739,6 +739,10 @@ Das `confirm()` in `SessionDetail` ist darauf umgestellt, das `alert()` in `Tour
 
 ---
 
+**Nachtrag:** Ein vierzehnter Dialog war übersehen worden — die Druckansicht. Aufgefallen ist das erst beim Umbau der Turnieransicht (D1): eine Prüfung auf `[role="dialog"]` fand nichts, während der Dialog sichtbar offen stand. Er hatte weder Rolle noch Fokusfalle, weder Escape noch Fokusrückgabe; sein Schließen-Kreuz war der einzige Ausweg für eine Tastatur. Jetzt auf `Modal`, mit der Vorschau in einem eigenen Scrollbereich, damit die Formatauswahl darüber stehen bleibt.
+
+Zwei Kleinigkeiten dabei: Der Vorschaurahmen stand auf `bg-gray-100 dark-mode:bg-gray-800` — eine Palette-Farbe und dazu eine Variante, die es gar nicht gibt (`dark-mode:` statt `dark:`), also war der zweite Teil immer wirkungslos. Ersetzt durch `bg-surface-sunken`, das allen sechs Schemata folgt. Das Blatt selbst bleibt weiß: es ist die Vorschau von Papier, nicht von der Oberfläche.
+
 ### [x] F6 — Feldzuweisung nur per Maus — **erledigt**
 **Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/components/courts/CourtOverview.tsx`
 
