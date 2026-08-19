@@ -18,6 +18,28 @@ Alle nennenswerten Änderungen an BOSS, neueste zuerst. Das Format folgt
 Ein Durchgang durch `REVIEW-BACKLOG.md`, 75 Punkte in sechs Phasen. Die
 Kurzfassung dessen, was sich für Nutzer ändert:
 
+### Turnierbetrieb
+
+Vier Punkte aus dem Vergleich mit dem BTP (`FEATURE-BACKLOG.md`).
+
+- **Spieltag und Startzeit** am Turnier. Bisher stand dort nur, wann das
+  Turnier *angelegt* wurde — für eine im Juli geplante Vereinsmeisterschaft im
+  September also der Juli, auch auf dem Ausdruck. Beide Angaben sind optional;
+  ein spontan aufgesetztes Turnier braucht kein eigenes Datum. *(A1)*
+- **Ein Spiel ohne Ergebnis ablegen.** „Nicht angetreten", „Aufgegeben",
+  „Disqualifiziert" und „Kein Spiel", letzteres für den Fall, dass beide
+  Seiten fehlen und niemand gewinnt. Vorher blockierte ein solches Spiel den
+  Turnierabschluss dauerhaft, und der einzige Ausweg war, einen ganzen Spieler
+  aus der Meldeliste zu nehmen — was alle seine übrigen Spiele mit vergibt.
+  *(D1)*
+- **Vereinskameraden werden in Runde eins getrennt**, soweit die Auslosung es
+  zulässt: im K.-o.-Baum und bei der Gruppenaufteilung. Setzplätze haben
+  Vorrang, und wo eine Trennung nicht möglich ist, wird sie nicht erzwungen.
+  Der Verein war längst je Spieler erfasst und lag ungenutzt. *(C2)*
+- **Setzgruppen statt fester Ränge.** Die Setzplätze 3/4, 5/8 und 9/16 sind
+  Gruppen — wer darin welche Position bekommt, wird bei jeder Auslosung neu
+  gelost, wie es die Turnierordnung vorsieht. *(C1)*
+
 ### Sicherheit und Datenschutz
 
 - **Geburtsdaten wurden veröffentlicht.** Die Tabellenstände trugen das
