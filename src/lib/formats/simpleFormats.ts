@@ -79,6 +79,7 @@ export const roundRobinEngine: FormatEngine = {
     usesBuchholz: false,
     usesQueue: false,
     reshufflesPartners: false,
+    usesGrandFinal: false,
   },
   usesFixedTeams: true,
 
@@ -114,6 +115,7 @@ export const randomDoublesEngine: FormatEngine = {
     usesBuchholz: false,
     usesQueue: false,
     reshufflesPartners: true,
+    usesGrandFinal: false,
   },
   usesFixedTeams: false,
 
@@ -248,6 +250,7 @@ export const swissEngine: FormatEngine = {
     usesBuchholz: true,
     usesQueue: false,
     reshufflesPartners: false,
+    usesGrandFinal: false,
   },
   usesFixedTeams: true,
   start: swissLikeStart,
@@ -264,6 +267,7 @@ export const monradEngine: FormatEngine = {
     usesBuchholz: true,
     usesQueue: false,
     reshufflesPartners: false,
+    usesGrandFinal: false,
   },
   usesFixedTeams: true,
   start: swissLikeStart,
@@ -282,6 +286,7 @@ export const kingOfCourtEngine: FormatEngine = {
     usesBuchholz: false,
     usesQueue: true,
     reshufflesPartners: true,
+    usesGrandFinal: false,
   },
   usesFixedTeams: false,
 
@@ -393,6 +398,7 @@ export const waterfallEngine: FormatEngine = {
     usesBuchholz: false,
     usesQueue: false,
     reshufflesPartners: true,
+    usesGrandFinal: false,
   },
   usesFixedTeams: false,
 

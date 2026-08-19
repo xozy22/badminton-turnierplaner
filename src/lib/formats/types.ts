@@ -89,6 +89,12 @@ export interface FormatDisplay {
   usesQueue: boolean;
   /** Pairings change every round, so fixed teams make no sense. */
   reshufflesPartners: boolean;
+  /**
+   * Keeps a grand-final round whose ids live outside the match tables
+   * (see {@link FormatState}). Stated rather than derived from
+   * `hasBracket`: single elimination has a bracket and no grand final.
+   */
+  usesGrandFinal: boolean;
 }
 
 export interface FormatEngine {

@@ -149,6 +149,7 @@ export const eliminationEngine: FormatEngine = {
     usesBuchholz: false,
     usesQueue: false,
     reshufflesPartners: false,
+    usesGrandFinal: false,
   },
   usesFixedTeams: true,
 
@@ -360,6 +361,7 @@ export const groupKoEngine: FormatEngine = {
     usesBuchholz: false,
     usesQueue: false,
     reshufflesPartners: false,
+    usesGrandFinal: false,
   },
   usesFixedTeams: true,
 
@@ -473,6 +475,7 @@ export const doubleEliminationEngine: FormatEngine = {
     usesBuchholz: false,
     usesQueue: false,
     reshufflesPartners: false,
+    usesGrandFinal: true,
   },
   usesFixedTeams: true,
 

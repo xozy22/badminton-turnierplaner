@@ -424,6 +424,8 @@ Trennzeichen ist das Semikolon und die Datei beginnt mit einem BOM, damit Excel 
 
 **Umgesetzt, zweiter Teil:** Die verbliebenen **14** Abfragen auf `tournament.format` betrafen keine Logik mehr, sondern die Darstellung — Bracket, Buchholz-Spalte, Gruppenfortschritt, Warteschlange. Genau deshalb war der Punkt aber noch offen: ein neues Format hätte weiterhin Eingriffe in einer anderen Datei verlangt. Die Engines beschreiben ihre Anzeige jetzt selbst (`display: { hasBracket, hasGroupPhase, usesBuchholz, usesQueue, reshufflesPartners }`).
 
+**Nachtrag:** Mein erster Durchgang zählte 14 Abfragen und übersah vier. Sie stehen in `loadAll` und heißen `td.format` statt `tournament.format` — die Suche lief daran vorbei. Zwei davon entscheiden, welcher Zusatzzustand geladen wird; das ist keine Darstellung, also deckt `usesQueue` die King-of-the-Court-Warteschlange ab und eine neue Eigenschaft `usesGrandFinal` die Doppel-KO-Endrunde. Letztere wird **angegeben statt abgeleitet**: Einfach-KO hat ein Bracket und keine Grand Final, eine Ableitung aus `hasBracket` wäre also falsch.
+
 **Zwei Abfragen bleiben, und zwar absichtlich:** `isElimination` und `isDoubleElimination` wählen zwischen **zwei verschiedenen** Bracket-Komponenten. Das ist ein echter Unterschied zwischen zwei Formaten, keine Eigenschaft, die beide angeben könnten — `hasBracket` sagt, dass es ein Bracket gibt; welches, bleibt Sache der Ansicht. Im Code als solche gekennzeichnet.
 
 Nebenbei: Dieselbe neunstellige Zuordnung von Format zu Beschriftung stand **zweimal** in derselben Datei; beide sind durch `formatLabel()` aus H4 ersetzt.

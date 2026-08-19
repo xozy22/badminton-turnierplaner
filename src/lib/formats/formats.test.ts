@@ -649,6 +649,7 @@ describe("display properties — what D2 was actually about", () => {
         "usesBuchholz",
         "usesQueue",
         "reshufflesPartners",
+        "usesGrandFinal",
       ] as const) {
         expect(typeof engine.display[key], `${id}.display.${key}`).toBe("boolean");
       }
@@ -688,5 +689,20 @@ describe("display properties — what D2 was actually about", () => {
         expect(engine.usesFixedTeams, `${id} claims both`).toBe(false);
       }
     }
+  });
+  it("only double elimination keeps a grand final", () => {
+    // Stated per engine rather than derived from hasBracket: single
+    // elimination has a bracket and no grand final.
+    const withGrandFinal = Object.entries(FORMAT_ENGINES)
+      .filter(([, e]) => e.display.usesGrandFinal)
+      .map(([id]) => id);
+    expect(withGrandFinal).toEqual(["double_elimination"]);
+  });
+
+  it("only king of the court uses a queue", () => {
+    const withQueue = Object.entries(FORMAT_ENGINES)
+      .filter(([, e]) => e.display.usesQueue)
+      .map(([id]) => id);
+    expect(withQueue).toEqual(["king_of_court"]);
   });
 });

@@ -326,10 +326,11 @@ export default function TournamentView() {
     setAllMatches(allMatches);
 
     // These two need td.format, so they cannot join the batch above.
-    if (td.format === "double_elimination") {
+    const display = engineFor(td.format).display;
+    if (display.usesGrandFinal) {
       setGrandFinalRoundIds(new Set(await getGrandFinalRounds(tournamentId)));
     }
-    if (td.format === "king_of_court") {
+    if (display.usesQueue) {
       setKotcQueue(await getKingOfCourtQueue(tournamentId));
     }
 
@@ -337,12 +338,12 @@ export default function TournamentView() {
     setPaymentData(pd);
 
     // Swiss and Monrad award byes as wins and rank by Buchholz.
-    const swissLike = td.format === "swiss" || td.format === "monrad";
+    const swissLike = display.usesBuchholz;
     const s = calculateStandings(p, allMatches, sbm, swissLike ? { byesCountAsWins: true, withBuchholz: true } : {});
     setStandings(s);
 
     if (r.length > 0) {
-      if (td.format === "group_ko" && r.some((rr) => rr.phase === "group")) {
+      if (display.hasGroupPhase && r.some((rr) => rr.phase === "group")) {
         const koRs = r.filter((rr) => rr.phase === "ko");
         if (koRs.length > 0) {
           // KO rounds exist: preserve current round if still valid, otherwise auto-select first KO round
