@@ -7,7 +7,6 @@
 // updateTournamentKoScoring + then runs startKoPhase.
 
 import { useState } from "react";
-import Icon from "../../../../components/ui/Icon";
 import {
   SCORING_MODES,
   getScoringModeId,
@@ -16,6 +15,7 @@ import {
 import type { Tournament } from "../../../../lib/types";
 import type { ThemeColors } from "../../../../lib/theme";
 import { useT } from "../../../../lib/I18nContext";
+import Modal, { ModalCancelButton, ModalConfirmButton } from "../../../../components/ui/Modal";
 
 export default function StartKoModal({
   tournament,
@@ -42,19 +42,30 @@ export default function StartKoModal({
   const groupScoringLabel = `${t[`scoring_mode_${getScoringModeId(tournament.points_per_set, tournament.cap)}` as keyof typeof t] as string} · ${tournament.sets_to_win === 1 ? t.best_of_1 : tournament.sets_to_win === 2 ? t.best_of_3 : t.best_of_5}`;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-md p-6 border ${theme.cardBorder}`}>
-        <div className="flex justify-between items-center mb-5">
-          <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
-            <Icon name="trophy" /> {t.ko_modal_title}
-          </h3>
-          <button
-            onClick={onClose} aria-label={t.common_close}
-            className={`${theme.textMuted} text-xl leading-none w-8 h-8 flex items-center justify-center rounded-sm transition-colors`}
+    <Modal
+      open
+      onClose={onClose}
+      icon="trophy"
+      title={t.ko_modal_title}
+      footer={
+        <>
+          <ModalCancelButton onClick={onClose} />
+          <ModalConfirmButton
+            onClick={() =>
+              onConfirm(
+                useDifferent ? scoringPreset.points_per_set : null,
+                useDifferent ? setsToWin : null,
+                useDifferent ? scoringPreset.cap : null,
+              )
+            }
+            tone="phase"
           >
-            <Icon name="x" />
-          </button>
-        </div>
+            {t.ko_modal_start_button}
+          </ModalConfirmButton>
+        </>
+      }
+    >
+      <div>
 
         {/* Group phase scoring info */}
         <div className={`rounded-md p-3 mb-4 border ${theme.cardBorder} ${theme.cardBg} bg-opacity-50`}>
@@ -114,25 +125,7 @@ export default function StartKoModal({
           </div>
         )}
 
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
-          >
-            {t.common_cancel}
-          </button>
-          <button
-            onClick={() => onConfirm(
-              useDifferent ? scoringPreset.points_per_set : null,
-              useDifferent ? setsToWin : null,
-              useDifferent ? scoringPreset.cap : null,
-            )}
-            className="flex-1 bg-phase text-white px-4 py-2.5 rounded-md hover:bg-phase shadow-sm transition-all text-sm font-medium"
-          >
-            <Icon name="trophy" /> {t.ko_modal_start_button}
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

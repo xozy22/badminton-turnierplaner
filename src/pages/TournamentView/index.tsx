@@ -1775,7 +1775,6 @@ export default function TournamentView() {
       {showDeleteConfirm && tournament && (
         <DeleteTournamentModal
           tournament={tournament}
-          theme={theme}
           onClose={() => setShowDeleteConfirm(false)}
           onConfirm={async () => {
             await deleteTournament(tournament.id);
@@ -1835,7 +1834,6 @@ export default function TournamentView() {
 
       <PlayerConflictModal
         conflict={playerConflict}
-        theme={theme}
         onClose={() => setPlayerConflict(null)}
       />
 
@@ -1871,7 +1869,6 @@ export default function TournamentView() {
       <UndoRoundModal
         open={showUndoRound}
         target={undoTarget}
-        theme={theme}
         onCancel={() => setShowUndoRound(false)}
         onConfirm={performUndo}
       />

@@ -8,7 +8,7 @@
 // settings are locked.
 
 import { useEffect, useState } from "react";
-import Icon from "../../../../components/ui/Icon";
+import Modal, { ModalCancelButton, ModalConfirmButton } from "../../../../components/ui/Modal";
 import {
   SCORING_MODES,
   getScoringModeId,
@@ -78,19 +78,30 @@ export default function EditTournamentModal({
   const labelClass = `block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-lg p-6 border ${theme.cardBorder}`}>
-        <div className="flex justify-between items-center mb-5">
-          <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
-            <Icon name="pencil" /> {t.edit_tournament_title}
-          </h3>
-          <button
-            onClick={onClose} aria-label={t.common_close}
-            className={`${theme.textMuted} text-xl leading-none w-8 h-8 flex items-center justify-center rounded-sm transition-colors`}
+    <Modal
+      open
+      onClose={onClose}
+      size="lg"
+      icon="pencil"
+      title={t.edit_tournament_title}
+      footer={
+        <>
+          <ModalCancelButton onClick={onClose} />
+          <ModalConfirmButton
+            onClick={() =>
+              onSave({
+                name, mode, format, setsToWin, pointsPerSet, cap, courts, numGroups,
+                qualifyPerGroup,
+                entryFeeSingle: Number(entryFeeSingle) || 0,
+                entryFeeDouble: Number(entryFeeDouble) || 0,
+              })
+            }
           >
-            <Icon name="x" />
-          </button>
-        </div>
+            {t.common_save}
+          </ModalConfirmButton>
+        </>
+      }
+    >
 
         <div className="space-y-4">
           <div>
@@ -197,21 +208,6 @@ export default function EditTournamentModal({
           </div>
         </div>
 
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
-          >
-            {t.common_cancel}
-          </button>
-          <button
-            onClick={() => onSave({ name, mode, format, setsToWin, pointsPerSet, cap, courts, numGroups, qualifyPerGroup, entryFeeSingle: Number(entryFeeSingle) || 0, entryFeeDouble: Number(entryFeeDouble) || 0 })}
-            className={`flex-1 ${theme.primaryBg} text-white px-4 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium`}
-          >
-            {t.common_save}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

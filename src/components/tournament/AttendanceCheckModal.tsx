@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import Icon from "../../components/ui/Icon";
+import Modal, { ModalCancelButton, ModalConfirmButton } from "../ui/Modal";
 import type { Player } from "../../lib/types";
 import { playerDisplayName } from "../../lib/types";
 import type { ThemeColors } from "../../lib/theme";
@@ -59,28 +59,29 @@ export default function AttendanceCheckModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div
-        className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-md max-h-[80vh] flex flex-col border ${theme.cardBorder} overflow-hidden`}
-      >
-        {/* Header */}
-        <div className="px-5 py-4 border-b flex justify-between items-center">
-          <div>
-            <h2 className={`font-semibold text-lg ${theme.textPrimary}`}>
-              <Icon name="check" /> {t.attendance_title}
-            </h2>
-            <p className={`text-xs mt-0.5 ${theme.textMuted}`}>
-              {t.attendance_subtitle}
-            </p>
+    <Modal
+      open
+      onClose={onClose}
+      icon="check"
+      title={t.attendance_title}
+      description={t.attendance_subtitle}
+      footer={
+        <>
+          <ModalCancelButton onClick={onClose} />
+          <div className="flex flex-1 flex-col items-end gap-1">
+            {!canStart && (
+              <span className="text-2xs text-danger-text">
+                {t.attendance_min_players.replace("{count}", String(minPlayers))}
+              </span>
+            )}
+            <ModalConfirmButton onClick={() => onConfirm(presentIds)} disabled={!canStart}>
+              {t.attendance_start}
+            </ModalConfirmButton>
           </div>
-          <button
-            onClick={onClose}
-            className={`${theme.textMuted} hover:opacity-80 text-xl leading-none`}
-          >
-            ×
-          </button>
-        </div>
-
+        </>
+      }
+    >
+      <div className="-mx-6 -mb-6 flex max-h-[60vh] flex-col overflow-hidden">
         {/* Counter + quick buttons */}
         <div className={`px-5 py-3 border-b ${theme.cardBorder} ${theme.headerGradient} flex items-center justify-between gap-3`}>
           <span className={`text-sm font-medium ${canStart ? theme.activeBadgeText : "text-danger-text"}`}>
@@ -182,30 +183,7 @@ export default function AttendanceCheckModal({
           )}
         </div>
 
-        {/* Footer */}
-        <div className={`px-5 py-3 border-t ${theme.cardBorder} ${theme.headerGradient} flex justify-between items-center`}>
-          <button
-            onClick={onClose}
-            className={`px-4 py-2 text-sm ${theme.textSecondary} hover:opacity-80`}
-          >
-            {t.common_cancel}
-          </button>
-          <div className="flex flex-col items-end gap-1">
-            {!canStart && (
-              <span className="text-xs text-danger-text">
-                {t.attendance_min_players.replace("{count}", String(minPlayers))}
-              </span>
-            )}
-            <button
-              onClick={() => onConfirm(presentIds)}
-              disabled={!canStart}
-              className={`${theme.primaryBg} text-white px-5 py-2 rounded-md text-sm font-medium ${theme.primaryHoverBg} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
-            >
-              <Icon name="play" /> {t.attendance_start}
-            </button>
-          </div>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

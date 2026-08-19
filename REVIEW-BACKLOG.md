@@ -668,20 +668,16 @@ Das `confirm()` in `SessionDetail` ist darauf umgestellt, das `alert()` in `Tour
 
 ---
 
-### [~] F5 — Kein gemeinsames Modal-Fundament — **Fundament steht, 5 von 13 umgestellt**
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/components/ui/Modal.tsx` (neu), fünf Modal-Dateien
+### [x] F5 — Kein gemeinsames Modal-Fundament — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/components/ui/Modal.tsx` (neu), alle dreizehn Dialoge
 
-**Problem:** Dreizehn Modals, jedes mit eigenem Overlay-Markup. Kein Fokus-Trap, keine Fokus-Rückgabe beim Schließen, kein `role="dialog"`/`aria-modal`, kein Scroll-Sperre im Hintergrund, Escape nur vereinzelt. Ein Nutzer mit Tastatur konnte aus dem Dialog heraus in eine Seite tabben, die er nicht sieht.
+**Problem:** Dreizehn Modals, jedes mit eigenem Overlay-Markup. Kein Fokus-Trap, keine Fokus-Rückgabe beim Schließen, kein `role="dialog"`/`aria-modal`, keine Scroll-Sperre, Escape nur vereinzelt. Ein Nutzer mit Tastatur konnte aus dem Dialog heraus in eine Seite tabben, die er nicht sieht.
 
-**Umgesetzt:** `src/components/ui/Modal.tsx` bringt alles an einer Stelle mit — Portal, Overlay, `role="dialog"` mit `aria-modal` und `aria-labelledby`, Fokus in den Dialog beim Öffnen und zurück zum auslösenden Element beim Schließen, umlaufender Tab-Fokus, Escape, gezählte Scroll-Sperre (damit ein Dialog über einem Dialog die Seite nicht vorzeitig freigibt) und ein Fußbereich mit einheitlicher Knopfreihenfolge. Ein Klick auf den Hintergrund schließt nur dort, wo das ungefährlich ist; bei destruktiven Dialogen ist das abgeschaltet.
+**Umgesetzt:** `src/components/ui/Modal.tsx` bringt alles an einer Stelle mit — Portal, `role="dialog"` mit `aria-modal` und `aria-labelledby`, Fokus in den Dialog beim Öffnen und zurück zum auslösenden Element beim Schließen, umlaufender Tab-Fokus, Escape, gezählte Scroll-Sperre (damit ein Dialog über einem Dialog die Seite nicht vorzeitig freigibt) und ein Fußbereich mit einheitlicher Knopfreihenfolge. Ein Klick auf den Hintergrund schließt nur dort, wo das ungefährlich ist. Dazu `ModalCancelButton` und `ModalConfirmButton` mit den Tönen `accent`, `danger`, `warning` und `phase`.
 
-Dazu `ModalCancelButton` und `ModalConfirmButton` mit den Tönen `accent`, `danger`, `warning` und `phase`, damit Knopfreihenfolge und Farbgebung nicht mehr je Dialog variieren.
+**Alle dreizehn sind umgestellt.** Die vier größeren — Anwesenheit, Formatinfo, Vorlagenexport, Turnier bearbeiten — hatten eigene Kopfzeilen mit Schließen-Knopf und eigene Fußbereiche; genau die Abweichungen, die dieser Punkt beseitigen sollte. Beim Vorlagenexport musste dafür ein fünfzigzeiliger Inline-Handler zu einer benannten Funktion werden, damit der Knopf in den Fußbereich passt.
 
-**Umgestellt:** `RemovePlayerModal`, `RetirePlayerModal`, `ReopenConfirmModal`, `UnpublishModal`, `RestWarningModal`. Alle fünf im Browser geprüft: Rolle und Beschriftung gesetzt, Fokus wandert hinein, Escape schließt, Fokus kehrt zum auslösenden Knopf zurück, Hintergrund wird gesperrt und wieder freigegeben.
-
-**Was fehlt:** Acht Dialoge mit eigenem Aufbau — `AttendanceCheckModal`, `DeleteTournamentModal`, `FormatInfoModal`, `TemplateExportModal`, `EditTournamentModal`, `PlayerConflictModal`, `StartKoModal`, `UndoRoundModal`. Sie tragen mehr Inhalt als eine Bestätigung; die Umstellung ist gleichartig, aber je Datei eigene Arbeit. Bis dahin bleiben sie ohne Fokus-Trap und ohne Escape.
-
-**Fertig wenn:** Jedes Modal schließt mit Escape, fängt den Tab-Fokus und gibt ihn beim Schließen an das auslösende Element zurück.
+**Fertig wenn:** ~~Jedes Modal schließt mit Escape, fängt den Tab-Fokus und gibt ihn beim Schließen an das auslösende Element zurück~~ — im Browser gegengeprüft; eine Suche nach eigenem Overlay-Markup (`fixed inset-0 bg-black/50`) in den Dialogverzeichnissen liefert null Treffer.
 
 ---
 

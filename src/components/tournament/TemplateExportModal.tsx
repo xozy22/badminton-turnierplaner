@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Modal, { ModalCancelButton, ModalConfirmButton } from "../ui/Modal";
 import Icon from "../../components/ui/Icon";
 import type { ThemeColors } from "../../lib/theme";
 import type { Tournament, Player, Sportstaette, HallConfig } from "../../lib/types";
@@ -82,11 +83,117 @@ export default function TemplateExportModal({
     return () => { cancelled = true; };
   }, [tournament.venue_id, tournament.hall_config, tournament.name]);
 
+  /** Builds the template file and hands it to the browser or the OS. */
+  const handleExport = async () => {
+      // v3 template format adds a `venue` block so the importer can
+      // reconstruct (or pick up) the venue without the user having
+      // to set it up by hand. v2 readers ignore unknown fields, so
+      // forward-compat is fine — the file still parses for them.
+      const template: Record<string, unknown> = { version: 3 };
+      if (templateInclude.settings) {
+        template.name = tournament.name;
+        template.mode = tournament.mode;
+        template.format = tournament.format;
+        template.sets_to_win = tournament.sets_to_win;
+        template.points_per_set = tournament.points_per_set;
+        template.cap = tournament.cap;
+        template.courts = tournament.courts;
+        template.num_groups = tournament.num_groups;
+        template.qualify_per_group = tournament.qualify_per_group;
+        template.entry_fee_single = tournament.entry_fee_single;
+        template.entry_fee_double = tournament.entry_fee_double;
+        template.min_rest_minutes = tournament.min_rest_minutes;
+        template.enable_third_place = tournament.enable_third_place;
+        if (tournament.hall_config) {
+          // Kept for v2-reader backward compat; the v3 importer
+          // prefers `venue.halls` when both are present.
+          try { template.hall_config = JSON.parse(tournament.hall_config); } catch (err) { console.error("TemplateExport: failed to parse hall_config JSON:", err); }
+        }
+        // Venue block — v2.8.8: unconditional. Either resolved from
+        // the tournament's bound venue or synthesized from the
+        // local hall_config in the useEffect above. The importer
+        // matches by name case-insensitively, so a re-import onto
+        // the same DB picks up the existing venue cleanly.
+        if (exportVenue) {
+          template.venue = {
+            name: exportVenue.name,
+            address: exportVenue.address,
+            zip: exportVenue.zip,
+            city: exportVenue.city,
+            halls: exportVenue.halls,
+          };
+          // Also mirror halls into hall_config in case venue.halls
+          // is empty in some legacy edge case.
+          if (!template.hall_config && exportVenue.halls.length > 0) {
+            template.hall_config = exportVenue.halls;
+          }
+        }
+      }
+      if (templateInclude.players) {
+        template.players = players.map((p) => ({
+          id: p.id,
+          first_name: p.first_name,
+          last_name: p.last_name,
+          name: playerDisplayName(p), // legacy fallback field for v1 readers
+          gender: p.gender,
+          birth_date: p.birth_date,
+          club: p.club,
+        }));
+      }
+      if (templateInclude.teams && tournament.team_config) {
+        try { template.team_config = JSON.parse(tournament.team_config); } catch (err) { console.error("TemplateExport: failed to parse team_config JSON:", err); }
+      }
+      const json = JSON.stringify(template, null, 2);
+      const fileName = `${(tournament.name || "vorlage").replace(/[^a-zA-Z0-9äöüÄÖÜß\-_ .]/g, "")}.json`;
+
+      if (isTauri()) {
+        try {
+          const { save } = await import("@tauri-apps/plugin-dialog");
+          const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+          const path = await save({
+            defaultPath: fileName,
+            filters: [{ name: "JSON-Vorlage (*.json)", extensions: ["json"] }],
+          });
+          if (path) {
+            await writeTextFile(path, json);
+          }
+          onClose();
+          return;
+        } catch (err) {
+          console.error("Tauri save failed, falling back to browser download", err);
+        }
+      }
+
+      // Browser fallback
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      onClose();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-md p-6 border ${theme.cardBorder}`}>
-        <h3 className={`text-lg font-bold ${theme.textPrimary} mb-4`}><Icon name="clipboard" /> {t.template_export_title}</h3>
-        <p className={`text-sm ${theme.textSecondary} mb-4`}>{t.template_export_description}</p>
+    <Modal
+      open
+      onClose={onClose}
+      icon="clipboard"
+      title={t.template_export_title}
+      description={t.template_export_description}
+      footer={
+        <>
+          <ModalCancelButton onClick={onClose} />
+          <ModalConfirmButton onClick={handleExport}>
+            {t.template_export_button}
+          </ModalConfirmButton>
+        </>
+      }
+    >
+      <div>
         <div className="space-y-3 mb-5">
           <label className={`flex items-center gap-3 p-3 rounded-md border ${theme.cardBorder} ${templateInclude.settings ? theme.selectedBg : ''} cursor-pointer`}>
             <input type="checkbox" checked={templateInclude.settings} onChange={(e) => setTemplateInclude((p) => ({ ...p, settings: e.target.checked }))} className="rounded accent-emerald-600" />
@@ -138,112 +245,7 @@ export default function TemplateExportModal({
             <Icon name="alert" /> {t.template_export_venue_missing}
           </div>
         )}
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
-          >
-            {t.common_cancel}
-          </button>
-          <button
-            onClick={async () => {
-              // v3 template format adds a `venue` block so the importer can
-              // reconstruct (or pick up) the venue without the user having
-              // to set it up by hand. v2 readers ignore unknown fields, so
-              // forward-compat is fine — the file still parses for them.
-              const template: Record<string, unknown> = { version: 3 };
-              if (templateInclude.settings) {
-                template.name = tournament.name;
-                template.mode = tournament.mode;
-                template.format = tournament.format;
-                template.sets_to_win = tournament.sets_to_win;
-                template.points_per_set = tournament.points_per_set;
-                template.cap = tournament.cap;
-                template.courts = tournament.courts;
-                template.num_groups = tournament.num_groups;
-                template.qualify_per_group = tournament.qualify_per_group;
-                template.entry_fee_single = tournament.entry_fee_single;
-                template.entry_fee_double = tournament.entry_fee_double;
-                template.min_rest_minutes = tournament.min_rest_minutes;
-                template.enable_third_place = tournament.enable_third_place;
-                if (tournament.hall_config) {
-                  // Kept for v2-reader backward compat; the v3 importer
-                  // prefers `venue.halls` when both are present.
-                  try { template.hall_config = JSON.parse(tournament.hall_config); } catch (err) { console.error("TemplateExport: failed to parse hall_config JSON:", err); }
-                }
-                // Venue block — v2.8.8: unconditional. Either resolved from
-                // the tournament's bound venue or synthesized from the
-                // local hall_config in the useEffect above. The importer
-                // matches by name case-insensitively, so a re-import onto
-                // the same DB picks up the existing venue cleanly.
-                if (exportVenue) {
-                  template.venue = {
-                    name: exportVenue.name,
-                    address: exportVenue.address,
-                    zip: exportVenue.zip,
-                    city: exportVenue.city,
-                    halls: exportVenue.halls,
-                  };
-                  // Also mirror halls into hall_config in case venue.halls
-                  // is empty in some legacy edge case.
-                  if (!template.hall_config && exportVenue.halls.length > 0) {
-                    template.hall_config = exportVenue.halls;
-                  }
-                }
-              }
-              if (templateInclude.players) {
-                template.players = players.map((p) => ({
-                  id: p.id,
-                  first_name: p.first_name,
-                  last_name: p.last_name,
-                  name: playerDisplayName(p), // legacy fallback field for v1 readers
-                  gender: p.gender,
-                  birth_date: p.birth_date,
-                  club: p.club,
-                }));
-              }
-              if (templateInclude.teams && tournament.team_config) {
-                try { template.team_config = JSON.parse(tournament.team_config); } catch (err) { console.error("TemplateExport: failed to parse team_config JSON:", err); }
-              }
-              const json = JSON.stringify(template, null, 2);
-              const fileName = `${(tournament.name || "vorlage").replace(/[^a-zA-Z0-9äöüÄÖÜß\-_ .]/g, "")}.json`;
-
-              if (isTauri()) {
-                try {
-                  const { save } = await import("@tauri-apps/plugin-dialog");
-                  const { writeTextFile } = await import("@tauri-apps/plugin-fs");
-                  const path = await save({
-                    defaultPath: fileName,
-                    filters: [{ name: "JSON-Vorlage (*.json)", extensions: ["json"] }],
-                  });
-                  if (path) {
-                    await writeTextFile(path, json);
-                  }
-                  onClose();
-                  return;
-                } catch (err) {
-                  console.error("Tauri save failed, falling back to browser download", err);
-                }
-              }
-
-              // Browser fallback
-              const blob = new Blob([json], { type: "application/json" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = fileName;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-              onClose();
-            }}
-            className={`flex-1 ${theme.primaryBg} text-white px-4 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium`}
-          >
-            <Icon name="download" /> {t.template_export_button}
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
