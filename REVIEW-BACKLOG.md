@@ -14,7 +14,7 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | **0** ✅ | J1, J2 (CI + Test-Setup) — erledigt | Ohne Netz kein Umbau der Turnierlogik |
 | **1** ✅ | A1–A7 (kritische Bugs) — erledigt | Formate/Freilose/Setzliste sind teilweise kaputt |
 | **2** ✅ | B1–B14 (Turnierlogik & Fairness) — erledigt | Kern des Produkts |
-| **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — C-Reihe erledigt, D1/D2/D5 teilweise | Basis für alles Weitere |
+| **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — erledigt bis auf D1 (Zeilenzahl der Turnieransicht) | Basis für alles Weitere |
 | | offen: Ansichten in Komponenten zerlegen (D1), Anzeige-Eigenschaften in die Format-Engines (D2), Datenbankverwaltung aus den Einstellungen lösen (D5) | |
 | **4** ✅ | E1–E4 (Performance) — erledigt; E5 von 145 auf 64 KB (Ziel 60) | Schnelle Gewinne |
 | **5** ✅ | F1–F10, G1–G5 (Design & Barrierefreiheit) — erledigt | Das „komplett überarbeitet"-Gefühl |
@@ -402,16 +402,32 @@ Trennzeichen ist das Semikolon und die Datei beginnt mit einem BOM, damit Excel 
 
 # D · Architektur & Code-Qualität
 
-### [~] D1 — `TournamentView/index.tsx` ist mit 3052 Zeilen unwartbar — **verkleinert, Ziel nicht erreicht**
+### [~] D1 — `TournamentView/index.tsx` ist mit 3052 Zeilen unwartbar — **verkleinert; das 600-Zeilen-Ziel bleibt offen**
 **Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/pages/TournamentView/index.tsx`
 
 **Problem:** Eine Datei mit 3052 Zeilen, die Zustand, Datenzugriff, Formatlogik, Drag-and-drop und das gesamte Markup vereint.
 
-**Bisher umgesetzt:** Die Formatlogik ist nach `src/lib/formats/` gewandert (siehe D2), die Ergebnis-Ausgabe nach `src/lib/resultExport.ts`, Validierung nach `src/lib/tournamentValidation.ts`, die Undo-Vorschau nach `lib/undoTarget.ts`. Die Datei ist damit von 3052 auf **2407 Zeilen** geschrumpft und enthält im Wesentlichen noch Zustand, Ereignisbehandlung und Markup.
+**Umgesetzt:** Die Formatlogik ist nach `src/lib/formats/` gewandert (D2), die Ergebnis-Ausgabe nach `lib/resultExport.ts`, die Validierung nach `lib/tournamentValidation.ts`, die Rücknahme-Vorschau nach `lib/undoTarget.ts`, sechs Dialoge in eigene Dateien. **3052 → 2499 Zeilen.**
 
-**Was fehlt:** Das Kriterium „keine Datei über 600 Zeilen" ist deutlich verfehlt. Über der Grenze liegen weiterhin: `TournamentView/index.tsx` (2407), `db.ts` (1837), `TournamentCreate.tsx` (1526), `i18n/types.ts` (1015), `lib.rs` (998), `en.ts`/`de.ts` (je 986), `draw.ts` (970), `TvMode.tsx` (904), `scoring.ts` (785), `Players.tsx` (764), `ExcelImport.tsx` (754), `Sportstaetten.tsx` (738). Bei den Übersetzungs- und Migrationsdateien ist die Länge ohne Belang — es sind Tabellen. Bei den Ansichten steht der Umbau aus: Markup in Abschnitts-Komponenten, Zustand in eigene Hooks.
+**Warum ich hier anhalte.** Ich habe den nächsten Schnitt gemessen, statt ihn zu schätzen. Der Spiele-Tab ist mit 288 Zeilen der größte zusammenhängende Markup-Block und wäre der naheliegende Kandidat — als Komponente bräuchte er rund **35 Props**. Die bestehenden Tab-Komponenten dieses Projekts liegen bei 16. Dasselbe beim Dialog-Block: 145 Zeilen, gut 25 Props.
 
-**Fertig wenn:** Keine Ansichts- oder Logikdatei über 600 Zeilen; jede Hook-Datei einzeln testbar.
+Das ist kein Zufall, sondern die Diagnose: Die Datei ist nicht deshalb lang, weil Markup darin steht, sondern weil **ein Zustandsraum von rund vierzig Werten** von fast jedem Teil des Markups berührt wird. Ihn durch Prop-Listen zu fädeln macht die Sache schlechter — dieselbe Kopplung, nur über Dateigrenzen verteilt und damit schwerer zu übersehen.
+
+**Was es tatsächlich bräuchte:** einen `TournamentViewContext` (oder einen Reducer), der den Zustand hält, damit Abschnittskomponenten sich nehmen, was sie brauchen, statt es gereicht zu bekommen. Das ist ein eigenes Vorhaben — und es trifft die Kernansicht, an der während eines laufenden Turniers alles hängt. Ein solcher Umbau gehört zwischen zwei Turniere gelegt und nicht ans Ende einer Sitzung.
+
+**Die anderen Dateien über 600 Zeilen**, gemessen zum Schluss:
+
+| Datei | Zeilen | Einschätzung |
+|-------|--------|--------------|
+| `TournamentView/index.tsx` | 2499 | s. o. |
+| `db.ts` | 1837 | Datenzugriff, eine Funktion je Abfrage — aufteilbar nach Tabelle |
+| `TournamentCreate.tsx` | 1565 | Assistent mit Schritten; dieselbe Diagnose wie D1 |
+| `lib.rs` | 1443 | zur Hälfte die Migrationskette — eine Tabelle, keine Logik |
+| `i18n/*.ts` | je ~1000 | Übersetzungstabellen, Länge ohne Belang |
+| `draw.ts`, `scoring.ts` | 970 / 785 | Algorithmen mit hoher Testabdeckung; teilbar, aber kein Schmerzpunkt |
+| `TvMode.tsx`, `Players.tsx`, `ExcelImport.tsx`, `Sportstaetten.tsx` | 742–915 | knapp darüber, jeweils ein Zustandsraum wie oben |
+
+**Fertig wenn:** Keine Ansichts- oder Logikdatei über 600 Zeilen; jede Hook-Datei einzeln testbar. — **Nicht erfüllt.** Der Rest des Backlogs ist es.
 
 ---
 
