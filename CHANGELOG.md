@@ -24,6 +24,24 @@ Alle nennenswerten Änderungen an BOSS, neueste zuerst. Das Format folgt
 Ein Durchgang durch `REVIEW-BACKLOG.md`, 75 Punkte in sechs Phasen. Die
 Kurzfassung dessen, was sich für Nutzer ändert:
 
+### Aktualisierung
+
+- **Die Release-Notes sagen jetzt etwas.** Bisher stand im Aktualisierungs­
+  dialog wörtlich „Release v2.9.0" — der Text, den der Workflow in die
+  Veröffentlichung schrieb und den der Updater von dort übernahm. Er kommt
+  jetzt aus diesem Changelog.
+- **Versionshistorie in den Einstellungen**, jede Version zum Aufklappen. Sie
+  ist Teil des Programms und liest sich ohne Netz — in einer Halle mit
+  schlechtem WLAN ist das der Unterschied zwischen „lesbar" und „leer".
+- **Eine Abfrage statt drei.** Startleiste, Einstellungen und die
+  Installation fragten den Server getrennt; dazwischen konnte sich die
+  Antwort ändern, sodass eine andere Fassung installiert wurde als die
+  angezeigte.
+- **„Später" bleibt gesagt.** Die Leiste kam bei jedem Start wieder. Die
+  Ablehnung gilt jetzt dauerhaft — aber nur für diese eine Version, damit
+  ein Wegklicken nicht alle folgenden verdeckt.
+- **Höchstens eine Abfrage pro Tag** beim Start statt einer bei jedem.
+
 ### Turnierbetrieb
 
 Vier Punkte aus dem Vergleich mit dem BTP (`FEATURE-BACKLOG.md`).

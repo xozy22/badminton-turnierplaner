@@ -19,4 +19,18 @@ the application shows when its language is set to English.
 
 ## [Unreleased]
 
-Nothing yet.
+### Updates
+
+- **The release notes say something now.** The update dialog used to read
+  "Release v2.9.0" -- literally the string the workflow wrote into the
+  release, which the updater then copied. It comes from the changelog.
+- **Version history in Settings**, one disclosure per version. It ships with
+  the application and reads without a network connection, which in a sports
+  hall is the difference between readable and empty.
+- **One request instead of three.** The startup banner, the Settings page and
+  the install each asked the server separately; the answer could change in
+  between, so a different version could be installed than the one shown.
+- **"Later" stays said.** The banner came back at every start. A dismissal
+  now survives a restart -- but only for that one version, so it cannot hide
+  the releases that follow.
+- **At most one check a day** on startup, rather than one per start.

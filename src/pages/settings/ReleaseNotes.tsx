@@ -17,14 +17,10 @@ import { useT, useLocale } from "../../lib/I18nContext";
 import { formatDate } from "../../lib/datetime";
 import { fill } from "../../lib/i18n/format";
 import { RELEASE_NOTES, APP_VERSION, type ReleaseNote } from "../../lib/releaseNotes.generated";
+import { noteFor } from "../../lib/releaseNotes";
 
 /** How many older versions the history shows before offering the rest. */
 const FIRST_PAGE = 5;
-
-function noteFor(note: ReleaseNote, lang: string): { text: string; translated: boolean } {
-  if (lang === "en" && note.en) return { text: note.en, translated: true };
-  return { text: note.de, translated: lang === "de" };
-}
 
 function VersionEntry({
   note,

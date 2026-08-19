@@ -9,6 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import { RELEASE_NOTES, APP_VERSION } from "./releaseNotes.generated";
+import { noteFor } from "./releaseNotes";
 
 describe("generated release notes", () => {
   it("has an entry for the version being built", () => {
@@ -71,5 +72,38 @@ describe("generated release notes", () => {
     for (const note of RELEASE_NOTES) {
       expect(note.date, `${note.version} has no date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
+  });
+});
+
+describe("noteFor", () => {
+  const note = {
+    version: "2.10.0",
+    date: "2026-08-19",
+    title: null,
+    de: "Deutscher Text",
+    en: "English text",
+  };
+
+  it("gives a German reader the original", () => {
+    expect(noteFor(note, "de")).toEqual({ text: "Deutscher Text", translated: true });
+  });
+
+  it("gives an English reader the translation", () => {
+    expect(noteFor(note, "en")).toEqual({ text: "English text", translated: true });
+  });
+
+  it("falls back to German and says so", () => {
+    // Everything before 2.10.0. Showing the German text unannounced would
+    // read as a bug; showing an empty panel would lose the record.
+    expect(noteFor({ ...note, en: null }, "en")).toEqual({
+      text: "Deutscher Text",
+      translated: false,
+    });
+  });
+
+  it("never marks German as a fallback for a German reader", () => {
+    // The flag drives a notice saying "only the German text exists". A
+    // German reader must not be told their own language is a substitute.
+    expect(noteFor({ ...note, en: null }, "de").translated).toBe(true);
   });
 });
