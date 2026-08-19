@@ -828,6 +828,12 @@ Die Sidebar war bereits einklappbar; der TV-Modus bleibt eine eigene Ansicht, we
 
 ---
 
+**Nachtrag — die Leiste stand still.** Bei der Logikprüfung in der laufenden Anwendung gefunden: Ein Ergebnis mit Enter zu bestätigen aktualisierte die Ansicht nicht. Mit zwei Spielen auf Feldern zeigte die Leiste nach dem ersten Abschluss weiterhin „noch 2 Ergebnisse eintragen", während in der Datenbank längst nur noch eines offen war. Beim letzten Spiel einer Runde hieß das: Der Turnierleiter sah nicht, dass er weiterschalten kann — außer er lud die Seite neu.
+
+`handleScoreCommit` aktualisierte bewusst nichts und verließ sich auf den Blur, der dem Fokuswechsel folgt. Der Kommentar dazu behauptete, dieser Blur rufe `loadAll()`. Zweierlei stimmte daran nicht: `handleScoreBlur` ruft `refreshScores()`, und der Blur kommt nicht verlässlich — das `setEditingMatchIds` unmittelbar davor löst ein Neuzeichnen aus, und das Element, das anschließend geblurrt wird, ist unter Umständen nicht mehr das fokussierte.
+
+Die Bestätigung aktualisiert jetzt selbst. Feuert der Blur doch, laufen zwei Abfragen statt einer — der Preis dafür, dass der Bildschirm stimmt. Vorher/nachher in der Anwendung gegengeprüft.
+
 ### [x] F10 — Emojis als Icon-System — **erledigt**
 **Schwere:** niedrig · **Aufwand:** M · **Dateien:** `src/components/ui/Icon.tsx` (neu), rund 40 weitere
 

@@ -706,3 +706,74 @@ describe("display properties — what D2 was actually about", () => {
     expect(withQueue).toEqual(["king_of_court"]);
   });
 });
+
+describe("group stage + knockout — who reaches the bracket", () => {
+  /**
+   * Two groups of four, played out so the standings are unambiguous, then
+   * the knockout drawn from them.
+   *
+   * The existing test checked that a bracket appears. It did not check who
+   * is in it, which is how an inverted seeding order survived: all group
+   * winners were landing in the same half (REVIEW-BACKLOG.md A3).
+   */
+  const playedGroups = () => {
+    const players = makePlayers(8);
+    const ctx = makeContext({
+      tournament: makeTournament({
+        format: "group_ko",
+        num_groups: 2,
+        qualify_per_group: 4, // total KO field of four → two per group
+        status: "active",
+        current_phase: "group",
+      }),
+      players,
+    });
+    const engine = engineFor("group_ko");
+    // Team 1 always wins, so within each group the standings follow the
+    // order the draw produced — deterministic enough to assert on.
+    return { engine, state: apply(ctx, engine.start(ctx)!, () => 1), players };
+  };
+
+  it("sends exactly the qualifiers through, two per group", () => {
+    const { engine, state } = playedGroups();
+    const plan = engine.advance(state)!;
+    const ko = plan.rounds[0].matches;
+
+    // Four qualifiers → two semifinals.
+    expect(ko).toHaveLength(2);
+
+    const inKo = ko.flatMap((m) => [m.team1_p1, m.team2_p1]).filter((x) => x !== null);
+    expect(new Set(inKo).size).toBe(4);
+  });
+
+  it("never opens the knockout with two players from the same group", () => {
+    const { engine, state } = playedGroups();
+    const plan = engine.advance(state)!;
+
+    // Which group each player came from, read back off the group rounds.
+    const groupOf = new Map<number, number>();
+    for (const r of state.rounds) {
+      if (r.phase !== "group" || r.group_number == null) continue;
+      for (const m of state.matchesByRound.get(r.id) ?? []) {
+        for (const pid of [m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2]) {
+          if (pid) groupOf.set(pid, r.group_number);
+        }
+      }
+    }
+
+    for (const m of plan.rounds[0].matches) {
+      if (m.team1_p1 == null || m.team2_p1 == null) continue;
+      expect(
+        groupOf.get(m.team1_p1),
+        `${m.team1_p1} vs ${m.team2_p1} come from the same group`,
+      ).not.toBe(groupOf.get(m.team2_p1));
+    }
+  });
+
+  it("marks the knockout rounds as such", () => {
+    const { engine, state } = playedGroups();
+    const plan = engine.advance(state)!;
+    expect(plan.phase).toBe("ko");
+    expect(plan.rounds.every((r) => r.phase === "ko" || r.phase === "third_place")).toBe(true);
+  });
+});

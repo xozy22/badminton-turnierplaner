@@ -295,7 +295,15 @@ export function buildKnockoutFromGroups(ctx: FormatContext): MatchSpec[] {
     }
     if (qualified.length < 2) return [];
 
-    // Group order (winners first) doubles as the seeding order.
+    // Qualifiers enter group by group — A1, A2, B1, B2, … — and that
+    // order is the seeding order.
+    //
+    // Not sorted by rank (all winners, then all runners-up) on purpose:
+    // with the group-wise order, A1 and A2 land in opposite halves and
+    // can only meet again in the final. Ranked order would put them in
+    // the same half, where a rematch could happen in the semi. Keeping
+    // group opponents apart is worth more here than a strictly ordered
+    // seeding, and every winner still draws a runner-up in round one.
     return generateEliminationBracketDoubles(qualified, qualified).map((m) => bracketToSpec(m, court));
   }
 

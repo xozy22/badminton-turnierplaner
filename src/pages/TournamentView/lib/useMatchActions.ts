@@ -229,9 +229,21 @@ export function useMatchActions({
       // Match was completed but scores were changed so no winner anymore — reset
       await updateMatchResult(matchId, null);
     }
-    // Kein loadAll: der durch goNext()-Fokuswechsel ausgelöste Blur
-    // ruft handleScoreBlur, das loadAll() macht. So passiert genau
-    // ein Reload pro Enter, nicht zwei.
+    // Selbst aktualisieren, statt sich auf den folgenden Blur zu
+    // verlassen.
+    //
+    // Vorher stand hier, der Fokuswechsel loese handleScoreBlur aus und
+    // das mache loadAll(). Beides stimmte nicht: handleScoreBlur ruft
+    // refreshScores(), und der Blur kommt nicht zuverlaessig -- das
+    // setEditingMatchIds weiter oben rendert neu, und das Element, das
+    // danach geblurrt wird, ist unter Umstaenden nicht mehr das
+    // fokussierte. Beim letzten Ergebnis einer Runde blieb die Anzeige
+    // dadurch stehen: die Naechster-Schritt-Leiste zeigte weiter offene
+    // Spiele, obwohl alle eingetragen waren.
+    //
+    // Feuert der Blur doch, laeuft refreshScores zweimal. Zwei Abfragen
+    // sind der Preis dafuer, dass der Bildschirm stimmt.
+    await refreshScores();
   };
 
   const handleCourtChange = async (matchId: number, court: number | null, bypassRestCheck = false) => {
