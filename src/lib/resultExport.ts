@@ -17,8 +17,10 @@ import type {
   GameSet,
   StandingEntry,
   TournamentPlayerInfo,
+  FeeItem,
 } from "./types";
 import { playerDisplayName } from "./types";
+import { owesEntryFee } from "./fees";
 import { formatDateTime } from "./datetime";
 
 /** Escapes a value for CSV: quotes it when it contains a separator, quote or newline. */
@@ -44,6 +46,8 @@ interface ExportInput {
   sets: GameSet[];
   standings: StandingEntry[];
   paymentData?: TournamentPlayerInfo[];
+  /** Charges beyond the entry fee (FEATURE-BACKLOG.md E4). */
+  feeItems?: FeeItem[];
   locale?: string;
 }
 
@@ -164,22 +168,55 @@ export function standingsToCsv(input: ExportInput): string {
 
 /** Entry-fee overview: who paid how, and what is still open. */
 export function paymentsToCsv(input: ExportInput): string {
-  const { tournament, paymentData = [], locale } = input;
-  const feeSingle = tournament.entry_fee_single ?? 0;
+  const { tournament, paymentData = [], feeItems = [], locale } = input;
+  const fee = tournament.mode === "singles"
+    ? tournament.entry_fee_single ?? 0
+    : tournament.entry_fee_double ?? 0;
 
   const rows: (string | number | null)[][] = [
-    ["Spieler", "Verein", "Status", "Methode", "Datum", "Betrag"],
+    ["Spieler", "Verein", "Meldung", "Posten", "Status", "Methode", "Datum", "Betrag"],
   ];
+
+  const ENTRY_LABEL: Record<string, string> = {
+    entered: "gemeldet",
+    waiting: "Warteliste",
+    withdrawn: "abgemeldet",
+  };
+
   for (const entry of paymentData) {
+    const status = entry.entry_status ?? "entered";
+    // Whoever owes nothing still belongs in the file: the accounts have
+    // to show that they were there and why they are not being charged
+    // (FEATURE-BACKLOG.md E2).
+    const owes = owesEntryFee({ entry_status: status }, tournament.fee_due ?? "participation");
     rows.push([
       playerDisplayName(entry.player),
       entry.player.club ?? "",
+      ENTRY_LABEL[status] ?? status,
+      "Startgeld",
       entry.payment_status === "paid" ? "bezahlt" : "offen",
       entry.payment_method ?? "",
       entry.paid_date ? formatDateTime(entry.paid_date, locale) : "",
-      feeSingle,
+      owes ? fee : 0,
     ]);
   }
+
+  for (const item of feeItems) {
+    const owner = item.player_id
+      ? paymentData.find((p) => p.player.id === item.player_id)
+      : undefined;
+    rows.push([
+      owner ? playerDisplayName(owner.player) : "",
+      owner?.player.club ?? "",
+      "",
+      item.label,
+      item.paid ? "bezahlt" : "offen",
+      "",
+      "",
+      item.amount,
+    ]);
+  }
+
   return toCsv(rows);
 }
 

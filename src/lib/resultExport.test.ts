@@ -39,6 +39,7 @@ function makeTournament(overrides: Partial<Tournament> = {}): Tournament {
     session_id: null,
     play_date: null,
     start_time: null,
+    fee_due: "participation",
     planned_rounds: null,
     created_at: "2026-08-18T10:00:00.000Z",
     status: "completed",
@@ -258,6 +259,9 @@ describe("paymentsToCsv", () => {
         paid_date: "2026-08-18T10:00:00.000Z",
         retired: false,
         seed_rank: null,
+        entry_status: "entered",
+        waiting_rank: null,
+        withdrawn_at: null,
       },
       {
         player: makePlayer({ first_name: "Bea" }),
@@ -266,6 +270,9 @@ describe("paymentsToCsv", () => {
         paid_date: null,
         retired: false,
         seed_rank: null,
+        entry_status: "entered",
+        waiting_rank: null,
+        withdrawn_at: null,
       },
     ];
 
@@ -348,5 +355,89 @@ describe("set columns", () => {
     });
 
     expect(csv.split("\r\n")[0]).toContain("Satz 3");
+  });
+});
+
+describe("paymentsToCsv — entry status and extra charges", () => {
+  const withStatus = (
+    status: "entered" | "waiting" | "withdrawn",
+    first: string,
+  ): TournamentPlayerInfo => ({
+    player: makePlayer({ first_name: first }),
+    payment_status: "unpaid",
+    payment_method: null,
+    paid_date: null,
+    retired: false,
+    seed_rank: null,
+    entry_status: status,
+    waiting_rank: status === "waiting" ? 1 : null,
+    withdrawn_at: status === "withdrawn" ? "2026-08-19T10:00:00.000Z" : null,
+  });
+
+  const base = {
+    players: [],
+    rounds: [],
+    matches: [],
+    sets: [],
+    standings: [],
+  };
+
+  it("names the entry status of every participant", () => {
+    // Somebody who owes nothing still belongs in the file: the accounts
+    // have to show they were there and why they are not being charged.
+    const csv = paymentsToCsv({
+      ...base,
+      tournament: makeTournament({ entry_fee_single: 5 }),
+      paymentData: [
+        withStatus("entered", "Anna"),
+        withStatus("waiting", "Bea"),
+        withStatus("withdrawn", "Cem"),
+      ],
+    });
+    const lines = csv.split("\r\n");
+    expect(lines[1]).toContain("gemeldet");
+    expect(lines[2]).toContain("Warteliste");
+    expect(lines[3]).toContain("abgemeldet");
+  });
+
+  it("charges nobody who is waiting", () => {
+    const csv = paymentsToCsv({
+      ...base,
+      tournament: makeTournament({ entry_fee_single: 5 }),
+      paymentData: [withStatus("waiting", "Bea")],
+    });
+    expect(csv.split("\r\n")[1]).toMatch(/;0$/);
+  });
+
+  it("charges a withdrawal when the fee fell due on entry", () => {
+    const csv = paymentsToCsv({
+      ...base,
+      tournament: makeTournament({ entry_fee_single: 5, fee_due: "entry" }),
+      paymentData: [withStatus("withdrawn", "Cem")],
+    });
+    expect(csv.split("\r\n")[1]).toMatch(/;5$/);
+  });
+
+  it("lists extra charges as their own rows", () => {
+    const csv = paymentsToCsv({
+      ...base,
+      tournament: makeTournament({ entry_fee_single: 5 }),
+      paymentData: [withStatus("entered", "Anna")],
+      feeItems: [
+        {
+          id: 1,
+          tournament_id: 1,
+          player_id: null,
+          label: "Hallenbeitrag",
+          amount: 20,
+          paid: true,
+          created_at: "2026-08-19T10:00:00.000Z",
+        },
+      ],
+    });
+    const lines = csv.split("\r\n");
+    expect(lines).toHaveLength(3);
+    expect(lines[2]).toContain("Hallenbeitrag");
+    expect(lines[2]).toContain("bezahlt");
   });
 });

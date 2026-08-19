@@ -48,6 +48,14 @@ import {
   updateMatchResult,
   setMatchWalkover,
   setMatchOutcome,
+  setEntryStatus,
+  getWaitingList,
+  promoteFromWaitingList,
+  getFeeItems,
+  addFeeItem,
+  setFeeItemPaid,
+  deleteFeeItem,
+  updateFeeDue,
   reopenMatch,
   updateMatchCourt,
   clearMatchCourt,
@@ -371,6 +379,74 @@ for (const backend of BACKENDS) {
     });
   });
 
+  describe("fee items and fee timing", () => {
+    it("stores an item against a player", async () => {
+      const ids = await seedPlayers(1);
+      const tournamentId = await seedTournament(ids);
+
+      await addFeeItem(tournamentId, ids[0], "Nachmeldung", 3);
+      const [stored] = await getFeeItems(tournamentId);
+      expect(stored).toMatchObject({
+        player_id: ids[0],
+        label: "Nachmeldung",
+        amount: 3,
+        paid: false,
+      });
+    });
+
+    it("stores an item that belongs to nobody in particular", async () => {
+      // A hall contribution is owed by the tournament, not by one player.
+      const ids = await seedPlayers(1);
+      const tournamentId = await seedTournament(ids);
+
+      await addFeeItem(tournamentId, null, "Hallenbeitrag", 20);
+      expect((await getFeeItems(tournamentId))[0].player_id).toBeNull();
+    });
+
+    it("marks an item paid and back", async () => {
+      const ids = await seedPlayers(1);
+      const tournamentId = await seedTournament(ids);
+      const id = await addFeeItem(tournamentId, ids[0], "Bälle", 4);
+
+      await setFeeItemPaid(id, true);
+      expect((await getFeeItems(tournamentId))[0].paid).toBe(true);
+      await setFeeItemPaid(id, false);
+      expect((await getFeeItems(tournamentId))[0].paid).toBe(false);
+    });
+
+    it("deletes an item", async () => {
+      const ids = await seedPlayers(1);
+      const tournamentId = await seedTournament(ids);
+      const id = await addFeeItem(tournamentId, ids[0], "Irrtum", 1);
+
+      await deleteFeeItem(id);
+      expect(await getFeeItems(tournamentId)).toHaveLength(0);
+    });
+
+    it("keeps items of different tournaments apart", async () => {
+      const ids = await seedPlayers(1);
+      const a = await seedTournament(ids);
+      const b = await seedTournament(ids);
+      await addFeeItem(a, ids[0], "A", 1);
+      await addFeeItem(b, ids[0], "B", 2);
+
+      expect((await getFeeItems(a)).map((i) => i.label)).toEqual(["A"]);
+      expect((await getFeeItems(b)).map((i) => i.label)).toEqual(["B"]);
+    });
+
+    it("defaults to charging on participation", async () => {
+      // What BOSS always did: whoever plays, pays.
+      const id = await createTournament("T", "singles", "round_robin", 2, 21);
+      expect((await getTournament(id)).fee_due).toBe("participation");
+    });
+
+    it("stores charging on entry", async () => {
+      const id = await createTournament("T", "singles", "round_robin", 2, 21);
+      await updateFeeDue(id, "entry");
+      expect((await getTournament(id)).fee_due).toBe("entry");
+    });
+  });
+
   describe("tournament players", () => {
     it("adds and removes participants", async () => {
       const ids = await seedPlayers(3);
@@ -379,6 +455,108 @@ for (const backend of BACKENDS) {
       expect(await getTournamentPlayers(tournamentId)).toHaveLength(3);
       await removePlayerFromTournament(tournamentId, ids[0]);
       expect(await getTournamentPlayers(tournamentId)).toHaveLength(2);
+    });
+
+    it("keeps a withdrawal out of the draw but in the list", async () => {
+      // Removing used to delete the row, which lost the participant from
+      // the accounts as well (FEATURE-BACKLOG.md E2).
+      const ids = await seedPlayers(3);
+      const tournamentId = await seedTournament(ids);
+
+      await setEntryStatus(tournamentId, ids[0], "withdrawn");
+
+      expect(await getTournamentPlayers(tournamentId)).toHaveLength(2);
+      const detailed = await getTournamentPlayersDetailed(tournamentId);
+      expect(detailed).toHaveLength(3);
+      const gone = detailed.find((d) => d.player.id === ids[0])!;
+      expect(gone.entry_status).toBe("withdrawn");
+      expect(gone.withdrawn_at).not.toBeNull();
+    });
+
+    it("keeps somebody waiting out of the draw", async () => {
+      const ids = await seedPlayers(3);
+      const tournamentId = await seedTournament(ids);
+
+      await setEntryStatus(tournamentId, ids[2], "waiting");
+
+      expect(await getTournamentPlayers(tournamentId)).toHaveLength(2);
+      expect(await getWaitingList(tournamentId)).toHaveLength(1);
+    });
+
+    it("hands out waiting positions in order", async () => {
+      const ids = await seedPlayers(4);
+      const tournamentId = await seedTournament(ids);
+
+      await setEntryStatus(tournamentId, ids[1], "waiting");
+      await setEntryStatus(tournamentId, ids[3], "waiting");
+      await setEntryStatus(tournamentId, ids[2], "waiting");
+
+      const waiting = await getWaitingList(tournamentId);
+      expect(waiting.map((p) => p.id)).toEqual([ids[1], ids[3], ids[2]]);
+    });
+
+    it("gives the first person queued position one", async () => {
+      // The fallback store filtered on `!== null`, which let rows written
+      // before migration 21 through -- they have no such field, and
+      // Math.max of an undefined is NaN. The first person queued ended up
+      // with no position at all.
+      const ids = await seedPlayers(3);
+      const tournamentId = await seedTournament(ids);
+
+      await setEntryStatus(tournamentId, ids[0], "waiting");
+
+      const info = (await getTournamentPlayersDetailed(tournamentId)).find(
+        (d) => d.player.id === ids[0],
+      )!;
+      expect(info.waiting_rank).toBe(1);
+    });
+
+    it("moves the first in line up when somebody drops out", async () => {
+      const ids = await seedPlayers(3);
+      const tournamentId = await seedTournament(ids);
+      await setEntryStatus(tournamentId, ids[2], "waiting");
+
+      await setEntryStatus(tournamentId, ids[0], "withdrawn");
+      const moved = await promoteFromWaitingList(tournamentId);
+
+      expect(moved?.id).toBe(ids[2]);
+      const playing = await getTournamentPlayers(tournamentId);
+      expect(playing.map((p) => p.id).sort()).toEqual([ids[1], ids[2]].sort());
+      expect(await getWaitingList(tournamentId)).toHaveLength(0);
+    });
+
+    it("reports an empty waiting list rather than pretending", async () => {
+      // The caller has to be able to say "nobody was waiting".
+      const ids = await seedPlayers(2);
+      const tournamentId = await seedTournament(ids);
+      expect(await promoteFromWaitingList(tournamentId)).toBeNull();
+    });
+
+    it("clears the queue position when somebody enters", async () => {
+      const ids = await seedPlayers(2);
+      const tournamentId = await seedTournament(ids);
+      await setEntryStatus(tournamentId, ids[0], "waiting");
+      await setEntryStatus(tournamentId, ids[0], "entered");
+
+      const info = (await getTournamentPlayersDetailed(tournamentId)).find(
+        (d) => d.player.id === ids[0],
+      )!;
+      expect(info.entry_status).toBe("entered");
+      expect(info.waiting_rank).toBeNull();
+    });
+
+    it("adding somebody who is already there leaves their status alone", async () => {
+      // The waiting-list path adds first and then sets the status, because
+      // most people put on the queue are not linked to the tournament yet.
+      // That add must not reset somebody who is already withdrawn.
+      const ids = await seedPlayers(1);
+      const tournamentId = await seedTournament(ids);
+      await setEntryStatus(tournamentId, ids[0], "withdrawn");
+
+      await addPlayerToTournament(tournamentId, ids[0]);
+
+      const info = (await getTournamentPlayersDetailed(tournamentId))[0];
+      expect(info.entry_status).toBe("withdrawn");
     });
 
     it("ignores a duplicate add", async () => {

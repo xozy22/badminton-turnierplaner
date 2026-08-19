@@ -454,3 +454,116 @@ describe("migration 20 — why a match was not played", () => {
     db.close();
   });
 });
+
+describe("migration 21 — entries, waiting list and money", () => {
+  function fresh(): SqliteDb {
+    const db = new DatabaseSync!(":memory:");
+    db.exec("PRAGMA foreign_keys = ON");
+    for (const m of migrations) db.exec(m.sql);
+    return db;
+  }
+
+  function upTo(version: number): SqliteDb {
+    const db = new DatabaseSync!(":memory:");
+    db.exec("PRAGMA foreign_keys = ON");
+    for (const m of migrations) {
+      if (m.version > version) break;
+      db.exec(m.sql);
+    }
+    return db;
+  }
+
+  function seed(db: SqliteDb): void {
+    db.prepare("INSERT INTO players (id, name, gender) VALUES (1, 'A', 'm')").run();
+    db.prepare("INSERT INTO tournaments (id, name, mode, format) VALUES (1, 'T', 'singles', 'round_robin')").run();
+  }
+
+  it("adds the entry columns", () => {
+    const db = fresh();
+    const cols = db
+      .prepare("PRAGMA table_info(tournament_players)")
+      .all()
+      .map((c: unknown) => (c as { name: string }).name);
+    expect(cols).toContain("entry_status");
+    expect(cols).toContain("waiting_rank");
+    expect(cols).toContain("withdrawn_at");
+    db.close();
+  });
+
+  it("treats everybody already in the table as taking part", () => {
+    // Anything written before this migration was a participant -- there
+    // was no other state. Leaving them NULL would drop them from the draw.
+    const db = upTo(20);
+    seed(db);
+    db.prepare("INSERT INTO tournament_players (tournament_id, player_id) VALUES (1, 1)").run();
+
+    for (const m of migrations) {
+      if (m.version === 21) db.exec(m.sql);
+    }
+
+    const [row] = db
+      .prepare("SELECT entry_status, waiting_rank FROM tournament_players WHERE player_id = 1")
+      .all() as { entry_status: string; waiting_rank: number | null }[];
+    expect(row.entry_status).toBe("entered");
+    expect(row.waiting_rank).toBeNull();
+    db.close();
+  });
+
+  it("defaults existing tournaments to charging on participation", () => {
+    const db = upTo(20);
+    db.prepare("INSERT INTO tournaments (id, name, mode, format) VALUES (1, 'Alt', 'singles', 'round_robin')").run();
+
+    for (const m of migrations) {
+      if (m.version === 21) db.exec(m.sql);
+    }
+
+    const [row] = db.prepare("SELECT fee_due FROM tournaments WHERE id = 1").all() as {
+      fee_due: string;
+    }[];
+    expect(row.fee_due).toBe("participation");
+    db.close();
+  });
+
+  it("creates the fee item table", () => {
+    const db = fresh();
+    seed(db);
+    db.prepare(
+      "INSERT INTO tournament_fee_items (tournament_id, player_id, label, amount) VALUES (1, 1, 'Bälle', 4)",
+    ).run();
+    const [row] = db.prepare("SELECT label, amount, paid FROM tournament_fee_items").all() as {
+      label: string;
+      amount: number;
+      paid: number;
+    }[];
+    expect(row).toMatchObject({ label: "Bälle", amount: 4, paid: 0 });
+    db.close();
+  });
+
+  it("allows a fee item that belongs to no player", () => {
+    // A hall contribution is owed by the tournament, not by one person.
+    const db = fresh();
+    seed(db);
+    expect(() =>
+      db
+        .prepare(
+          "INSERT INTO tournament_fee_items (tournament_id, player_id, label, amount) VALUES (1, NULL, 'Halle', 20)",
+        )
+        .run(),
+    ).not.toThrow();
+    db.close();
+  });
+
+  it("removes a tournament's fee items with the tournament", () => {
+    const db = fresh();
+    seed(db);
+    db.prepare(
+      "INSERT INTO tournament_fee_items (tournament_id, player_id, label, amount) VALUES (1, 1, 'X', 1)",
+    ).run();
+
+    db.prepare("DELETE FROM tournaments WHERE id = 1").run();
+
+    const rows = db.prepare("SELECT id FROM tournament_fee_items").all();
+    expect(rows).toHaveLength(0);
+    db.close();
+  });
+});

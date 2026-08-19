@@ -26,6 +26,7 @@ import type {
   StandingEntry,
   Tournament,
   TournamentPlayerInfo,
+  FeeItem,
 } from "../../../lib/types";
 
 interface Args {
@@ -37,6 +38,7 @@ interface Args {
   setsByMatch: Map<number, GameSet[]>;
   standings: StandingEntry[];
   paymentData: TournamentPlayerInfo[];
+  feeItems: FeeItem[];
   dialogs: TournamentDialogs;
   loadAll: () => void | Promise<void>;
 }
@@ -50,6 +52,7 @@ export function useTournamentActions({
   setsByMatch,
   standings,
   paymentData,
+  feeItems,
   dialogs,
   loadAll,
 }: Args) {
@@ -113,6 +116,7 @@ export function useTournamentActions({
       sets: allSets,
       standings,
       paymentData,
+      feeItems,
       locale: undefined,
     };
 

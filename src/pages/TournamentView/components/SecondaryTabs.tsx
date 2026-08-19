@@ -23,6 +23,9 @@ import type {
   StandingEntry,
   Tournament,
   TournamentPlayerInfo,
+  EntryStatus,
+  FeeDue,
+  FeeItem,
 } from "../../../lib/types";
 
 interface Props {
@@ -58,6 +61,13 @@ interface Props {
   onAddPlayer: (playerId: number) => void;
   onRemovePlayer: (playerId: number) => void;
   onUnretire: (playerId: number) => void;
+  feeItems: FeeItem[];
+  onEntryStatusChange: (playerId: number, status: EntryStatus) => void | Promise<void>;
+  onPromoteWaiting: () => void | Promise<void>;
+  onFeeItemAdd: (playerId: number | null, label: string, amount: number) => void | Promise<void>;
+  onFeeItemPaid: (itemId: number, paid: boolean) => void | Promise<void>;
+  onFeeItemDelete: (itemId: number) => void | Promise<void>;
+  onFeeDueChange: (value: FeeDue) => void | Promise<void>;
 }
 
 export default function SecondaryTabs({
@@ -89,6 +99,13 @@ export default function SecondaryTabs({
   onAddPlayer: handleAddPlayer,
   onRemovePlayer: handleRemovePlayer,
   onUnretire: handlePlayerUnretire,
+  feeItems,
+  onEntryStatusChange,
+  onPromoteWaiting,
+  onFeeItemAdd,
+  onFeeItemPaid,
+  onFeeItemDelete,
+  onFeeDueChange,
 }: Props) {
   const { t } = useT();
   const { theme } = useTheme();
@@ -216,6 +233,13 @@ export default function SecondaryTabs({
       setCollapsedClubs={setCollapsedClubs}
       setRetireTarget={setRetireTarget}
       onUnretire={handlePlayerUnretire}
+      feeItems={feeItems}
+      onEntryStatusChange={onEntryStatusChange}
+      onPromoteWaiting={onPromoteWaiting}
+      onFeeItemAdd={onFeeItemAdd}
+      onFeeItemPaid={onFeeItemPaid}
+      onFeeItemDelete={onFeeItemDelete}
+      onFeeDueChange={onFeeDueChange}
       playerName={playerName}
     />
   )}

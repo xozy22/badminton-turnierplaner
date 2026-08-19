@@ -27,7 +27,7 @@ const BACKUP_KEEP: usize = 5;
 /// Wird gegen die Migrationsliste geprueft (`debug_assert` in `run`), damit
 /// die Konstante nicht stillschweigend veraltet, wenn eine Migration
 /// hinzukommt.
-const CURRENT_SCHEMA_VERSION: i64 = 20;
+const CURRENT_SCHEMA_VERSION: i64 = 21;
 
 /// Datum und Uhrzeit als `YYYY-MM-DD_HHMM`, aus Unix-Sekunden.
 ///
@@ -1321,6 +1321,54 @@ pub fn run() {
             sql: "
                 ALTER TABLE matches ADD COLUMN outcome TEXT;
                 UPDATE matches SET outcome = 'walkover' WHERE walkover = 1;
+            ",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 21,
+            description: "entry status, waiting list, and what a tournament charges for",
+            // Four things from the entries-and-money group of
+            // FEATURE-BACKLOG.md, in one migration because they share a
+            // table and would otherwise contradict each other halfway.
+            //
+            // `entry_status` replaces deleting the row:
+            //   'entered'   -- taking part, the only status before this
+            //   'waiting'   -- on the list, not drawn (E1)
+            //   'withdrawn' -- pulled out, kept for the accounts (E2)
+            // Everything already in the table was taking part, so that is
+            // what it gets.
+            //
+            // `waiting_rank` is the position in the queue, so "who is
+            // next" survives a restart. NULL for anyone not waiting.
+            //
+            // `fee_due` says when the entry fee falls due: on entry, or
+            // on actually turning up (E3). 'participation' is what BOSS
+            // did, so that is the default.
+            //
+            // `tournament_fee_items` holds anything beyond the entry fee
+            // -- late entry, shuttles, hall contribution (E4). One row
+            // per charge per player, because a player can owe two of the
+            // same thing and an amount is not a flag.
+            sql: "
+                ALTER TABLE tournament_players ADD COLUMN entry_status TEXT NOT NULL DEFAULT 'entered';
+                ALTER TABLE tournament_players ADD COLUMN waiting_rank INTEGER;
+                ALTER TABLE tournament_players ADD COLUMN withdrawn_at TEXT;
+
+                ALTER TABLE tournaments ADD COLUMN fee_due TEXT NOT NULL DEFAULT 'participation';
+
+                CREATE TABLE tournament_fee_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tournament_id INTEGER NOT NULL,
+                    player_id INTEGER,
+                    label TEXT NOT NULL,
+                    amount REAL NOT NULL DEFAULT 0,
+                    paid INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
+                    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX idx_fee_items_tournament ON tournament_fee_items(tournament_id);
             ",
             kind: MigrationKind::Up,
         },

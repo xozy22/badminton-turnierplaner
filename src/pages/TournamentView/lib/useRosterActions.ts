@@ -15,12 +15,21 @@ import {
   retirePlayerFromTournament,
   unretirePlayerFromTournament,
   setMatchWalkover,
+  setEntryStatus,
+  promoteFromWaitingList,
+  addFeeItem,
+  setFeeItemPaid,
+  deleteFeeItem,
+  updateFeeDue,
 } from "../../../lib/db";
 import { engineFor } from "../../../lib/formats";
 import { useT } from "../../../lib/I18nContext";
+import { useToast } from "../../../lib/ToastContext";
+import { fill } from "../../../lib/i18n/format";
+import { playerDisplayName } from "../../../lib/types";
 import type { ConfirmRequest } from "../../../components/ui/ConfirmDialog";
 import type { TournamentDialogs } from "./useTournamentDialogs";
-import type { Match, Player, Tournament } from "../../../lib/types";
+import type { EntryStatus, FeeDue, Match, Player, Tournament } from "../../../lib/types";
 
 interface Args {
   tournamentId: number;
@@ -44,6 +53,7 @@ export function useRosterActions({
   loadAll,
 }: Args) {
   const { t } = useT();
+  const { showInfo, showSuccess } = useToast();
   const { setShowAddPlayer, setRemoveTarget } = dialogs;
 
   const handleAddPlayer = async (playerId: number) => {
@@ -159,9 +169,67 @@ export function useRosterActions({
     }
     loadAll();
   };
+  /**
+   * Moves somebody between entered, waiting and withdrawn.
+   *
+   * Withdrawing keeps the row, which is the point: the accounts still
+   * need them, and with the fee due on entry they still owe it
+   * (FEATURE-BACKLOG.md E2).
+   */
+  const handleEntryStatusChange = async (playerId: number, status: EntryStatus) => {
+    // Somebody put on the waiting list may not be linked to the
+    // tournament at all yet -- that is the usual case, since the queue is
+    // for people who could not be fitted in. setEntryStatus updates a row;
+    // it does not create one.
+    await addPlayerToTournament(tournamentId, playerId);
+    await setEntryStatus(tournamentId, playerId, status);
+    loadAll();
+  };
+
+  /** Moves the first person on the waiting list up, and says who. */
+  const handlePromoteWaiting = async () => {
+    const moved = await promoteFromWaitingList(tournamentId);
+    if (!moved) {
+      showInfo(t.entry_list_nobody_waiting);
+      return;
+    }
+    showSuccess(fill(t.entry_list_promoted, { name: playerDisplayName(moved) }));
+    loadAll();
+  };
+
+  const handleFeeItemAdd = async (
+    playerId: number | null,
+    label: string,
+    amount: number,
+  ) => {
+    await addFeeItem(tournamentId, playerId, label, amount);
+    loadAll();
+  };
+
+  const handleFeeItemPaid = async (itemId: number, paid: boolean) => {
+    await setFeeItemPaid(itemId, paid);
+    loadAll();
+  };
+
+  const handleFeeItemDelete = async (itemId: number) => {
+    await deleteFeeItem(itemId);
+    loadAll();
+  };
+
+  const handleFeeDueChange = async (value: FeeDue) => {
+    await updateFeeDue(tournamentId, value);
+    loadAll();
+  };
+
   return {
     handleAddPlayer,
     handleRemovePlayer,
+    handleEntryStatusChange,
+    handlePromoteWaiting,
+    handleFeeItemAdd,
+    handleFeeItemPaid,
+    handleFeeItemDelete,
+    handleFeeDueChange,
     confirmRemovePlayer,
     getPlayerPendingMatches,
     getFixedPartner,

@@ -311,14 +311,24 @@ keinen: Es gibt niemanden, dem man ihn geben könnte.
 
 ## E · Meldungen und Geld
 
-### E1 — Nachrücker
+### E1 — Nachrücker ✔ erledigt (2026-08-19)
 **Nutzen:** mittel · **Aufwand:** S · *BTP: „Starterfeld C und D"*
 
 Eine Warteliste. Sagt jemand ab, rückt der Nächste nach. Heute muss man den
 Ersatz von Hand hinzufügen und weiß hinterher nicht mehr, wer in welcher
 Reihenfolge gewartet hat.
 
-### E2 — Abmeldungen behalten
+**Umgesetzt.** Migration 21 gibt `tournament_players` einen Meldestatus —
+`entered`, `waiting`, `withdrawn` — und eine Warteposition. Die Verwaltung
+zeigt beides; ein Knopf lässt den Ersten nachrücken und nennt seinen Namen.
+
+Die Warteposition wird beim Einreihen vergeben, nicht vom Aufrufer, damit
+zwei kurz hintereinander Eingereihte nicht dieselbe Nummer bekommen. Angezeigt
+wird die laufende Position, nicht die gespeicherte: Nach einem Nachrücken hat
+die gespeicherte Reihe Lücken, und „3." ohne eine 2 liest sich wie ein
+Fehler.
+
+### E2 — Abmeldungen behalten ✔ erledigt (2026-08-19)
 **Nutzen:** mittel · **Aufwand:** S
 
 Der BTP behält abgemeldete Teilnehmer in der Liste, weil sie für die
@@ -327,17 +337,43 @@ Gebührenabrechnung gebraucht werden. BOSS entfernt sie und vergisst sie.
 Spieler archiviert BOSS bereits — hier geht es um dieselbe Idee eine Ebene
 tiefer, auf Turnierebene.
 
-### E3 — Gebühr bei Meldung statt bei Teilnahme
+**Umgesetzt.** „Abmelden" behält die Zeile und trägt den Zeitpunkt ein;
+„entfernen" löscht weiterhin, weil eine Fehleingabe kein Abmeldevorgang ist.
+Beide stehen nebeneinander in der Teilnehmerzeile.
+
+**Die kritische Stelle war `getTournamentPlayers`** — die Funktion, die die
+Auslosung speist. Vorher gab es nichts zu filtern, weil eine Abmeldung die
+Zeile löschte. Jetzt filtert sie auf `entry_status = 'entered'`; ohne das
+stünden Abgemeldete und Wartende im Turnierbaum.
+
+### E3 — Gebühr bei Meldung statt bei Teilnahme ✔ erledigt (2026-08-19)
 **Nutzen:** niedrig · **Aufwand:** S · *BTP: Reiter „Meldegebühren"*
 
 Ob das Startgeld schon mit der Meldung fällig wird oder erst beim Antreten.
 Ändert, wer in der Abrechnung auftaucht.
 
-### E4 — Weitere Posten
+**Umgesetzt** als `tournaments.fee_due`, umschaltbar in der Verwaltung — dort,
+wo auch die Abmeldungen stehen, auf die es sich auswirkt. In der laufenden
+Anwendung nachgemessen: fünf Teilnehmer und ein Abgemeldeter ergaben 25 €
+offen bei „beim Antreten" und 30 € bei „bei der Meldung".
+
+### E4 — Weitere Posten ✔ erledigt (2026-08-19)
 **Nutzen:** niedrig · **Aufwand:** S · *BTP: „Extra Items"*
 
 Nachmeldegebühr, Ballverkauf, Hallenbeitrag. BOSS kennt nur Startgeld für
 Einzel und Doppel.
+
+**Umgesetzt.** Eine eigene Tabelle `tournament_fee_items`: eine Zeile je
+Posten, mit Bezeichnung, Betrag, bezahlt-Kennzeichen und wahlweise einem
+Spieler. Eine Zeile je Posten und nicht ein Feld je Art, weil jemand zweimal
+dasselbe schulden kann und ein Betrag kein Schalter ist. Ohne Spieler gehört
+der Posten dem Turnier — ein Hallenbeitrag schuldet niemand einzeln.
+
+**Dabei herausgezogen:** Die Summe stand als fünfzigzeilige Funktion mitten im
+JSX der Verwaltung. Das ging, solange es eine Regel gab; mit dreien — wann
+fällig, wer abgemeldet, was sonst offen — gehört sie in `lib/fees.ts`, wo sie
+zwölf Tests hat. Der Startgeld-Export nennt jetzt auch den Meldestatus und
+führt die Posten als eigene Zeilen.
 
 ---
 

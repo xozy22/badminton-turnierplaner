@@ -65,6 +65,7 @@ export default function TournamentView() {
     allMatches,
     retiredPlayerIds,
     paymentData,
+    feeItems,
     setPaymentData,
     activeRound,
     setActiveRound,
@@ -202,6 +203,12 @@ export default function TournamentView() {
     confirmRemovePlayer,
     handlePlayerRetire,
     handlePlayerUnretire,
+    handleEntryStatusChange,
+    handlePromoteWaiting,
+    handleFeeItemAdd,
+    handleFeeItemPaid,
+    handleFeeItemDelete,
+    handleFeeDueChange,
   } = useRosterActions({
     tournamentId,
     tournament,
@@ -258,6 +265,7 @@ export default function TournamentView() {
     setsByMatch,
     standings,
     paymentData,
+    feeItems,
     dialogs,
     loadAll,
   });
@@ -595,6 +603,13 @@ export default function TournamentView() {
         onAddPlayer={handleAddPlayer}
         onRemovePlayer={handleRemovePlayer}
         onUnretire={handlePlayerUnretire}
+        feeItems={feeItems}
+        onEntryStatusChange={handleEntryStatusChange}
+        onPromoteWaiting={handlePromoteWaiting}
+        onFeeItemAdd={handleFeeItemAdd}
+        onFeeItemPaid={handleFeeItemPaid}
+        onFeeItemDelete={handleFeeItemDelete}
+        onFeeDueChange={handleFeeDueChange}
       />
     </div>
   );

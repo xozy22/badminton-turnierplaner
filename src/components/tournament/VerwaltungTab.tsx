@@ -8,6 +8,8 @@ import type {
   Match,
   TournamentPlayerInfo,
   PaymentMethod,
+  FeeDue,
+  FeeItem,
 } from "../../lib/types";
 import {
   getTournamentPlayersDetailed,
@@ -15,6 +17,10 @@ import {
 } from "../../lib/db";
 import { playerDisplayName } from "../../lib/types";
 import { useT, useLocale } from "../../lib/I18nContext";
+import { fill } from "../../lib/i18n/format";
+import { summariseFees } from "../../lib/fees";
+import EntryListSection from "./EntryListSection";
+import FeeItemsSection from "./FeeItemsSection";
 import SeedBadge from "../players/SeedBadge";
 
 interface VerwaltungTabProps {
@@ -34,6 +40,13 @@ interface VerwaltungTabProps {
   setRetireTarget: (target: { player: Player; partnerNote: string } | null) => void;
   onUnretire: (playerId: number) => void;
   playerName: (id: number | null) => string;
+  feeItems: FeeItem[];
+  onEntryStatusChange: (playerId: number, status: "entered" | "waiting" | "withdrawn") => void | Promise<void>;
+  onPromoteWaiting: () => void | Promise<void>;
+  onFeeItemAdd: (playerId: number | null, label: string, amount: number) => void | Promise<void>;
+  onFeeItemPaid: (itemId: number, paid: boolean) => void | Promise<void>;
+  onFeeItemDelete: (itemId: number) => void | Promise<void>;
+  onFeeDueChange: (value: FeeDue) => void | Promise<void>;
 }
 
 export default function VerwaltungTab({
@@ -53,6 +66,13 @@ export default function VerwaltungTab({
   setRetireTarget,
   onUnretire,
   playerName,
+  feeItems,
+  onEntryStatusChange,
+  onPromoteWaiting,
+  onFeeItemAdd,
+  onFeeItemPaid,
+  onFeeItemDelete,
+  onFeeDueChange,
 }: VerwaltungTabProps) {
   const { t } = useT();
   const locale = useLocale();
@@ -62,51 +82,48 @@ export default function VerwaltungTab({
   const formatsWithFixedTeamsTop: string[] = ["elimination", "group_ko", "double_elimination"];
   const isFixedTeamModeTop = tournament.mode !== "singles" && formatsWithFixedTeamsTop.includes(tournament.format);
 
+  // paymentData carries everyone linked to the tournament since migration
+  // 21, including the waiting list and the withdrawals. This list is about
+  // who is playing; the rest lives in EntryListSection below.
+  const entrants = paymentData.filter((p) => p.entry_status === "entered");
+
+  const fees = summariseFees(paymentData, allMatches, feeItems, {
+    entryFeeSingle: tournament.entry_fee_single,
+    entryFeeDouble: tournament.entry_fee_double,
+    isSingles: tournament.mode === "singles",
+    isFixedTeams: isFixedTeamModeTop,
+    feeDue: tournament.fee_due,
+  });
+
   return (
-    <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
+    <div className="flex flex-col gap-5">
+      <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
       <div className={`px-5 py-3 border-b ${theme.cardBorder} ${theme.headerGradient} flex justify-between items-center`}>
         <span className={`font-semibold text-sm ${theme.standingsHeaderText}`}>
-          <Icon name="users" /> {t.management_participants.replace("{count}", String(players.length))}
-          {(tournament.entry_fee_single > 0 || tournament.entry_fee_double > 0) && (() => {
-            const fee = tournament.mode === "singles" ? tournament.entry_fee_single : tournament.entry_fee_double;
-            let paidCount: number, totalCount: number;
-            if (!isFixedTeamModeTop) {
-              // Singles or non-fixed team formats: everyone pays individually
-              paidCount = paymentData.filter((p) => p.payment_status === "paid").length;
-              totalCount = paymentData.length;
-            } else {
-              // Fixed team doubles/mixed: count teams (one payment per team)
-              totalCount = Math.ceil(paymentData.length / 2);
-              // A team is paid if at least one partner paid
-              const paidIds = new Set(paymentData.filter(p => p.payment_status === "paid").map(p => p.player.id));
-              const teamsPaid = new Set<string>();
-              for (const m of allMatches) {
-                if (m.team1_p1 && m.team1_p2 && (paidIds.has(m.team1_p1) || paidIds.has(m.team1_p2))) {
-                  teamsPaid.add(`${Math.min(m.team1_p1, m.team1_p2)}-${Math.max(m.team1_p1, m.team1_p2)}`);
-                }
-                if (m.team2_p1 && m.team2_p2 && (paidIds.has(m.team2_p1) || paidIds.has(m.team2_p2))) {
-                  teamsPaid.add(`${Math.min(m.team2_p1, m.team2_p2)}-${Math.max(m.team2_p1, m.team2_p2)}`);
-                }
-              }
-              paidCount = teamsPaid.size || paymentData.filter(p => p.payment_status === "paid").length;
-            }
-            const openCount = totalCount - paidCount;
-            const paidAmount = paidCount * fee;
-            const openAmount = openCount * fee;
-            return (
-              <span className={`ml-2 font-normal text-xs ${theme.textSecondary}`}>
-                <Icon name="coins" /> {t.management_paid_count.replace("{paid}", String(paidCount)).replace("{total}", String(totalCount))}
-                &nbsp;&middot;&nbsp;
-                <span className="text-success-text">{t.management_paid_amount.replace("{amount}", String(paidAmount))}</span>
-                {openAmount > 0 && (
-                  <>
-                    &nbsp;&middot;&nbsp;
-                    <span className="text-danger-text">{t.management_open_amount.replace("{amount}", String(openAmount))}</span>
-                  </>
-                )}
+          <Icon name="users" /> {fill(t.management_participants, { count: String(entrants.length) })}
+          {(tournament.entry_fee_single > 0 || tournament.entry_fee_double > 0 || feeItems.length > 0) && (
+            // The sum lives in lib/fees.ts: three rules now decide it
+            // (when the fee falls due, who withdrew, what else is owed),
+            // and money is worth testing (FEATURE-BACKLOG.md E2-E4).
+            <span className={`ml-2 font-normal text-xs ${theme.textSecondary}`}>
+              <Icon name="coins" /> {fill(t.management_paid_count, {
+                paid: String(fees.entryPaidCount),
+                total: String(fees.entryCount),
+              })}
+              &nbsp;&middot;&nbsp;
+              <span className="text-success-text">
+                {fill(t.management_paid_amount, { amount: formatMoney(fees.paid, locale) })}
               </span>
-            );
-          })()}
+              {fees.open > 0 && (
+                <>
+                  &nbsp;&middot;&nbsp;
+                  <span className="text-danger-text">
+                    {fill(t.management_open_amount, { amount: formatMoney(fees.open, locale) })}
+                  </span>
+                </>
+              )}
+            </span>
+          )}
         </span>
         {tournament.status === "draft" && (
           <button
@@ -215,7 +232,7 @@ export default function VerwaltungTab({
         };
         const fee = tournament.mode === "singles" ? tournament.entry_fee_single : tournament.entry_fee_double;
         const searchLower = verwaltungSearch.toLowerCase().trim();
-        const filtered = paymentData.filter((pd) => {
+        const filtered = entrants.filter((pd) => {
           if (searchLower && !playerDisplayName(pd.player).toLowerCase().includes(searchLower) && !(pd.player.club ?? "").toLowerCase().includes(searchLower)) return false;
           if (verwaltungFilter === "paid" && pd.payment_status !== "paid") return false;
           if (verwaltungFilter === "unpaid" && pd.payment_status !== "unpaid") return false;
@@ -362,6 +379,17 @@ export default function VerwaltungTab({
                                   </button>
                                 ))
                               ) : null}
+                              {/* Withdrawing keeps the entry for the
+                                  accounts; removing deletes it, which is
+                                  what you want for a wrong entry and not
+                                  for somebody who cancelled. */}
+                              <button
+                                onClick={() => onEntryStatusChange(pd.player.id, "withdrawn")}
+                                title={t.entry_list_withdraw}
+                                className="ml-1 text-2xs font-medium text-warning-text transition-colors hover:underline"
+                              >
+                                {t.entry_list_withdraw}
+                              </button>
                               {tournament.status === "draft" && (
                                 <button
                                   onClick={() => handleRemovePlayer(pd.player.id)}
@@ -415,6 +443,29 @@ export default function VerwaltungTab({
           </>
         );
       })()}
+      </div>
+
+      <EntryListSection
+        participants={paymentData}
+        candidates={allPlayers.filter(
+          (p) => !paymentData.some((pd) => pd.player.id === p.id),
+        )}
+        theme={theme}
+        onEnter={(id) => onEntryStatusChange(id, "entered")}
+        onWait={(id) => onEntryStatusChange(id, "waiting")}
+        onPromote={onPromoteWaiting}
+      />
+
+      <FeeItemsSection
+        items={feeItems}
+        players={paymentData.map((pd) => pd.player)}
+        feeDue={tournament.fee_due}
+        theme={theme}
+        onAdd={onFeeItemAdd}
+        onTogglePaid={onFeeItemPaid}
+        onDelete={onFeeItemDelete}
+        onFeeDueChange={onFeeDueChange}
+      />
     </div>
   );
 }

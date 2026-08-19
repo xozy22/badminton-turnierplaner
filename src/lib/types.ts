@@ -143,6 +143,8 @@ export interface Tournament {
   play_date: string | null;
   /** Start time on the play date, 24-hour clock. */
   start_time: string | null;
+  /** When the entry fee falls due. See {@link FeeDue}. */
+  fee_due: FeeDue;
   created_at: string;
   status: TournamentStatus;
 }
@@ -165,6 +167,44 @@ export interface Session {
 
 export type PaymentMethod = "bar" | "ueberweisung" | "paypal";
 export type PaymentStatus = "unpaid" | "paid";
+
+/**
+ * Where a participant stands in the entry list.
+ *
+ * - `entered`   -- taking part; the only state before migration 21.
+ * - `waiting`   -- on the waiting list, not in the draw. Somebody drops
+ *   out, the first in line moves up (FEATURE-BACKLOG.md E1).
+ * - `withdrawn` -- pulled out, kept rather than deleted, because the
+ *   accounts still need them (FEATURE-BACKLOG.md E2).
+ */
+export type EntryStatus = "entered" | "waiting" | "withdrawn";
+
+/**
+ * When the entry fee falls due.
+ *
+ * `participation` is what BOSS always did: whoever plays, pays.
+ * `entry` charges on signing up, so a withdrawal still owes the fee —
+ * which is why withdrawals have to be kept at all
+ * (FEATURE-BACKLOG.md E3).
+ */
+export type FeeDue = "participation" | "entry";
+
+/**
+ * A charge beyond the entry fee: late entry, shuttles, hall contribution
+ * (FEATURE-BACKLOG.md E4).
+ *
+ * `player_id` is null for a charge that belongs to the tournament rather
+ * than to one participant.
+ */
+export interface FeeItem {
+  id: number;
+  tournament_id: number;
+  player_id: number | null;
+  label: string;
+  amount: number;
+  paid: boolean;
+  created_at: string;
+}
 
 /*
  * MODE_LABELS, FORMAT_LABELS, STATUS_LABELS and PAYMENT_METHOD_LABELS used
@@ -191,6 +231,12 @@ export interface TournamentPlayerInfo {
    * tournament_players.seed_rank since migration v10.
    */
   seed_rank: number | null;
+  /** Taking part, waiting, or withdrawn. See {@link EntryStatus}. */
+  entry_status: EntryStatus;
+  /** Position in the waiting queue, 1 = next up. Null unless waiting. */
+  waiting_rank: number | null;
+  /** When they pulled out, for the entry list. Null unless withdrawn. */
+  withdrawn_at: string | null;
 }
 
 export interface Round {

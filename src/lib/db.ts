@@ -12,6 +12,9 @@ import type {
   Match,
   MatchOutcome,
   GameSet,
+  EntryStatus,
+  FeeDue,
+  FeeItem,
 } from "./types";
 import { playerDisplayName } from "./types";
 import { nowIso, byNewest } from "./datetime";
@@ -26,6 +29,7 @@ interface PlayerRow {
 interface TournamentPlayerRow extends PlayerRow {
   retired: number; payment_status: string; payment_method: string | null; paid_date: string | null;
   seed_rank: number | null;
+  entry_status: string; waiting_rank: number | null; withdrawn_at: string | null;
 }
 
 /**
@@ -124,11 +128,15 @@ const REQUIRED_SCHEMA: Record<string, string[]> = {
     "qualify_per_group", "current_phase", "entry_fee_single", "entry_fee_double",
     "team_config", "hall_config", "venue_id", "min_rest_minutes",
     "enable_third_place", "session_id", "planned_rounds", "play_date", "start_time",
-    "created_at", "status",
+    "fee_due", "created_at", "status",
   ],
   tournament_players: [
     "tournament_id", "player_id", "retired", "payment_status",
     "payment_method", "paid_date", "seed_rank",
+    "entry_status", "waiting_rank", "withdrawn_at",
+  ],
+  tournament_fee_items: [
+    "id", "tournament_id", "player_id", "label", "amount", "paid", "created_at",
   ],
   rounds: ["id", "tournament_id", "round_number", "phase", "group_number"],
   matches: [
@@ -180,10 +188,14 @@ interface StoredTournamentPlayer {
   payment_method: PaymentMethod | null;
   paid_date: string | null;
   seed_rank: number | null;
+  entry_status: EntryStatus;
+  waiting_rank: number | null;
+  withdrawn_at: string | null;
 }
 
 interface LocalStore {
   players: Player[];
+  feeItems: FeeItem[];
   sportstaetten: Sportstaette[];
   tournaments: Tournament[];
   tournamentPlayers: StoredTournamentPlayer[];
@@ -204,12 +216,16 @@ function newTournamentPlayer(tournamentId: number, playerId: number): StoredTour
     payment_method: null,
     paid_date: null,
     seed_rank: null,
+    entry_status: "entered",
+    waiting_rank: null,
+    withdrawn_at: null,
   };
 }
 
 function loadStore(): LocalStore {
   const defaults: LocalStore = {
     players: [],
+    feeItems: [],
     sportstaetten: [],
     tournaments: [],
     tournamentPlayers: [],
@@ -568,6 +584,7 @@ function normalizeTournament(t: Tournament): Tournament {
     planned_rounds: t.planned_rounds ?? null,
     play_date: t.play_date ?? null,
     start_time: t.start_time ?? null,
+    fee_due: t.fee_due ?? "participation",
   };
 }
 
@@ -671,6 +688,7 @@ export async function createTournament(
     enable_third_place: ttp,
     play_date: playDate,
     start_time: startTime,
+    fee_due: "participation",
     session_id: null,
     planned_rounds: null,
     created_at: nowIso(),
@@ -878,18 +896,27 @@ export async function deleteTournament(id: number): Promise<void> {
 
 // --- Tournament Players ---
 
+/**
+ * The players actually taking part.
+ *
+ * This is what feeds the draw, so it excludes anyone waiting and anyone
+ * who withdrew. Before migration 21 a withdrawal deleted the row and the
+ * question did not arise; now the row survives for the accounts
+ * (FEATURE-BACKLOG.md E1, E2) and the filter is what keeps a withdrawn
+ * player out of the bracket.
+ */
 export async function getTournamentPlayers(tournamentId: number): Promise<Player[]> {
   if (isTauri()) {
     const d = await getTauriDb();
     const rows: PlayerRow[] = await d.select(
-      "SELECT p.* FROM players p JOIN tournament_players tp ON p.id = tp.player_id WHERE tp.tournament_id = $1 ORDER BY p.name",
+      "SELECT p.* FROM players p JOIN tournament_players tp ON p.id = tp.player_id WHERE tp.tournament_id = $1 AND tp.entry_status = 'entered' ORDER BY p.name",
       [tournamentId]
     );
     return rows.map(rowToPlayer);
   }
   const store = loadStore();
   const playerIds = store.tournamentPlayers
-    .filter((tp) => tp.tournament_id === tournamentId)
+    .filter((tp) => tp.tournament_id === tournamentId && (tp.entry_status ?? "entered") === "entered")
     .map((tp) => tp.player_id);
   return store.players
     .filter((p) => playerIds.includes(p.id))
@@ -989,13 +1016,210 @@ export async function getRetiredPlayerIds(tournamentId: number): Promise<number[
     .map((tp) => tp.player_id);
 }
 
+// --- Entry status: waiting list and withdrawals ------------------------------
+//
+// A withdrawal used to delete the link row, which lost the participant
+// from the accounts as well as from the draw (FEATURE-BACKLOG.md E2). The
+// row now stays and carries a status; getTournamentPlayers filters on it,
+// so nothing withdrawn reaches a bracket.
+
+/**
+ * Moves a participant to a different entry status.
+ *
+ * Entering somebody from the waiting list clears their queue position;
+ * putting somebody on the list gives them the next one. The rank is
+ * assigned here rather than by the caller so two people added in quick
+ * succession cannot land on the same number.
+ */
+export async function setEntryStatus(
+  tournamentId: number,
+  playerId: number,
+  status: EntryStatus,
+): Promise<void> {
+  const withdrawnAt = status === "withdrawn" ? nowIso() : null;
+
+  if (isTauri()) {
+    const d = await getTauriDb();
+    let rank: number | null = null;
+    if (status === "waiting") {
+      const rows: { next: number | null }[] = await d.select(
+        "SELECT MAX(waiting_rank) + 1 AS next FROM tournament_players WHERE tournament_id = $1",
+        [tournamentId],
+      );
+      rank = rows[0]?.next ?? 1;
+    }
+    await d.execute(
+      "UPDATE tournament_players SET entry_status = $1, waiting_rank = $2, withdrawn_at = $3 WHERE tournament_id = $4 AND player_id = $5",
+      [status, rank, withdrawnAt, tournamentId, playerId],
+    );
+    return;
+  }
+
+  const store = loadStore();
+  const tp = store.tournamentPlayers.find(
+    (x) => x.tournament_id === tournamentId && x.player_id === playerId,
+  );
+  if (tp) {
+    if (status === "waiting") {
+      // `typeof === "number"`, not `!== null`: rows written before
+      // migration 21 have no such field at all, and `undefined !== null`
+      // let them through -- Math.max of an undefined is NaN, which came
+      // out of JSON.stringify as null and left the first person queued
+      // with no position.
+      const ranks = store.tournamentPlayers
+        .filter((x) => x.tournament_id === tournamentId && typeof x.waiting_rank === "number")
+        .map((x) => x.waiting_rank!);
+      tp.waiting_rank = ranks.length > 0 ? Math.max(...ranks) + 1 : 1;
+    } else {
+      tp.waiting_rank = null;
+    }
+    tp.entry_status = status;
+    tp.withdrawn_at = withdrawnAt;
+  }
+  saveStore(store);
+}
+
+/**
+ * The waiting list in order, first in line first.
+ *
+ * Ties on rank fall back to the player id, so the order is stable — two
+ * rows written in the same second must not swap between two reads
+ * (the same reason `ORDER BY created_at` carries `, id` elsewhere).
+ */
+export async function getWaitingList(tournamentId: number): Promise<Player[]> {
+  if (isTauri()) {
+    const d = await getTauriDb();
+    const rows: PlayerRow[] = await d.select(
+      `SELECT p.* FROM players p
+       JOIN tournament_players tp ON p.id = tp.player_id
+       WHERE tp.tournament_id = $1 AND tp.entry_status = 'waiting'
+       ORDER BY tp.waiting_rank, p.id`,
+      [tournamentId],
+    );
+    return rows.map(rowToPlayer);
+  }
+  const store = loadStore();
+  return store.tournamentPlayers
+    .filter((tp) => tp.tournament_id === tournamentId && tp.entry_status === "waiting")
+    .sort((a, b) => (a.waiting_rank ?? 0) - (b.waiting_rank ?? 0) || a.player_id - b.player_id)
+    .map((tp) => store.players.find((p) => p.id === tp.player_id))
+    .filter((p): p is Player => p !== undefined);
+}
+
+/**
+ * Moves the first person on the waiting list into the tournament.
+ *
+ * Returns who moved up, or null when nobody was waiting — the caller
+ * needs to know in order to say so.
+ */
+export async function promoteFromWaitingList(
+  tournamentId: number,
+): Promise<Player | null> {
+  const waiting = await getWaitingList(tournamentId);
+  const next = waiting[0];
+  if (!next) return null;
+  await setEntryStatus(tournamentId, next.id, "entered");
+  return next;
+}
+
+// --- Fee items ---------------------------------------------------------------
+//
+// Anything beyond the entry fee: late entry, shuttles, hall contribution
+// (FEATURE-BACKLOG.md E4). One row per charge, because a player can owe
+// two of the same thing and an amount is not a flag.
+
+export async function getFeeItems(tournamentId: number): Promise<FeeItem[]> {
+  if (isTauri()) {
+    const d = await getTauriDb();
+    const rows: (Omit<FeeItem, "paid"> & { paid: number })[] = await d.select(
+      "SELECT * FROM tournament_fee_items WHERE tournament_id = $1 ORDER BY created_at, id",
+      [tournamentId],
+    );
+    return rows.map((r) => ({ ...r, paid: r.paid === 1 }));
+  }
+  const store = loadStore();
+  return store.feeItems
+    .filter((i) => i.tournament_id === tournamentId)
+    .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id - b.id);
+}
+
+export async function addFeeItem(
+  tournamentId: number,
+  playerId: number | null,
+  label: string,
+  amount: number,
+): Promise<number> {
+  const createdAt = nowIso();
+  if (isTauri()) {
+    const d = await getTauriDb();
+    const result = await d.execute(
+      "INSERT INTO tournament_fee_items (tournament_id, player_id, label, amount, created_at) VALUES ($1, $2, $3, $4, $5)",
+      [tournamentId, playerId, label, amount, createdAt],
+    );
+    return result.lastInsertId!;
+  }
+  const store = loadStore();
+  const id = nextId(store, "feeItems");
+  store.feeItems.push({
+    id,
+    tournament_id: tournamentId,
+    player_id: playerId,
+    label,
+    amount,
+    paid: false,
+    created_at: createdAt,
+  });
+  saveStore(store);
+  return id;
+}
+
+export async function setFeeItemPaid(itemId: number, paid: boolean): Promise<void> {
+  if (isTauri()) {
+    const d = await getTauriDb();
+    await d.execute("UPDATE tournament_fee_items SET paid = $1 WHERE id = $2", [
+      paid ? 1 : 0,
+      itemId,
+    ]);
+    return;
+  }
+  const store = loadStore();
+  const item = store.feeItems.find((i) => i.id === itemId);
+  if (item) item.paid = paid;
+  saveStore(store);
+}
+
+export async function deleteFeeItem(itemId: number): Promise<void> {
+  if (isTauri()) {
+    const d = await getTauriDb();
+    await d.execute("DELETE FROM tournament_fee_items WHERE id = $1", [itemId]);
+    return;
+  }
+  const store = loadStore();
+  store.feeItems = store.feeItems.filter((i) => i.id !== itemId);
+  saveStore(store);
+}
+
+/** When the entry fee falls due for this tournament (FEATURE-BACKLOG.md E3). */
+export async function updateFeeDue(tournamentId: number, feeDue: FeeDue): Promise<void> {
+  if (isTauri()) {
+    const d = await getTauriDb();
+    await d.execute("UPDATE tournaments SET fee_due = $1 WHERE id = $2", [feeDue, tournamentId]);
+    return;
+  }
+  const store = loadStore();
+  const t = store.tournaments.find((x) => x.id === tournamentId);
+  if (t) t.fee_due = feeDue;
+  saveStore(store);
+}
+
 // --- Payment Tracking ---
 
 export async function getTournamentPlayersDetailed(tournamentId: number): Promise<TournamentPlayerInfo[]> {
   if (isTauri()) {
     const d = await getTauriDb();
     const rows: TournamentPlayerRow[] = await d.select(
-      `SELECT p.*, tp.retired, tp.payment_status, tp.payment_method, tp.paid_date, tp.seed_rank
+      `SELECT p.*, tp.retired, tp.payment_status, tp.payment_method, tp.paid_date, tp.seed_rank,
+              tp.entry_status, tp.waiting_rank, tp.withdrawn_at
        FROM tournament_players tp
        JOIN players p ON p.id = tp.player_id
        WHERE tp.tournament_id = $1
@@ -1010,6 +1234,9 @@ export async function getTournamentPlayersDetailed(tournamentId: number): Promis
       paid_date: r.paid_date ?? null,
       retired: r.retired === 1,
       seed_rank: r.seed_rank ?? null,
+      entry_status: (r.entry_status ?? "entered") as EntryStatus,
+      waiting_rank: r.waiting_rank ?? null,
+      withdrawn_at: r.withdrawn_at ?? null,
     };});
   }
   const store = loadStore();
@@ -1023,6 +1250,9 @@ export async function getTournamentPlayersDetailed(tournamentId: number): Promis
       paid_date: tp.paid_date ?? null,
       retired: tp.retired === 1,
       seed_rank: tp.seed_rank ?? null,
+      entry_status: tp.entry_status ?? "entered",
+      waiting_rank: tp.waiting_rank ?? null,
+      withdrawn_at: tp.withdrawn_at ?? null,
     };
   }).filter((x) => x.player).sort((a, b) => playerDisplayName(a.player).localeCompare(playerDisplayName(b.player)));
 }

@@ -78,6 +78,7 @@ const ALLOWED_ASCII = new Set([
   "manuell", "manuelle", "manuellen",
   "neu", "neue", "neuen", "neuer", "neues", "neueste",
   "zuerst", "genaueste", "individuelle", "quelle", "quellen",
+  "erfasst", "erfassten", "lassen", "verlassen", "eingeschlossen",
   "abschluss", "abgeschlossen", "abgeschlossene", "abgeschlossenen",
   "adresse", "ausscheiden", "ausschnitt", "dass", "muss", "musst",
   "geheimnis", "geheimnisses", "geheimnisse", "wissen", "gewissen",

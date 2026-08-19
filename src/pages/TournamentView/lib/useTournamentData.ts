@@ -22,6 +22,7 @@ import {
   getAllSetsByTournament,
   getRetiredPlayerIds,
   getTournamentPlayersDetailed,
+  getFeeItems,
   getGrandFinalRounds,
   getKingOfCourtQueue,
   getSportstaetten,
@@ -38,6 +39,7 @@ import type {
   StandingEntry,
   Session,
   TournamentPlayerInfo,
+  FeeItem,
 } from "../../../lib/types";
 
 /** Groups matches by their round, for the per-round views. */
@@ -74,6 +76,7 @@ export function useTournamentData(tournamentId: number) {
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [retiredPlayerIds, setRetiredPlayerIds] = useState<Set<number>>(new Set());
   const [paymentData, setPaymentData] = useState<TournamentPlayerInfo[]>([]);
+  const [feeItems, setFeeItems] = useState<FeeItem[]>([]);
   const [activeRound, setActiveRound] = useState<number | null>(null);
   const [showAllGroups, setShowAllGroups] = useState(false);
 
@@ -168,7 +171,7 @@ export function useTournamentData(tournamentId: number) {
     }
     setLoadFailed(false);
 
-    const [ap, p, r, allMatches, allSets, retiredIds, pd] = await Promise.all([
+    const [ap, p, r, allMatches, allSets, retiredIds, pd, fi] = await Promise.all([
       getPlayers(),
       getTournamentPlayers(tournamentId),
       getRounds(tournamentId),
@@ -176,6 +179,7 @@ export function useTournamentData(tournamentId: number) {
       getAllSetsByTournament(tournamentId),
       getRetiredPlayerIds(tournamentId),
       getTournamentPlayersDetailed(tournamentId),
+      getFeeItems(tournamentId),
     ]);
 
     setTournament(td);
@@ -201,6 +205,7 @@ export function useTournamentData(tournamentId: number) {
 
     setRetiredPlayerIds(new Set(retiredIds));
     setPaymentData(pd);
+    setFeeItems(fi);
 
     // Swiss and Monrad award byes as wins and rank by Buchholz.
     const swissLike = display.usesBuchholz;
@@ -254,6 +259,8 @@ export function useTournamentData(tournamentId: number) {
     allMatches,
     retiredPlayerIds,
     paymentData,
+    feeItems,
+    setFeeItems,
     setPaymentData,
     activeRound,
     setActiveRound,
