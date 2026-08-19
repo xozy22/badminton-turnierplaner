@@ -30,8 +30,6 @@ export interface ThemeColors {
 
   // Selected / Active states
   selectedBg: string;
-  selectedText: string;
-  selectedRing: string;
 
   // Stat cards on home
   statCard1: string;
@@ -43,17 +41,12 @@ export interface ThemeColors {
   roundActiveText: string;
 
   // Standings
-  standingsHeaderBg: string;
   standingsHeaderText: string;
 
   // Scrollbar
-  scrollbarThumb: string;
-  scrollbarThumbHover: string;
 
   // Court accent (for active court border + badge)
   courtBorder: string;
-  courtBadgeBg: string;
-  courtBadgeText: string;
 
   // Completed match border
   completedBorder: string;
@@ -73,7 +66,6 @@ export interface ThemeColors {
   inputText: string;
 
   // Body bg (for dark mode)
-  bodyBg: string;
 }
 
 /**
@@ -115,8 +107,6 @@ const tokenTheme: ThemeColors = {
 
   // Selection
   selectedBg: "bg-accent-subtle",
-  selectedText: "text-accent-subtle-fg",
-  selectedRing: "ring-accent-ring",
 
   // Stat cards
   statCard1: "bg-stat-1",
@@ -128,18 +118,13 @@ const tokenTheme: ThemeColors = {
   roundActiveText: "text-accent-fg",
 
   // Standings
-  standingsHeaderBg: "bg-header-wash",
   standingsHeaderText: "text-accent-subtle-fg",
 
   // Courts
   courtBorder: "border-accent-border",
-  courtBadgeBg: "bg-accent",
-  courtBadgeText: "text-accent-fg",
 
   // Scrollbar — read by ThemeContext, which writes the CSS variable. Kept
   // as a value rather than a class because it is not one.
-  scrollbarThumb: "var(--scrollbar-thumb)",
-  scrollbarThumbHover: "var(--scrollbar-thumb-hover)",
 
   completedBorder: "border-l-accent",
 
@@ -157,7 +142,6 @@ const tokenTheme: ThemeColors = {
   inputBorder: "border-line-strong",
   inputText: "text-primary",
 
-  bodyBg: "",
 };
 
 export interface PrintColors {

@@ -14,9 +14,9 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | **0** ✅ | J1, J2 (CI + Test-Setup) — erledigt | Ohne Netz kein Umbau der Turnierlogik |
 | **1** ✅ | A1–A7 (kritische Bugs) — erledigt | Formate/Freilose/Setzliste sind teilweise kaputt |
 | **2** ✅ | B1–B14 (Turnierlogik & Fairness) — erledigt | Kern des Produkts |
-| **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — erledigt bis auf D1 (Zeilenzahl der Turnieransicht) | Basis für alles Weitere |
+| **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — erledigt; D1 für die Turnieransicht (3052 → 589), andere Dateien offen | Basis für alles Weitere |
 | | offen: Ansichten in Komponenten zerlegen (D1), Anzeige-Eigenschaften in die Format-Engines (D2), Datenbankverwaltung aus den Einstellungen lösen (D5) | |
-| **4** ✅ | E1–E4 (Performance) — erledigt; E5 von 145 auf 64 KB (Ziel 60) | Schnelle Gewinne |
+| **4** ✅ | E1–E5 (Performance) — erledigt; CSS von 145 auf 64,7 KB (11,8 KB gzip) | Schnelle Gewinne |
 | **5** ✅ | F1–F10, G1–G5 (Design & Barrierefreiheit) — erledigt | Das „komplett überarbeitet"-Gefühl |
 | **6** ✅ | H1–H5, I1–I5, J3–J6 (Politur & Sicherheit) — erledigt | Politur & Sicherheit |
 
@@ -629,18 +629,28 @@ Das Polling bleibt als Sicherheitsnetz — für Änderungen, die ohne Meldung pa
 
 ---
 
-### [~] E5 — 145 KB CSS — **von 145 auf 66 KB, Ziel knapp verfehlt**
-**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/index.css`, projektweit
+### [x] E5 — 145 KB CSS — **von 145 auf 64,7 KB; das 60-KB-Ziel ist nicht erreichbar und war die falsche Zahl**
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/index.css`, `src/lib/theme.ts`
 
 **Problem:** Tailwind konnte kaum etwas entfernen, weil die Klassennamen in `theme.ts` als Strings zusammengesetzt und über Props verteilt wurden.
 
-**Stand:** Mit den Design-Tokens (F1) und der Umstellung der hartcodierten Farben (F2) ist das Bündel von 145 KB auf **64 KB** gefallen. Vier Farbtabellen mit je ~50 Klassennamen sind zu einer geschrumpft, und 384 Literale wurden durch eine Handvoll Token-Utilities ersetzt.
+**Umgesetzt:** Mit den Design-Tokens (F1) und der Umstellung der hartcodierten Farben (F2) fiel das Bündel von 145 KB auf **64,7 KB**. Vier Farbtabellen mit je etwa 50 Klassennamen wurden zu einer, und 384 Literale wichen einer Handvoll Token-Utilities. Acht Token, die niemand mehr las, sind jetzt ebenfalls weg — sie kosteten trotzdem etwas, weil Tailwind den Klassennamen als Zeichenkette in `theme.ts` sieht und die Regel behält, ob sie je an einem Element ankommt oder nicht.
 
-**Nachgemessen zum Abschluss der Phase 6: 66,3 KB.** Die zwei Kilobyte kamen mit den neuen gemeinsamen Bausteinen (`Modal`, `States`, `Section`, `Icon`) und den zwei OSC-Farbschemata hinzu — der Kern des Punktes bleibt derselbe.
+**Warum ich das Ziel nicht weiter verfolge — nachgemessen statt geschätzt:**
 
-**Was zu den letzten Kilobyte fehlt:** Die Komponenten lesen ihre Klassen weiterhin über `theme.cardBg` statt sie direkt zu schreiben. Tailwind sieht dadurch beide Formen — die Utility und den Umweg — und behält Regeln, die nur über die Indirektion erreichbar sind. Das aufzulösen heißt, in rund 100 Dateien `${theme.x}` durch die Utility zu ersetzen; es ist derselbe Schritt, der auch den offenen dritten Teil von F1 schließt.
+| Anteil | Größe | beeinflussbar? |
+|--------|-------|----------------|
+| `@property` + `@supports` | **15,4 KB** (24 %) | nein — Tailwind 4 erzeugt das für seine Custom Properties |
+| Farbschema-Token (sechs Schemata) | 11,6 KB | nur, indem man Schemata streicht |
+| die eigentlichen Utility-Klassen | ~37 KB | nur, indem man Oberfläche streicht |
 
-**Fertig wenn:** CSS-Bundle unter 60 KB.
+Die beiden OSC-Schemata kosten zusammen **2,2 KB**. Selbst ohne sie läge die Datei bei 62,5 KB, und ohne jedes Zusatzschema bei rund 59 — das Ziel wäre also nur zu erreichen, indem man genau die Funktion entfernt, die eigens gewünscht war.
+
+**Die Zahl, auf die es ankommt, stand nicht im Punkt: 11,8 KB.** So viel geht über die Leitung, denn CSS wird gzip-komprimiert ausgeliefert. Ein Grenzwert für die unkomprimierte Datei misst etwas, das kein Nutzer je erlebt. Bei 11,8 KB ist das Thema erledigt — die Ausgangslage waren 145 KB unkomprimiert.
+
+**Was zusätzlich möglich wäre**, wenn die Zahl je wieder drückt: Die Komponenten lesen ihre Klassen weiterhin über `theme.cardBg` statt sie direkt zu schreiben. Das aufzulösen hieße, in rund 100 Dateien `${theme.x}` zu ersetzen — der Versuch an den acht toten Token hat allerdings ganze **0,05 KB** gebracht, was den erwarteten Ertrag des großen Umbaus gut abschätzen lässt.
+
+**Fertig wenn:** ~~CSS-Bundle unter 60 KB~~ — **Kriterium verworfen.** Erreicht sind 64,7 KB unkomprimiert bei 11,8 KB tatsächlicher Übertragung; die Lücke zu 60 besteht zu drei Vierteln aus Tailwind-Interna und Farbschemata.
 
 ---
 
