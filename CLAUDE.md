@@ -55,6 +55,24 @@ dem BTP der Landesverbände — in [FEATURE-BACKLOG.md](FEATURE-BACKLOG.md).
 - **Jeder Datenbanktest läuft gegen beide Backends.** Das Muster steht in
   `db.test.ts`: `for (const backend of BACKENDS)`.
 
+## Veröffentlichen
+
+- **Der Changelog ist die Quelle der Release-Notes.** `CHANGELOG.md` wird von
+  `scripts/build-release-notes.mjs` gelesen und nach
+  `src/lib/releaseNotes.generated.ts` geschrieben — die Anwendung zeigt die
+  Historie also ohne Netz. Derselbe Parser liefert dem Release-Workflow den
+  Text für ein Tag. Nach jeder Änderung am Changelog `pnpm build:notes`
+  laufen lassen und die erzeugte Datei mitcommitten; `pnpm check:notes` in
+  der CI schlägt sonst fehl.
+- **Das Überschriftenformat ist verbindlich:** `## [2.9.0] — 2026-05-03 ·
+  Titel`. Datum und Titel sind freiwillig, die Version in Klammern nicht.
+  Ohne passenden Eintrag bricht der Release-Workflow ab, bevor gebaut wird —
+  einmal ging eine Fassung mit dem Text „Release v2.9.0" als Release-Notes
+  hinaus, und genau das war im Aktualisierungsdialog zu lesen.
+- **Englisch ab 2.10.0** in `CHANGELOG.en.md`, freiwillig je Version. Fehlt
+  der Block, zeigt die Anwendung den deutschen Text und sagt dazu, dass es
+  das Original ist.
+
 ## Arbeitsweise
 
 - **Vor dem Behaupten prüfen.** Wenn eine Aussage über das Verhalten des
@@ -84,6 +102,8 @@ pnpm build          # Typprüfung (tsc -b) und Bündelung
 pnpm check:i18n     # Übersetzungsschlüssel
 pnpm check:emoji    # Emojis in der Oberfläche
 pnpm check:version  # package.json gegen tauri.conf.json
+pnpm check:notes    # Changelog gegen die generierte Fassung
+pnpm build:notes    # generierte Fassung neu schreiben
 ```
 
 Alle laufen in der CI. `pnpm lint` läuft dort beratend — die 13

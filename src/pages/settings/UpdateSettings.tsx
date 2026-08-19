@@ -7,6 +7,9 @@ import { useState } from "react";
 import Icon from "../../components/ui/Icon";
 import { useTheme } from "../../lib/ThemeContext";
 import { useT } from "../../lib/I18nContext";
+import { fill } from "../../lib/i18n/format";
+import Markdown from "../../components/ui/Markdown";
+import { checkForUpdateStrict, installHeldUpdate, type AvailableUpdate } from "../../lib/updater";
 
 export function UpdateChecker() {
   const { theme } = useTheme();
@@ -14,7 +17,7 @@ export function UpdateChecker() {
   const [checking, setChecking] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [updateInfo, setUpdateInfo] = useState<{ version: string; notes: string } | null>(null);
+  const [updateInfo, setUpdateInfo] = useState<AvailableUpdate | null>(null);
   const [status, setStatus] = useState<"idle" | "uptodate" | "available" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -25,10 +28,11 @@ export function UpdateChecker() {
     setStatus("idle");
     setErrorMsg("");
     try {
-      const { check } = await import("@tauri-apps/plugin-updater");
-      const update = await check();
+      // `true`: somebody pressing "check now" means it, and an answer
+      // cached from this morning is not what they asked for.
+      const update = await checkForUpdateStrict();
       if (update) {
-        setUpdateInfo({ version: update.version, notes: update.body || "" });
+        setUpdateInfo(update);
         setStatus("available");
       } else {
         setStatus("uptodate");
@@ -45,27 +49,11 @@ export function UpdateChecker() {
     setDownloading(true);
     setProgress(0);
     try {
-      const { check } = await import("@tauri-apps/plugin-updater");
+      // The handle from the check above is reused. Asking again would be
+      // a second round-trip, and the feed could have moved on between the
+      // version shown in this panel and the one actually installed.
+      await installHeldUpdate(setProgress);
       const { relaunch } = await import("@tauri-apps/plugin-process");
-      const update = await check();
-      if (!update) return;
-
-      let totalBytes = 0;
-      let downloadedBytes = 0;
-      await update.downloadAndInstall((event) => {
-        if (event.event === "Started" && event.data.contentLength) {
-          totalBytes = event.data.contentLength;
-        } else if (event.event === "Progress") {
-          downloadedBytes += event.data.chunkLength;
-          if (totalBytes > 0) {
-            setProgress(Math.min(100, Math.round((downloadedBytes / totalBytes) * 100)));
-          }
-        } else if (event.event === "Finished") {
-          setProgress(100);
-        }
-      });
-
-      // Restart after install
       await relaunch();
     } catch (err) {
       setStatus("error");
@@ -102,18 +90,20 @@ export function UpdateChecker() {
 
       {status === "uptodate" && (
         <div className="bg-success-subtle text-success-text border border-success rounded-md px-4 py-3 text-sm">
-          <Icon name="check" /> {t.settings_up_to_date.replace("{version}", currentVersion)}
+          <Icon name="check" /> {fill(t.settings_up_to_date, { version: currentVersion })}
         </div>
       )}
 
       {status === "available" && updateInfo && (
         <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-md p-4`}>
           <div className={`text-sm font-semibold ${theme.textPrimary} mb-1`}>
-            <span aria-hidden="true"><Icon name="party" /></span> {t.settings_new_version.replace("{version}", "")} <span className="font-mono">{updateInfo.version}</span>
+            <span aria-hidden="true"><Icon name="party" /></span>{" "}
+            {fill(t.settings_new_version, { version: "" }).trim()}{" "}
+            <span className="font-mono">{updateInfo.version}</span>
           </div>
           {updateInfo.notes && (
-            <div className={`text-xs ${theme.textSecondary} mb-3 whitespace-pre-line max-h-32 overflow-y-auto`}>
-              {updateInfo.notes}
+            <div className="mb-3 max-h-48 overflow-y-auto">
+              <Markdown source={updateInfo.notes} />
             </div>
           )}
           {downloading ? (
@@ -134,7 +124,7 @@ export function UpdateChecker() {
           ) : (
             <button
               onClick={installUpdate}
-              className="bg-success text-success-fg px-4 py-2 rounded-md hover:bg-success shadow-sm transition-all text-sm font-medium"
+              className="rounded-md bg-success px-4 py-2 text-sm font-medium text-success-fg shadow-sm transition-all hover:opacity-90"
             >
               <span aria-hidden="true"><Icon name="download" /></span> {t.settings_install_update}
             </button>

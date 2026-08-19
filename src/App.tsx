@@ -1,4 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from "react";
+import { checkForUpdate, dismissVersion, dismissedVersion, isDismissed } from "./lib/updater";
+import { fill } from "./lib/i18n/format";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 
@@ -36,27 +38,36 @@ function UpdateBanner() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const checkUpdate = async () => {
-      try {
-        const { check } = await import("@tauri-apps/plugin-updater");
-        const update = await check();
-        if (update?.available) {
-          setUpdateVersion(update.version);
-        }
-      } catch (err) {
-        console.log("Auto-update check skipped:", err);
-      }
+      // `false`: at most one call a day, and the answer is shared with the
+      // Settings page rather than fetched twice (lib/updater.ts).
+      const update = await checkForUpdate(false);
+      if (cancelled || !update) return;
+      // "Later" on this version stays said across restarts. A newer one
+      // still gets through -- otherwise one dismissal hides every release
+      // that follows.
+      if (isDismissed(update.version, dismissedVersion())) return;
+      setUpdateVersion(update.version);
     };
-    // Delay check by 3 seconds to not slow down app startup
+    // Delayed so the check does not compete with the first render.
     const timer = setTimeout(checkUpdate, 3000);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, []);
+
+  const dismiss = () => {
+    if (updateVersion) dismissVersion(updateVersion);
+    setDismissed(true);
+  };
 
   if (!updateVersion || dismissed) return null;
 
   return (
     <div className={`${theme.primaryBg} text-white px-4 py-2 flex items-center justify-center gap-4 text-sm`}>
-      <span>{t.update_available_banner.replace("{version}", updateVersion)}</span>
+      <span>{fill(t.update_available_banner, { version: updateVersion })}</span>
       <button
         onClick={() => { navigate("/settings"); setDismissed(true); }}
         className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-sm font-medium transition-colors"
@@ -64,7 +75,7 @@ function UpdateBanner() {
         {t.update_go_to_settings}
       </button>
       <button
-        onClick={() => setDismissed(true)}
+        onClick={dismiss}
         className="hover:bg-white/20 px-2 py-1 rounded-sm transition-colors opacity-70 hover:opacity-100"
       >
         {t.update_dismiss}
