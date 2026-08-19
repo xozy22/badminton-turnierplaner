@@ -341,7 +341,7 @@ export default function Sportstaetten() {
               to="/sessions"
               className={`text-xs font-medium ${theme.activeBadgeText} hover:opacity-80`}
             >
-              {t.sessions_title} →
+              {t.sessions_title} <Icon name="arrowRight" />
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -464,12 +464,12 @@ export default function Sportstaetten() {
               placeholder={t.venues_search_placeholder}
               className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
             />
-            <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}>🔍</span>
+            <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}><Icon name="search" /></span>
             {search && (
               <button
                 onClick={() => setSearch("")}
                 className={`absolute right-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} hover:opacity-80 text-xs`}
-              >✕</button>
+              ><Icon name="x" /></button>
             )}
           </div>
         </div>
@@ -635,7 +635,7 @@ export default function Sportstaetten() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
             <div className="text-center mb-5">
-              <div className="text-4xl mb-3">⚠️</div>
+              <div className="text-4xl mb-3"><Icon name="alert" /></div>
               <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
                 {t.venues_delete_title}
               </h3>
@@ -676,7 +676,7 @@ export default function Sportstaetten() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-lg p-6 border ${theme.cardBorder}`}>
             <div className="text-center mb-4">
-              <div className="text-4xl mb-3">🔒</div>
+              <div className="text-4xl mb-3"><Icon name="lock" /></div>
               <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
                 {t.venues_delete_blocked_title}
               </h3>

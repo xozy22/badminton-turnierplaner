@@ -30,7 +30,7 @@ export default function RestWarningModal({
     <Modal
       open={warning !== null}
       onClose={onCancel}
-      icon="⏱️"
+      icon="clock"
       title={t.rest_warning_title}
       description={t.rest_warning_body}
       footer={

@@ -46,7 +46,7 @@ export function ThemeSelector() {
                   className="w-10 h-10 rounded-xl shrink-0 shadow-inner flex items-center justify-center"
                   style={{ background: isDarkTheme ? `linear-gradient(135deg, #111827, #1f2937)` : `linear-gradient(135deg, ${preview}, ${preview}dd)` }}
                 >
-                  {isDarkTheme && <span className="text-lg">🌙</span>}
+                  {isDarkTheme && <span className="text-lg"><Icon name="moon" /></span>}
                 </div>
                 <div>
                   <div className={`text-sm font-semibold ${theme.textPrimary}`}>

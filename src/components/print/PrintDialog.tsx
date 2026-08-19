@@ -46,7 +46,7 @@ export default function PrintDialog({
   const [certLoading, setCertLoading] = useState(false);
 
   const PRINT_OPTIONS: { value: PrintMode; label: string; desc: string }[] = [
-    { value: "report", label: `📊 ${t.print_report}`, desc: t.print_report_desc },
+    { value: "report", label: t.print_report, desc: t.print_report_desc },
     { value: "full", label: t.print_full, desc: t.print_full_desc },
     { value: "schedule", label: t.print_schedule, desc: t.print_schedule_desc },
     { value: "round", label: t.print_current_round, desc: t.print_current_round_desc },

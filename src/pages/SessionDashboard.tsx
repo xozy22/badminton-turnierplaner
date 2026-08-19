@@ -228,7 +228,7 @@ export default function SessionDashboard() {
               to={`/sessions/${session.id}`}
               className="text-white/80 hover:text-white text-sm"
             >
-              ← {t.session_dashboard_back_to_session}
+              <Icon name="arrowLeft" /> {t.session_dashboard_back_to_session}
             </Link>
           </div>
           <h1 className="text-xl font-extrabold tracking-tight mt-1">
@@ -256,7 +256,7 @@ export default function SessionDashboard() {
         {/* --- COURTS --- */}
         <section>
           <h2 className={`text-lg font-bold ${theme.textPrimary} mb-3`}>
-            <span aria-hidden="true">🟩</span> {t.session_dashboard_courts_section} ({totalCourts})
+            <span aria-hidden="true"><Icon name="dot" /></span> {t.session_dashboard_courts_section} ({totalCourts})
           </h2>
           {totalCourts === 0 ? (
             <p className={`text-sm ${theme.textMuted} italic`}>
@@ -426,7 +426,7 @@ export default function SessionDashboard() {
                   </span>
                   {m.winner_team && (
                     <span className="text-xs font-bold text-emerald-700 shrink-0">
-                      <span aria-hidden="true">🏅</span> Team {m.winner_team}
+                      <span aria-hidden="true"><Icon name="medal" /></span> Team {m.winner_team}
                     </span>
                   )}
                 </button>

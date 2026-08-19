@@ -22,7 +22,7 @@ export default function ReopenConfirmModal({
     <Modal
       open={open}
       onClose={onCancel}
-      icon="🔓"
+      icon="unlock"
       title={t.tournament_view_reopen}
       description={t.tournament_view_reopen_confirm}
       size="sm"

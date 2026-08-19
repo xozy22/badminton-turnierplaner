@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import Icon from "../../components/ui/Icon";
 // Type-only: the library itself is fetched when a file is picked, so the
 // ~800 KB stay out of the start bundle (REVIEW-BACKLOG.md E1).
 import type ExcelJS from "exceljs";
@@ -692,7 +693,7 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
           {/* Step 4: Done */}
           {step === "done" && (
             <div className="text-center py-8">
-              <div className="text-4xl mb-3">✓</div>
+              <div className="text-4xl mb-3"><Icon name="check" /></div>
               <div className={`text-lg font-medium ${theme.activeBadgeText}`}>
                 {t.import_players_imported.replace("{count}", String(importCount))}
               </div>

@@ -31,7 +31,7 @@ export default function RemovePlayerModal({
     <Modal
       open={target !== null}
       onClose={onClose}
-      icon="⚠️"
+      icon="alert"
       title={t.management_remove_confirm_title}
       closeOnBackdrop={false}
       footer={

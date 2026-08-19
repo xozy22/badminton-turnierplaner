@@ -1555,7 +1555,7 @@ export default function TournamentView() {
               disabled={!undoTarget}
               className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-warning hover:text-warning-text transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              ↩️ {t.tournament_view_undo_round}
+              <Icon name="undo" /> {t.tournament_view_undo_round}
             </button>
           )}
           {tournament.status === "active" && (
@@ -1659,7 +1659,7 @@ export default function TournamentView() {
                     aria-label={t.tournament_live_publish_push_now}
                     className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} w-8 h-8 flex items-center justify-center rounded-lg hover:border-emerald-300 hover:text-emerald-600 transition-all text-sm disabled:opacity-50`}
                   >
-                    <span aria-hidden="true">🔄</span>
+                    <span aria-hidden="true"><Icon name="refresh" /></span>
                   </button>
                 )}
                 {/* Status — small, muted, follows the buttons */}
@@ -1880,7 +1880,7 @@ export default function TournamentView() {
       {rounds.length === 0 && tournament.status === "draft" && (
         <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-8 mb-6`}>
           <div className="text-center mb-6">
-            <div className="text-4xl mb-3">🏸</div>
+            <div className="text-4xl mb-3" aria-hidden="true">🏸</div>
             <div className={`text-lg font-semibold ${theme.textPrimary}`}>
               {t.tournament_view_not_started}
             </div>
@@ -1965,11 +1965,11 @@ export default function TournamentView() {
             const hasDoubleElimBracket = isDoubleElimination && (winnersRounds.length > 0 || losersRounds.length > 0);
             const showRangliste = !isGroupKo || koRounds.length > 0;
             const viewTabs = [
-              { key: "spiele" as const, label: t.tournament_view_tab_matches, icon: "🏸" },
-              ...(isGroupKo && groupRounds.length > 0 ? [{ key: "gruppen" as const, label: t.tournament_view_tab_groups, icon: "📋" }] : []),
-              ...(hasBracket || hasDoubleElimBracket ? [{ key: "bracket" as const, label: t.tournament_view_tab_bracket, icon: "🏆" }] : []),
-              ...(showRangliste ? [{ key: "rangliste" as const, label: t.tournament_view_tab_standings, icon: "📊" }] : []),
-              { key: "verwaltung" as const, label: t.tournament_view_tab_management, icon: "👥" },
+              { key: "spiele" as const, label: t.tournament_view_tab_matches, icon: "target" as const },
+              ...(isGroupKo && groupRounds.length > 0 ? [{ key: "gruppen" as const, label: t.tournament_view_tab_groups, icon: "clipboard" as const }] : []),
+              ...(hasBracket || hasDoubleElimBracket ? [{ key: "bracket" as const, label: t.tournament_view_tab_bracket, icon: "trophy" as const }] : []),
+              ...(showRangliste ? [{ key: "rangliste" as const, label: t.tournament_view_tab_standings, icon: "chart" as const }] : []),
+              { key: "verwaltung" as const, label: t.tournament_view_tab_management, icon: "users" as const },
             ];
             return viewTabs;
           })().map((tab) => (
@@ -1982,7 +1982,7 @@ export default function TournamentView() {
                   : `${theme.textMuted} hover:${theme.textPrimary} hover:bg-black/[0.03]`
               }`}
             >
-              <span className="mr-1.5">{tab.icon}</span>
+              <Icon name={tab.icon} className="mr-1.5" />
               {tab.label}
               {viewTab === tab.key ? (
                 <span className={`absolute bottom-0 left-0 right-0 h-[3px] ${theme.primaryBg} rounded-t-full`} />
@@ -2024,7 +2024,7 @@ export default function TournamentView() {
                         className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${colorClass}`}
                       >
                         R{koRounds.indexOf(r) + 1}
-                        {allRoundMatchesCompleted(r.id) && <span className="ml-1.5">✓</span>}
+                        {allRoundMatchesCompleted(r.id) && <span className="ml-1.5"><Icon name="check" /></span>}
                       </button>
                     );
                   })}
@@ -2047,7 +2047,7 @@ export default function TournamentView() {
                             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${colorClass}`}
                           >
                             R{idx + 1}
-                            {allRoundMatchesCompleted(r.id) && <span className="ml-1.5">✓</span>}
+                            {allRoundMatchesCompleted(r.id) && <span className="ml-1.5"><Icon name="check" /></span>}
                           </button>
                         );
                       })}
@@ -2067,7 +2067,7 @@ export default function TournamentView() {
                             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${colorClass}`}
                           >
                             R{idx + 1}
-                            {allRoundMatchesCompleted(r.id) && <span className="ml-1.5">✓</span>}
+                            {allRoundMatchesCompleted(r.id) && <span className="ml-1.5"><Icon name="check" /></span>}
                           </button>
                         );
                       })}
@@ -2095,7 +2095,7 @@ export default function TournamentView() {
                   >
                       {label}
                       {allRoundMatchesCompleted(r.id) && (
-                        <span className="ml-1.5">✓</span>
+                        <span className="ml-1.5"><Icon name="check" /></span>
                       )}
                     </button>
                 );
@@ -2116,7 +2116,7 @@ export default function TournamentView() {
                   >
                     {t.bracket_third_place_short}
                     {allRoundMatchesCompleted(thirdPlaceRound.id) && (
-                      <span className="ml-1.5">✓</span>
+                      <span className="ml-1.5"><Icon name="check" /></span>
                     )}
                   </button>
                 </div>

@@ -106,7 +106,7 @@ export default function TemplateExportModal({
             <label className={`flex items-center gap-3 p-3 rounded-xl border ${theme.cardBorder} ${templateInclude.teams ? theme.selectedBg : ''} cursor-pointer ${!templateInclude.players ? 'opacity-40 pointer-events-none' : ''}`}>
               <input type="checkbox" checked={templateInclude.teams} disabled={!templateInclude.players} onChange={(e) => setTemplateInclude((p) => ({ ...p, teams: e.target.checked }))} className="rounded accent-emerald-600" />
               <div>
-                <div className={`text-sm font-medium ${theme.textPrimary}`}><span aria-hidden="true">🤝</span> {t.template_teams}</div>
+                <div className={`text-sm font-medium ${theme.textPrimary}`}><span aria-hidden="true"><Icon name="handshake" /></span> {t.template_teams}</div>
                 <div className={`text-xs ${theme.textMuted}`}>{t.template_teams_desc}</div>
               </div>
             </label>

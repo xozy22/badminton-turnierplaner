@@ -434,12 +434,12 @@ export default function Players() {
               placeholder={t.players_search_placeholder}
               className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
             />
-            <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}>🔍</span>
+            <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}><Icon name="search" /></span>
             {search && (
               <button
                 onClick={() => setSearch("")}
                 className={`absolute right-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} hover:opacity-80 text-xs`}
-              >✕</button>
+              ><Icon name="x" /></button>
             )}
           </div>
 
@@ -523,13 +523,13 @@ export default function Players() {
                   onClick={() => toggleSort("first_name")}
                   className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide cursor-pointer select-none hover:opacity-80`}
                 >
-                  {t.common_first_name} {sortKey === "first_name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+                  {t.common_first_name} {sortKey === "first_name" ? <Icon name="chevronDown" className={sortDir === "asc" ? "rotate-180" : ""} /> : null}
                 </th>
                 <th scope="col"
                   onClick={() => toggleSort("last_name")}
                   className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide cursor-pointer select-none hover:opacity-80`}
                 >
-                  {t.common_last_name} {sortKey === "last_name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+                  {t.common_last_name} {sortKey === "last_name" ? <Icon name="chevronDown" className={sortDir === "asc" ? "rotate-180" : ""} /> : null}
                 </th>
                 <th scope="col" className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
                   {t.common_gender}
@@ -713,7 +713,7 @@ export default function Players() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
             <div className="text-center mb-5">
-              <div className="text-4xl mb-3">⚠️</div>
+              <div className="text-4xl mb-3"><Icon name="alert" /></div>
               <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
                 {deleteTarget.ids.length === 1
                   ? t.players_delete_confirm_single

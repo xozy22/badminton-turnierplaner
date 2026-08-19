@@ -618,11 +618,11 @@ export default function TournamentCreate() {
   const seedingValid = true;
 
   const steps = [
-    { key: "settings" as const, label: t.tournament_step_settings, icon: "⚙️", valid: settingsValid },
-    { key: "players" as const, label: t.tournament_step_players, icon: "👥", valid: playersValid },
-    ...(needsTeamPairing ? [{ key: "teams" as const, label: t.tournament_step_teams, icon: "🤝", valid: teamsValid }] : []),
-    ...(showSeedingStep ? [{ key: "seeding" as const, label: t.tournament_step_seeding, icon: "🎯", valid: seedingValid }] : []),
-    { key: "create" as const, label: t.tournament_step_create, icon: "🏆", valid: false },
+    { key: "settings" as const, label: t.tournament_step_settings, icon: "settings" as const, valid: settingsValid },
+    { key: "players" as const, label: t.tournament_step_players, icon: "users" as const, valid: playersValid },
+    ...(needsTeamPairing ? [{ key: "teams" as const, label: t.tournament_step_teams, icon: "handshake" as const, valid: teamsValid }] : []),
+    ...(showSeedingStep ? [{ key: "seeding" as const, label: t.tournament_step_seeding, icon: "target" as const, valid: seedingValid }] : []),
+    { key: "create" as const, label: t.tournament_step_create, icon: "trophy" as const, valid: false },
   ];
 
   const currentStepIdx = steps.findIndex((s) => s.key === createStep);
@@ -649,10 +649,10 @@ export default function TournamentCreate() {
                 : `${theme.textMuted} hover:${theme.textPrimary} hover:bg-black/[0.03]`
             }`}
           >
-            <span className="mr-1.5">{step.icon}</span>
+            <Icon name={step.icon} className="mr-1.5" />
             {step.label}
             {step.valid && createStep !== step.key && (
-              <span className="ml-1.5 text-green-500">✓</span>
+              <span className="ml-1.5 text-green-500"><Icon name="check" /></span>
             )}
             {createStep === step.key ? (
               <span className={`absolute bottom-0 left-0 right-0 h-[3px] ${theme.primaryBg} rounded-t-full`} />
@@ -688,7 +688,7 @@ export default function TournamentCreate() {
                         className={`${theme.textMuted} hover:text-emerald-600 px-3 py-2.5 rounded-xl border ${theme.inputBorder} ${theme.cardHoverBorder} transition-all text-sm`}
                         title={t.tournament_restore_suggestion}
                       >
-                        ↻
+                        <Icon name="refresh" />
                       </button>
                     )}
                   </div>
@@ -846,7 +846,7 @@ export default function TournamentCreate() {
                           onClick={() => navigate("/sportstaetten")}
                           className={`mt-2 ${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-lg text-xs font-semibold transition-all`}
                         >
-                          {t.tournament_venue_create_first} →
+                          {t.tournament_venue_create_first} <Icon name="arrowRight" />
                         </button>
                       </div>
                     )}
@@ -923,7 +923,7 @@ export default function TournamentCreate() {
                             </label>
                           ) : (
                             <div key={idx} className={`text-sm ${theme.textPrimary} flex items-center gap-2`}>
-                              <span>🏟</span>
+                              <span><Icon name="building" /></span>
                               <span>
                                 {hall.name} ({hall.courts} {hall.courts === 1 ? t.common_field : t.common_fields})
                               </span>
@@ -1074,7 +1074,7 @@ export default function TournamentCreate() {
                   className="rounded accent-emerald-600"
                 />
                 <div>
-                  <span className={`text-sm font-medium ${theme.textPrimary}`}><span aria-hidden="true">🥉</span> {t.tournament_enable_third_place}</span>
+                  <span className={`text-sm font-medium ${theme.textPrimary}`}><Icon name="medal" /> {t.tournament_enable_third_place}</span>
                   <p className={`text-xs ${theme.textMuted}`}>{t.tournament_enable_third_place_hint}</p>
                 </div>
               </div>
@@ -1119,7 +1119,7 @@ export default function TournamentCreate() {
                 className="rounded accent-emerald-600 mt-1"
               />
               <div className="flex-1">
-                <span className={`text-sm font-medium ${theme.textPrimary}`}><span aria-hidden="true">💰</span> {t.tournament_entry_fee_enable}</span>
+                <span className={`text-sm font-medium ${theme.textPrimary}`}><span aria-hidden="true"><Icon name="coins" /></span> {t.tournament_entry_fee_enable}</span>
                 <p className={`text-xs ${theme.textMuted}`}>{(() => {
                   const fixedFmts: TournamentFormat[] = ["elimination", "group_ko", "double_elimination"];
                   const isFixed = mode !== "singles" && fixedFmts.includes(format);
@@ -1162,7 +1162,16 @@ export default function TournamentCreate() {
                 title={selectedVenueId === "" ? t.tournament_venue_required : undefined}
                 className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-2 disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {t.tournament_continue_to.replace("{icon}", steps.find((s) => s.key === nextStep)?.icon || "").replace("{label}", steps.find((s) => s.key === nextStep)?.label || "")} →
+                {(() => {
+                  const next = steps.find((s) => s.key === nextStep);
+                  return (
+                    <>
+                      {next && <Icon name={next.icon} className="mr-1.5" />}
+                      {t.tournament_continue_to.replace("{label}", next?.label || "")}{" "}
+                      <Icon name="arrowRight" />
+                    </>
+                  );
+                })()}
               </button>
             )}
           </>
@@ -1283,7 +1292,7 @@ export default function TournamentCreate() {
                       }`}
                     >
                       {playerDisplayName(p)}
-                      <span className="text-[10px] opacity-60">✕</span>
+                      <span className="text-[10px] opacity-60"><Icon name="x" /></span>
                     </span>
                   ))}
                 </div>
@@ -1343,7 +1352,16 @@ export default function TournamentCreate() {
                 onClick={() => setCreateStep(nextStep)}
                 className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-2`}
               >
-                {t.tournament_continue_to.replace("{icon}", steps.find((s) => s.key === nextStep)?.icon || "").replace("{label}", steps.find((s) => s.key === nextStep)?.label || "")} →
+                {(() => {
+                  const next = steps.find((s) => s.key === nextStep);
+                  return (
+                    <>
+                      {next && <Icon name={next.icon} className="mr-1.5" />}
+                      {t.tournament_continue_to.replace("{label}", next?.label || "")}{" "}
+                      <Icon name="arrowRight" />
+                    </>
+                  );
+                })()}
               </button>
             )}
           </>
@@ -1370,7 +1388,16 @@ export default function TournamentCreate() {
                 onClick={() => setCreateStep(nextStep)}
                 className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-4`}
               >
-                {t.tournament_continue_to.replace("{icon}", steps.find((s) => s.key === nextStep)?.icon || "").replace("{label}", steps.find((s) => s.key === nextStep)?.label || "")} →
+                {(() => {
+                  const next = steps.find((s) => s.key === nextStep);
+                  return (
+                    <>
+                      {next && <Icon name={next.icon} className="mr-1.5" />}
+                      {t.tournament_continue_to.replace("{label}", next?.label || "")}{" "}
+                      <Icon name="arrowRight" />
+                    </>
+                  );
+                })()}
               </button>
             )}
           </>
@@ -1405,7 +1432,16 @@ export default function TournamentCreate() {
                 onClick={() => setCreateStep(nextStep)}
                 className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-4`}
               >
-                {t.tournament_continue_to.replace("{icon}", steps.find((s) => s.key === nextStep)?.icon || "").replace("{label}", steps.find((s) => s.key === nextStep)?.label || "")} →
+                {(() => {
+                  const next = steps.find((s) => s.key === nextStep);
+                  return (
+                    <>
+                      {next && <Icon name={next.icon} className="mr-1.5" />}
+                      {t.tournament_continue_to.replace("{label}", next?.label || "")}{" "}
+                      <Icon name="arrowRight" />
+                    </>
+                  );
+                })()}
               </button>
             )}
           </>
@@ -1478,10 +1514,10 @@ export default function TournamentCreate() {
               className={`w-full ${theme.primaryBg} text-white px-5 py-3.5 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-lg transition-all disabled:bg-line-strong disabled:text-muted disabled:cursor-not-allowed disabled:shadow-none font-semibold text-base`}
             >
               {creating
-                ? `⏳ ${t.common_saving}`
+                ? <><Icon name="hourglass" /> {t.common_saving}</>
                 : isEditMode
-                ? `💾 ${t.tournament_save_changes}`
-                : `🏆 ${t.tournament_create_button}`}
+                ? <><Icon name="save" /> {t.tournament_save_changes}</>
+                : <><Icon name="trophy" /> {t.tournament_create_button}</>}
               {!creating && selectedVenueId === "" && (
                 <span className="text-sm font-normal ml-2 opacity-70">
                   ({t.tournament_venue_required})

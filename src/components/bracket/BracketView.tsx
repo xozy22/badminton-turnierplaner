@@ -1,4 +1,5 @@
 import type { Match, Round, GameSet, TournamentStatus } from "../../lib/types";
+import Icon from "../../components/ui/Icon";
 import { isSetComplete } from "../../lib/scoring";
 import { useTheme } from "../../lib/ThemeContext";
 import { useT } from "../../lib/I18nContext";
@@ -323,7 +324,7 @@ export default function BracketView({
               }}
             >
               <div className="bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-warning rounded-xl px-3 py-2.5 text-center">
-                <div className="text-xl mb-0.5">🏆</div>
+                <div className="text-xl mb-0.5"><Icon name="trophy" /></div>
                 <div className="font-bold text-warning-text text-xs leading-tight">
                   {winnerLabel}
                 </div>

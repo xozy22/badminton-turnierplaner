@@ -439,7 +439,7 @@ export default function Tournaments() {
             className="text-muted hover:text-emerald-600 text-sm transition-colors"
             title={t.tournaments_unarchive}
           >
-            ↩ {t.tournaments_unarchive}
+            <Icon name="undo" /> {t.tournaments_unarchive}
           </button>
         )}
         <button
@@ -506,7 +506,7 @@ export default function Tournaments() {
       {/* Active Tournaments */}
       {activeTournaments.length === 0 && !showArchive ? (
         <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-12 text-center`}>
-          <div className="text-4xl mb-3">🏸</div>
+          <div className="text-4xl mb-3" aria-hidden="true">🏸</div>
           <div className="text-muted">{t.tournaments_none_yet}</div>
         </div>
       ) : (
@@ -531,7 +531,7 @@ export default function Tournaments() {
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-sm p-6 border ${theme.cardBorder} text-center`}>
-            <div className="text-4xl mb-3">⚠️</div>
+            <div className="text-4xl mb-3"><Icon name="alert" /></div>
             <h3 className={`text-lg font-bold ${theme.textPrimary} mb-2`}>
               {t.tournaments_delete_title}
             </h3>

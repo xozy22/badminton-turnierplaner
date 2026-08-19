@@ -53,7 +53,7 @@ export default function GroupProgressBar({ progress }: Props) {
         className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold border select-none ${pillClass}`}
       >
         {rp.label}
-        {rp.isComplete && <span className="ml-0.5">✓</span>}
+        {rp.isComplete && <span className="ml-0.5"><Icon name="check" /></span>}
       </span>
     );
   };
@@ -85,7 +85,7 @@ export default function GroupProgressBar({ progress }: Props) {
                       <Icon name="alert" />
                     </span>
                   )}
-                  {done && <span className="ml-1 text-emerald-600">✓</span>}
+                  {done && <span className="ml-1 text-emerald-600"><Icon name="check" /></span>}
                 </span>
                 <span className={`text-[11px] font-mono ${theme.textMuted}`}>
                   {p.completed}/{p.total}

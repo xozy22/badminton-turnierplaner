@@ -170,14 +170,14 @@ export default function SessionDetail() {
     const ok = await ask({
       title: t.session_detail_detach,
       message: t.session_detail_detach_confirm,
-      icon: "🔗",
+      icon: "link",
       tone: "danger",
       confirmLabel: t.session_detail_detach,
     });
     if (!ok) return;
     try {
       await detachTournamentFromSession(tournamentId);
-      showSuccess(t.session_detail_detach + " ✓");
+      showSuccess(t.session_detail_detach);
       await load();
     } catch (err) {
       showError(String(err));
@@ -218,7 +218,7 @@ export default function SessionDetail() {
           to="/sessions"
           className={`text-sm ${theme.textSecondary} hover:underline`}
         >
-          ← {t.sessions_title}
+          <Icon name="arrowLeft" /> {t.sessions_title}
         </Link>
       </div>
 
@@ -372,7 +372,7 @@ export default function SessionDetail() {
                   to={`/tournaments/${tt.id}`}
                   className={`text-xs ${theme.textSecondary} hover:underline px-2`}
                 >
-                  {t.session_detail_open_tournament} →
+                  {t.session_detail_open_tournament} <Icon name="arrowRight" />
                 </Link>
                 <button
                   onClick={() => handleDetach(tt.id)}
@@ -482,7 +482,7 @@ export default function SessionDetail() {
                     <Icon name="trophy" /> {t.sessions_end_stats_active_tournaments.replace("{count}", String(endStats.activeTournaments.length))}
                   </li>
                   <li>
-                    <span aria-hidden="true">🟩</span> {t.sessions_end_stats_on_court.replace("{count}", String(endStats.matchesOnCourt))}
+                    <span aria-hidden="true"><Icon name="dot" /></span> {t.sessions_end_stats_on_court.replace("{count}", String(endStats.matchesOnCourt))}
                   </li>
                 </ul>
               </div>

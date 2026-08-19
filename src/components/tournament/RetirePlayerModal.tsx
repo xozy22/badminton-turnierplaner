@@ -21,7 +21,7 @@ export default function RetirePlayerModal({
     <Modal
       open={retireTarget !== null}
       onClose={onClose}
-      icon="🏥"
+      icon="medical"
       title={t.retire_title}
       closeOnBackdrop={false}
       footer={

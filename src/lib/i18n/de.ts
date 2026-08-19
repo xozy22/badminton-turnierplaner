@@ -177,8 +177,8 @@ export const de: Translations = {
   tournament_venue_create_first: "Sportstätte anlegen",
   tournament_halls_courts: "Hallen / Spielfelder",
   tournament_courts_selected: "{count} Felder ausgewählt",
-  tournament_halls_synced_from_venue: "📌 Aus Sportstätte '{name}' übernommen",
-  tournament_halls_edit_venue_link: "→ Hallen oder Felder ändern? Sportstätte bearbeiten",
+  tournament_halls_synced_from_venue: "Aus Sportstätte '{name}' übernommen",
+  tournament_halls_edit_venue_link: "Hallen oder Felder ändern? Sportstätte bearbeiten",
   tournament_num_groups: "Anzahl Gruppen",
   tournament_qualify_per_group: "Qualifikanten pro Gruppe",
   tournament_qualify_ko_count: "{count} Spieler im KO",
@@ -281,7 +281,7 @@ export const de: Translations = {
   tournament_no_players_yet: "Noch keine Spieler vorhanden. Bitte erst Spieler anlegen.",
   tournament_no_players_hint: "Noch keine Spieler vorhanden. Bitte erst Spieler anlegen.",
   tournament_no_filter_results: "Keine Spieler für diesen Filter gefunden.",
-  tournament_continue_to: "Weiter zu {icon} {label}",
+  tournament_continue_to: "Weiter zu {label}",
   tournament_summary: "Zusammenfassung",
   tournament_summary_name: "Name:",
   tournament_summary_mode: "Modus:",
@@ -560,7 +560,7 @@ export const de: Translations = {
   court_drag_or_double_click: "Drag auf ein Feld oder Doppelklick zum Zuweisen",
   court_double_click_jump: "Doppelklick: Zum Spiel springen",
   court_next_round_separator: "— Runde {n} —",
-  court_context_menu_unassign: "🔄 Match zurück in die Warteschlange",
+  court_context_menu_unassign: "Match zurück in die Warteschlange",
   court_context_menu_unassign_done: "Match zurück in die Warteschlange",
 
   // ===== Court Timer =====

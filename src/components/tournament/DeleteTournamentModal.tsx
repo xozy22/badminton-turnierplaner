@@ -1,4 +1,5 @@
 import type { ThemeColors } from "../../lib/theme";
+import Icon from "../../components/ui/Icon";
 import type { Tournament } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
 import { useAsyncAction } from "../../lib/useAsyncAction";
@@ -22,7 +23,7 @@ export default function DeleteTournamentModal({
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
         <div className="text-center mb-5">
-          <div className="text-4xl mb-3">🗑️</div>
+          <div className="text-4xl mb-3"><Icon name="trash" /></div>
           <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
             {t.delete_tournament_title}
           </h3>
@@ -47,7 +48,13 @@ export default function DeleteTournamentModal({
             disabled={deleting}
             className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger shadow-sm transition-all text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {deleting ? `⏳ ${t.common_loading}` : t.common_delete_permanently}
+            {deleting ? (
+            <>
+              <Icon name="hourglass" /> {t.common_loading}
+            </>
+          ) : (
+            t.common_delete_permanently
+          )}
           </button>
         </div>
       </div>

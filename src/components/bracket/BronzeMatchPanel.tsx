@@ -10,6 +10,7 @@
 // and rest-time indicator handling.
 
 import { useTheme } from "../../lib/ThemeContext";
+import Icon from "../../components/ui/Icon";
 import { useT } from "../../lib/I18nContext";
 import type { Match, Round, GameSet, TournamentStatus } from "../../lib/types";
 import { BracketMatch } from "./BracketView";
@@ -51,7 +52,7 @@ export default function BronzeMatchPanel({
       aria-label={t.bracket_third_place}
     >
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-xl" aria-hidden="true">🥉</span>
+        <Icon name="medal" size={20} className="text-danger-text" />
         <h3 className={`text-sm font-bold uppercase tracking-wide text-orange-700`}>
           {t.bracket_third_place}
         </h3>

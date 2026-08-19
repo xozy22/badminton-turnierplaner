@@ -738,21 +738,19 @@ Die Sidebar war bereits einklappbar; der TV-Modus bleibt eine eigene Ansicht, we
 ---
 
 ### [x] F10 — Emojis als Icon-System — **erledigt**
-**Schwere:** niedrig · **Aufwand:** M · **Dateien:** `src/components/ui/Icon.tsx` (neu), 32 weitere Dateien
+**Schwere:** niedrig · **Aufwand:** M · **Dateien:** `src/components/ui/Icon.tsx` (neu), rund 40 weitere
 
 **Problem:** 66 verschiedene Emojis in 332 Vorkommen dienten als Icons. Darstellung, Größe und Grundlinie unterscheiden sich je nach Betriebssystem und Schriftart, Farbanpassung ans Theme ist unmöglich, und ein Screenreader liest sie mit — „Rakete Turnier starten".
 
-**Umgesetzt:**
+**Umgesetzt:** `src/components/ui/Icon.tsx` enthält 54 Symbole als Inline-SVG in der Lucide-Geometrie. Bewusst kein Icon-Paket: Die Formen kosten wenige Kilobyte, nehmen über `currentColor` die Themefarbe an und ersparen einer Desktop-Anwendung eine weitere Abhängigkeit. Ohne `label` ist ein Icon `aria-hidden`; steht es allein in einem Bedienelement, gibt `label` ihm einen Namen.
 
-*Ein Icon-Set.* `src/components/ui/Icon.tsx` enthält 34 Symbole als Inline-SVG in der Lucide-Geometrie (24×24, 2 px Strich). Bewusst kein Icon-Paket: Die Formen kosten zusammen wenige Kilobyte, nehmen über `currentColor` die Themefarbe an und ersparen einer Desktop-Anwendung eine weitere Abhängigkeit. Ohne `label` ist ein Icon automatisch `aria-hidden`; steht es allein in einem Bedienelement, gibt `label` ihm einen Namen.
+Ersetzt wurden nicht nur die freistehenden Glyphen im Markup, sondern auch die Muster, die eine erste Durchsicht übersehen hatte: `icon`-Felder in Datentabellen (Assistentenschritte, Einstellungsabschnitte, Druckbericht, Toasts), Template-Literale wie `` `⏳ ${t.common_loading}` ``, Sortierpfeile in Tabellenköpfen, Zurück- und Weiter-Pfeile in Verknüpfungen und drei Emojis, die in Übersetzungstexten steckten. Die `icon`-Eigenschaft von `Modal` und `ConfirmDialog` nimmt jetzt einen Icon-Namen statt einer Zeichenkette, was Tippfehler zur Übersetzungszeit auffallen lässt.
 
-*230 Emojis ersetzt oder ausgeblendet* — 122 zuerst in `aria-hidden`-Elemente gefasst, davon 108 anschließend durch Icons ersetzt, verteilt über 32 Dateien: Navigation, Kopfleisten, Knöpfe, Menüeinträge, Statuszeilen.
+**Ein Fehler, der die erste Runde unvollständig ließ:** Emojis mit Variationsselektor — 🗑️ ist U+1F5D1 gefolgt von U+FE0F — sind zwei Codepunkte und können in einer Zeichenklasse `[...]` nie treffen. Erst die Umstellung auf Alternation, längste Form zuerst, hat sie erfasst.
 
-*Was bewusst Emoji bleibt:* der Federball als Markenzeichen, Medaillen und Podestränge (dort trägt die Farbe die Bedeutung), die Geschlechtssymbole und die farbigen Statusquadrate. Ein einfarbiger Strich würde dort Information verlieren, nicht Klarheit gewinnen.
+**Was bewusst bleibt:** der Federball als Markenzeichen der Anwendung, die Geschlechtszeichen ♂ ♀ (typografische Zeichen, keine Piktogramme) und die Sterne auf der Urkunde. Alle drei sind für Screenreader ausgeblendet.
 
-**Dabei aufgefallen:** Vier Bedienelemente bestanden **nur** aus einem Emoji — drei Schließen-Knöpfe in Dialogen und die Dashboard-Verknüpfung auf der Sportstättenseite. Sie zu verbergen hätte sie namenlos gemacht; sie haben jetzt ein `aria-label`. Über alle Seiten und im Quelltext geprüft: kein Bedienelement ohne zugänglichen Namen.
-
-**Fertig wenn:** ~~Alle Knöpfe und Navigationselemente verwenden SVG-Icons; verbliebene Emojis sind für Screenreader ausgeblendet~~ — erfüllt. Startbundle unverändert bei 264 KB.
+**Fertig wenn:** ~~Alle Knöpfe und Navigationselemente verwenden SVG-Icons; verbliebene Emojis sind für Screenreader ausgeblendet~~ — über acht Seiten geprüft: 38 SVG-Icons, und die einzigen sichtbaren Emojis sind Federball und Geschlechtszeichen. Startbundle unverändert bei 264 KB.
 
 ---
 

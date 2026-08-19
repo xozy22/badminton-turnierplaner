@@ -103,7 +103,7 @@ export function UpdateChecker() {
       {status === "available" && updateInfo && (
         <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-xl p-4`}>
           <div className={`text-sm font-semibold ${theme.textPrimary} mb-1`}>
-            <span aria-hidden="true">🎉</span> {t.settings_new_version.replace("{version}", "")} <span className="font-mono">{updateInfo.version}</span>
+            <span aria-hidden="true"><Icon name="party" /></span> {t.settings_new_version.replace("{version}", "")} <span className="font-mono">{updateInfo.version}</span>
           </div>
           {updateInfo.notes && (
             <div className={`text-xs ${theme.textSecondary} mb-3 whitespace-pre-line max-h-32 overflow-y-auto`}>
@@ -130,7 +130,7 @@ export function UpdateChecker() {
               onClick={installUpdate}
               className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium"
             >
-              <span aria-hidden="true">⬇️</span> {t.settings_install_update}
+              <span aria-hidden="true"><Icon name="download" /></span> {t.settings_install_update}
             </button>
           )}
         </div>
@@ -138,7 +138,7 @@ export function UpdateChecker() {
 
       {status === "error" && (
         <div className="bg-danger-subtle text-danger-text border border-danger rounded-xl px-4 py-3 text-sm">
-          <span aria-hidden="true">❌</span> {errorMsg || t.settings_update_failed}
+          <span aria-hidden="true"><Icon name="x" /></span> {errorMsg || t.settings_update_failed}
         </div>
       )}
     </div>

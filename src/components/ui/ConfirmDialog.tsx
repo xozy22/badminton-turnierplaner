@@ -11,11 +11,12 @@
 import { useState } from "react";
 import { useT } from "../../lib/I18nContext";
 import Modal, { ModalCancelButton, ModalConfirmButton } from "./Modal";
+import type { IconName } from "./Icon";
 
 export interface ConfirmRequest {
   title: string;
   message?: string;
-  icon?: string;
+  icon?: IconName;
   /** Picks the tone of the confirm button. */
   tone?: "accent" | "danger" | "warning";
   confirmLabel?: string;

@@ -146,7 +146,7 @@ export function LivePublishSettings() {
             onClick={() => setShowSecret(!showSecret)}
             className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-3 py-2 rounded-xl hover:opacity-80 transition-all text-xs font-medium`}
           >
-            {showSecret ? "🙈" : "👁"}
+            <Icon name={showSecret ? "eyeOff" : "eye"} />
           </button>
         </div>
       </div>
@@ -158,7 +158,13 @@ export function LivePublishSettings() {
           disabled={saving}
           className={`${theme.primaryBg} text-white px-4 py-2 rounded-xl ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium disabled:opacity-50`}
         >
-          {saving ? `⏳ ${t.common_loading}` : t.settings_live_publish_save}
+          {saving ? (
+                <>
+                  <Icon name="hourglass" /> {t.common_loading}
+                </>
+              ) : (
+                t.settings_live_publish_save
+              )}
         </button>
         <button
           onClick={handleTest}

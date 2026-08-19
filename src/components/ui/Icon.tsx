@@ -7,9 +7,9 @@
 // colour, and a screen reader reads them out — "Rakete Turnier starten"
 // (REVIEW-BACKLOG.md F10, G1).
 //
-// Inline SVG rather than an icon package: the twenty shapes below cost
-// about three kilobytes, take `currentColor` so they follow the tokens,
-// and add no dependency to a desktop app that ships its own runtime.
+// Inline SVG rather than an icon package: the shapes below cost a few
+// kilobytes, take `currentColor` so they follow the tokens, and add no
+// dependency to a desktop app that ships its own runtime.
 //
 // Paths follow the Lucide geometry (ISC licensed): 24×24 box, 2px stroke,
 // round caps and joins.
@@ -49,7 +49,28 @@ export type IconName =
   | "save"
   | "calendar"
   | "search"
-  | "chevronDown";
+  | "chevronDown"
+  | "arrowRight"
+  | "arrowLeft"
+  | "refresh"
+  | "star"
+  | "handshake"
+  | "dice"
+  | "megaphone"
+  | "flame"
+  | "trendingUp"
+  | "globe"
+  | "palette"
+  | "lock"
+  | "inbox"
+  | "coins"
+  | "moon"
+  | "eye"
+  | "eyeOff"
+  | "plug"
+  | "party"
+  | "medal"
+  | "dot";
 
 /** Path data only — the wrapper supplies size, stroke and colour. */
 const PATHS: Record<IconName, React.ReactNode> = {
@@ -88,6 +109,27 @@ const PATHS: Record<IconName, React.ReactNode> = {
   calendar: <><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></>,
   search: <><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></>,
   chevronDown: <path d="m6 9 6 6 6-6" />,
+  arrowRight: <path d="M5 12h14m-7-7 7 7-7 7" />,
+  arrowLeft: <path d="M19 12H5m7 7-7-7 7-7" />,
+  refresh: <><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></>,
+  star: <path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" />,
+  handshake: <><path d="m11 17 2 2a1 1 0 1 0 3-3" /><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4" /><path d="m21 3 1 11h-2M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3M3 4h8" /></>,
+  dice: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 8h.01M16 8h.01M8 16h.01M16 16h.01M12 12h.01" /></>,
+  megaphone: <><path d="m3 11 18-5v12L3 14v-3z" /><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" /></>,
+  flame: <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5" />,
+  trendingUp: <><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></>,
+  globe: <><circle cx="12" cy="12" r="10" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10zM2 12h20" /></>,
+  palette: <><circle cx="13.5" cy="6.5" r=".5" /><circle cx="17.5" cy="10.5" r=".5" /><circle cx="8.5" cy="7.5" r=".5" /><circle cx="6.5" cy="12.5" r=".5" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" /></>,
+  lock: <><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
+  inbox: <><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></>,
+  coins: <><circle cx="8" cy="8" r="6" /><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82" /></>,
+  moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9" />,
+  eye: <><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></>,
+  eyeOff: <><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.5 13.5 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61M2 2l20 20M14.12 14.12a3 3 0 1 1-4.24-4.24" /></>,
+  plug: <><path d="M12 22v-5M9 8V2M15 8V2M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z" /></>,
+  party: <><path d="M5.8 11.3 2 22l10.7-3.79" /><path d="M4 3h.01M22 8h.01M15 2h.01M22 20h.01" /><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 11M22 13l-.82-.33c-.86-.34-1.82.2-1.98 1.11v0c-.11.7-.72 1.22-1.43 1.22H17M11 2 9.65 3.35a2 2 0 0 0 0 2.83l.5.5a2 2 0 0 1 0 2.83L9 10.5" /><circle cx="12" cy="12" r="8" /></>,
+  medal: <><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15M11 12 5.12 2.2M13 12l5.88-9.8" /><circle cx="12" cy="17" r="5" /><path d="M12 18v-2h-.5" /></>,
+  dot: <circle cx="12" cy="12" r="5" fill="currentColor" stroke="none" />,
 };
 
 export interface IconProps {

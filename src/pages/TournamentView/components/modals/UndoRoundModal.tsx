@@ -53,7 +53,7 @@ export default function UndoRoundModal({
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className={`${theme.cardBg} rounded-2xl shadow-2xl p-6 max-w-md w-full border ${theme.cardBorder}`}>
         <div className="flex items-center gap-3 mb-4">
-          <div className="text-3xl">↩️</div>
+          <div className="text-3xl"><Icon name="undo" /></div>
           <h3 className={`font-bold text-lg ${theme.textPrimary}`}>
             {t.tournament_view_undo_round_title}
           </h3>

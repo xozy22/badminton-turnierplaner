@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "../../lib/I18nContext";
+import Icon, { type IconName } from "./Icon";
 
 /** Elements that can hold focus, in the order the browser visits them. */
 const FOCUSABLE = [
@@ -29,8 +30,8 @@ export interface ModalProps {
   title: React.ReactNode;
   /** Optional line under the title. */
   description?: React.ReactNode;
-  /** Emoji or icon shown above the title; decorative, hidden from readers. */
-  icon?: string;
+  /** Icon shown above the title; decorative, so it stays hidden. */
+  icon?: IconName;
   children?: React.ReactNode;
   /** Buttons for the footer. Omit for a dialog the caller lays out itself. */
   footer?: React.ReactNode;
@@ -146,8 +147,8 @@ export default function Modal({
       >
         <div className="mb-5 text-center">
           {icon && (
-            <div className="mb-3 text-4xl" aria-hidden="true">
-              {icon}
+            <div className="mb-3 flex justify-center text-accent">
+              <Icon name={icon} size={40} />
             </div>
           )}
           <h2 id={titleId.current} className="text-lg font-bold text-primary">
@@ -216,7 +217,13 @@ export function ModalConfirmButton({
       disabled={disabled || pending}
       className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-medium shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 ${tones[tone]}`}
     >
-      {pending ? `⏳ ${t.common_loading}` : children}
+      {pending ? (
+        <>
+          <Icon name="hourglass" /> {t.common_loading}
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }

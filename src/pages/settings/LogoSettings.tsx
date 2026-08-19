@@ -315,7 +315,7 @@ export function LogoUploader() {
           {logo ? (
             <img src={logo} alt="Logo" className="w-full h-full object-contain" />
           ) : (
-            <span className="text-3xl">🏸</span>
+            <span className="text-3xl" aria-hidden="true">🏸</span>
           )}
         </div>
 

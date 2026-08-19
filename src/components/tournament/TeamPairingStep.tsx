@@ -68,7 +68,7 @@ export default function TeamPairingStep({
     <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5`}>
       <div className="flex items-center justify-between mb-4">
         <h2 className={`font-semibold ${theme.textPrimary}`}>
-          <span aria-hidden="true">🤝</span> {t.teams_title}
+          <span aria-hidden="true"><Icon name="handshake" /></span> {t.teams_title}
           <span className={`ml-2 text-xs font-normal ${theme.textSecondary}`}>
             {manualTeams.length > 0
               ? t.teams_count_info.replace("{teams}", String(manualTeams.length)).replace("{open}", String(poolPlayers.length))

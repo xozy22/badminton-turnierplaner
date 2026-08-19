@@ -312,7 +312,7 @@ export default function TvMode() {
   const matchContextLabel = (m: Match): string => {
     const r = roundById.get(m.round_id);
     if (!r) return "";
-    if (r.phase === "third_place") return `🥉 ${t.bracket_third_place_short}`;
+    if (r.phase === "third_place") return t.bracket_third_place_short;
     if (r.phase === "group" && r.group_number != null) {
       const idx = groupRoundIndex.get(r.id) ?? r.round_number;
       return `G${r.group_number} · R${idx}`;
@@ -667,7 +667,7 @@ export default function TvMode() {
         </div>
         {blocked && (
           <div className="mt-1 text-[10px] font-bold text-danger-text flex items-center gap-1">
-            <span>🚫</span><span>{t.match_blocked_short}</span>
+            <span><Icon name="ban" /></span><span>{t.match_blocked_short}</span>
           </div>
         )}
       </div>
@@ -735,8 +735,8 @@ export default function TvMode() {
               <span className="text-xs font-mono text-white/60 shrink-0">
                 {p.completed}/{p.total}
               </span>
-              {behind && <span className="text-danger-text shrink-0">⚠</span>}
-              {done && <span className="text-emerald-400 shrink-0">✓</span>}
+              {behind && <span className="text-danger-text shrink-0"><Icon name="alert" /></span>}
+              {done && <span className="text-emerald-400 shrink-0"><Icon name="check" /></span>}
             </div>
           );
         })}
@@ -782,7 +782,7 @@ export default function TvMode() {
               key={a.id}
               className="px-8 py-3 flex items-center gap-4 text-lg font-bold animate-pulse border-b border-warning last:border-0"
             >
-              <span className="text-2xl">📢</span>
+              <span className="text-2xl"><Icon name="megaphone" /></span>
               <span>{t.tv_court_label.replace("{n}", String(a.court))}:</span>
               <span className="flex-1">
                 {a.team1} <span className="font-normal mx-2">{t.common_vs}</span> {a.team2}
@@ -864,7 +864,7 @@ export default function TvMode() {
           {queueSections.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-gray-600 text-lg text-center">
-                <div className="text-4xl mb-2">✅</div>
+                <div className="text-4xl mb-2"><Icon name="check" /></div>
                 {t.tv_no_waiting}
               </div>
             </div>
@@ -880,14 +880,14 @@ export default function TvMode() {
                       <div className={`flex items-center gap-2 mb-1.5 text-[11px] font-bold uppercase tracking-widest ${
                         isBronze ? "text-orange-300" : section.behind ? "text-danger-text" : "text-phase-text"
                       }`}>
-                        {isBronze && <span>🥉</span>}
+                        {isBronze && <Icon name="medal" className="text-orange-300" />}
                         <span>{section.label}</span>
                         {section.matches.length > 0 && (
                           <span className="font-mono font-normal text-white/60">
                             {t.court_waiting_count.replace("{count}", String(section.matches.length))}
                           </span>
                         )}
-                        {section.behind && <span>⚠</span>}
+                        {section.behind && <span><Icon name="alert" /></span>}
                       </div>
                     )}
                     <div className="space-y-2">

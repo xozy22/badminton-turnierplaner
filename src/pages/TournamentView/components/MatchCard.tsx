@@ -270,7 +270,7 @@ export default function MatchCard({
               className="text-xs text-muted hover:text-warning-text font-medium transition-colors"
               title={t.tournament_view_announce_title}
             >
-              <span aria-hidden="true">📢</span>
+              <span aria-hidden="true"><Icon name="megaphone" /></span>
             </button>
           )}
         </div>
@@ -357,7 +357,7 @@ export default function MatchCard({
               <div className="text-[11px] font-medium text-muted mb-1.5 uppercase tracking-wide">
                 {t.common_set} {setNum}
                 {complete && (
-                  <span className="text-emerald-500 ml-1">✓</span>
+                  <span className="text-emerald-500 ml-1"><Icon name="check" /></span>
                 )}
               </div>
               <div className="flex gap-1.5 items-center">

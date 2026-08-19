@@ -7,6 +7,7 @@
 // gets unassigned) before the assignment is allowed.
 
 import type { ThemeColors } from "../../../../lib/theme";
+import Icon from "../../../../components/ui/Icon";
 import { useT } from "../../../../lib/I18nContext";
 
 export interface PlayerConflict {
@@ -30,7 +31,7 @@ export default function PlayerConflictModal({
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className={`${theme.cardBg} rounded-2xl shadow-xl border ${theme.cardBorder} max-w-md w-full p-6`}>
         <div className="flex items-start gap-3 mb-4">
-          <div className="text-2xl">🚫</div>
+          <div className="text-2xl"><Icon name="ban" /></div>
           <div className="flex-1">
             <h3 className={`text-lg font-bold ${theme.textPrimary}`}>{t.player_conflict_title}</h3>
             <p className={`text-sm ${theme.textMuted} mt-1`}>{t.player_conflict_body}</p>

@@ -139,7 +139,7 @@ export default function SeedingStep({
                       className="text-muted hover:text-emerald-600 disabled:opacity-20 disabled:cursor-default text-xs leading-none"
                       title={t.seeding_move_up}
                     >
-                      ▲
+                      <Icon name="chevronDown" className="rotate-180" />
                     </button>
                     <button
                       draggable={false}
@@ -148,7 +148,7 @@ export default function SeedingStep({
                       className="text-muted hover:text-emerald-600 disabled:opacity-20 disabled:cursor-default text-xs leading-none"
                       title={t.seeding_move_down}
                     >
-                      ▼
+                      <Icon name="chevronDown" />
                     </button>
                   </div>
                 </div>

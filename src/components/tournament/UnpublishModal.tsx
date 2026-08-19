@@ -30,7 +30,7 @@ export default function UnpublishModal({
     <Modal
       open={open}
       onClose={onClose}
-      icon="📡"
+      icon="radio"
       title={t.tournament_unpublish}
       description={t.tournament_unpublish_confirm}
       closeOnBackdrop={false}

@@ -121,7 +121,7 @@ export default function Sessions() {
       for (const tid of newAttachIds) {
         await attachTournamentToSession(tid, id);
       }
-      showSuccess(t.session_create_button + " ✓");
+      showSuccess(t.session_create_button);
       setShowCreate(false);
       setNewName("");
       setNewVenueId("none");
@@ -254,7 +254,7 @@ export default function Sessions() {
       {/* Empty state */}
       {filteredSessions.length === 0 && (
         <div className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} p-10 text-center`}>
-          <div className="text-4xl mb-3 opacity-50">🔗</div>
+          <div className="text-4xl mb-3 opacity-50"><Icon name="link" /></div>
           <p className={`text-sm ${theme.textSecondary}`}>
             {filter === "active"
               ? t.sessions_no_active
@@ -546,7 +546,7 @@ export default function Sessions() {
                     <Icon name="trophy" /> {t.sessions_end_stats_active_tournaments.replace("{count}", String(endStats.activeTournaments.length))}
                   </li>
                   <li>
-                    <span aria-hidden="true">🟩</span> {t.sessions_end_stats_on_court.replace("{count}", String(endStats.matchesOnCourt))}
+                    <span aria-hidden="true"><Icon name="dot" /></span> {t.sessions_end_stats_on_court.replace("{count}", String(endStats.matchesOnCourt))}
                   </li>
                 </ul>
               </div>

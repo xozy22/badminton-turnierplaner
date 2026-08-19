@@ -97,7 +97,7 @@ export default function Statistics() {
           <p className={`${theme.textSecondary} mt-1`}>{t.stats_subtitle}</p>
         </div>
         <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-10 text-center`}>
-          <div className="text-5xl mb-4">📭</div>
+          <div className="text-5xl mb-4"><Icon name="inbox" /></div>
           <p className={`${theme.textSecondary} text-lg`}>{t.stats_no_data}</p>
         </div>
       </div>
@@ -400,7 +400,7 @@ export default function Statistics() {
                     return (
                       <tr key={entry.player.id} className={`border-t ${theme.cardBorder} ${idx < 3 ? theme.headerGradient : ""}`}>
                         <td className={`px-4 py-2.5 font-bold ${theme.textSecondary}`}>
-                          {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : idx + 1}
+                          {idx < 3 ? <Icon name="medal" className={["text-warning-text", "text-muted", "text-danger-text"][idx]} /> : idx + 1}
                         </td>
                         <td className={`px-4 py-2.5 font-medium ${theme.textPrimary}`}>{playerDisplayName(entry.player)}</td>
                         <td className={`px-4 py-2.5 text-center ${theme.textSecondary}`}>{entry.totalMatches}</td>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Icon from "../components/ui/Icon";
+import Icon, { type IconName } from "../components/ui/Icon";
 import { loadSettings, saveSettings, syncSettingsFromDb, type AppSettings } from "../lib/appSettings";
 import { wipeAllPlayers, wipeAllTournaments, wipeEntireDatabase, isTauri } from "../lib/db";
 import { useTheme } from "../lib/ThemeContext";
@@ -29,7 +29,7 @@ function Section({
   borderColor,
 }: {
   title: string;
-  icon: string;
+  icon: IconName;
   children: React.ReactNode;
   defaultOpen?: boolean;
   borderColor?: string;
@@ -44,14 +44,14 @@ function Section({
         className={`w-full px-6 py-4 flex items-center justify-between text-left hover:opacity-80 transition-colors`}
       >
         <span className={`font-semibold ${theme.textPrimary}`}>
-          {icon} {title}
+          <Icon name={icon} /> {title}
         </span>
         <span
           className={`${theme.textMuted} transition-transform duration-200 ${
             open ? "rotate-180" : ""
           }`}
         >
-          ▾
+          <Icon name="chevronDown" />
         </span>
       </button>
       {open && <div className={`px-6 pb-5 border-t ${theme.cardBorder} pt-4`}>{children}</div>}
@@ -239,18 +239,18 @@ export default function Settings() {
 
       {/* ===== Updates ===== */}
       {isTauri() && (
-        <Section title={t.settings_updates} icon="🔄" defaultOpen={false}>
+        <Section title={t.settings_updates} icon="refresh" defaultOpen={false}>
           <UpdateChecker />
         </Section>
       )}
 
       {/* ===== Language ===== */}
-      <Section title={t.settings_language} icon="🌐" defaultOpen={false}>
+      <Section title={t.settings_language} icon="globe" defaultOpen={false}>
         <LanguageSelector />
       </Section>
 
       {/* ===== Design ===== */}
-      <Section title={t.settings_design} icon="🎨" defaultOpen={false}>
+      <Section title={t.settings_design} icon="palette" defaultOpen={false}>
         <ThemeSelector />
         <FontFamilySelector />
         <FontSizeSelector />
@@ -258,7 +258,7 @@ export default function Settings() {
       </Section>
 
       {/* ===== Voreinstellungen ===== */}
-      <Section title={t.settings_defaults} icon="🎯" defaultOpen={false}>
+      <Section title={t.settings_defaults} icon="target" defaultOpen={false}>
         <div className="space-y-4">
           {/* Timer Thresholds — only remaining default since v2.8.2.
               The pre-v2.8 "default halls" picker was removed: every
@@ -319,12 +319,12 @@ export default function Settings() {
       </Section>
 
       {/* ===== Live-Veroeffentlichung ===== */}
-      <Section title={t.settings_live_publish_section} icon="📡" defaultOpen={false}>
+      <Section title={t.settings_live_publish_section} icon="radio" defaultOpen={false}>
         <LivePublishSettings />
       </Section>
 
       {/* ===== Datenbank ===== */}
-      <Section title={t.settings_database} icon="💾">
+      <Section title={t.settings_database} icon="save">
         {/* Speicherort */}
         <div className="mb-5">
           <h3 className={`text-sm font-medium ${theme.textPrimary} mb-2`}>{t.settings_db_location}</h3>
@@ -352,7 +352,11 @@ export default function Settings() {
                 disabled={changing}
                 className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium disabled:bg-gray-300"
               >
-                {changing ? t.settings_db_changing : `📁 ${t.settings_db_change}`}
+                {changing ? t.settings_db_changing : (
+                  <>
+                    <Icon name="folder" /> {t.settings_db_change}
+                  </>
+                )}
               </button>
               <button
                 onClick={handleResetToDefault}
@@ -437,7 +441,7 @@ export default function Settings() {
       </Section>
 
       {/* Credits */}
-      <Section title={t.settings_credits} icon="🏅" defaultOpen={false}>
+      <Section title={t.settings_credits} icon="medal" defaultOpen={false}>
         <div className="space-y-3">
           <div className={`rounded-xl p-4 border ${theme.cardBorder} ${theme.cardBg}`}>
             <div className={`text-xs font-semibold uppercase tracking-wide ${theme.textMuted} mb-2`}>
@@ -454,7 +458,7 @@ export default function Settings() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
             <div className="text-center mb-5">
-              <div className="text-4xl mb-3">⚠️</div>
+              <div className="text-4xl mb-3"><Icon name="alert" /></div>
               <h3 className={`text-lg font-bold ${theme.textPrimary}`}>{t.settings_confirm_title}</h3>
               <p className={`text-sm ${theme.textSecondary} mt-2`}>
                 {confirmTarget === "players"
@@ -489,7 +493,11 @@ export default function Settings() {
                 disabled={confirmText !== CONFIRM_WORD || wiping}
                 className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger transition-all text-sm font-medium disabled:bg-line-strong disabled:text-muted disabled:cursor-not-allowed"
               >
-                {wiping ? `⏳ ${t.common_loading}` : t.common_delete_permanently}
+                {wiping ? (
+                  <>
+                    <Icon name="hourglass" /> {t.common_loading}
+                  </>
+                ) : t.common_delete_permanently}
               </button>
             </div>
           </div>

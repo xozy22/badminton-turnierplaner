@@ -177,8 +177,8 @@ export const en: Translations = {
   tournament_venue_create_first: "Create venue",
   tournament_halls_courts: "Halls / Courts",
   tournament_courts_selected: "{count} court(s) selected",
-  tournament_halls_synced_from_venue: "📌 Synced from venue '{name}'",
-  tournament_halls_edit_venue_link: "→ Need to change halls or courts? Edit venue",
+  tournament_halls_synced_from_venue: "Synced from venue '{name}'",
+  tournament_halls_edit_venue_link: "Need to change halls or courts? Edit venue",
   tournament_num_groups: "Number of groups",
   tournament_qualify_per_group: "Qualifiers per group",
   tournament_qualify_ko_count: "{count} players in KO",
@@ -281,7 +281,7 @@ export const en: Translations = {
   tournament_no_players_yet: "No players yet. Please create players first.",
   tournament_no_players_hint: "No players yet. Please create players first.",
   tournament_no_filter_results: "No players found for this filter.",
-  tournament_continue_to: "Continue to {icon} {label}",
+  tournament_continue_to: "Continue to {label}",
   tournament_summary: "Summary",
   tournament_summary_name: "Name:",
   tournament_summary_mode: "Mode:",
@@ -560,7 +560,7 @@ export const en: Translations = {
   court_drag_or_double_click: "Drag to a court or double-click to assign",
   court_double_click_jump: "Double-click: Jump to match",
   court_next_round_separator: "— Round {n} —",
-  court_context_menu_unassign: "🔄 Return match to queue",
+  court_context_menu_unassign: "Return match to queue",
   court_context_menu_unassign_done: "Match returned to queue",
 
   // ===== Court Timer =====

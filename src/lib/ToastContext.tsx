@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import Icon, { type IconName } from "../components/ui/Icon";
 
 export type ToastKind = "success" | "error" | "info";
 
@@ -96,10 +97,10 @@ function ToastStack() {
 }
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
-  const palette: Record<ToastKind, { bg: string; icon: string }> = {
-    success: { bg: "bg-success", icon: "✓" },
-    error: { bg: "bg-danger", icon: "✕" },
-    info: { bg: "bg-info", icon: "ℹ" },
+  const palette: Record<ToastKind, { bg: string; icon: IconName }> = {
+    success: { bg: "bg-success", icon: "check" },
+    error: { bg: "bg-danger", icon: "x" },
+    info: { bg: "bg-info", icon: "alert" },
   };
   const { bg, icon } = palette[toast.kind];
   return (
@@ -108,7 +109,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       role={toast.kind === "error" ? "alert" : "status"}
       aria-live={toast.kind === "error" ? "assertive" : "polite"}
     >
-      <span aria-hidden="true">{icon}</span>
+      <Icon name={icon} />
       <span className="flex-1 whitespace-pre-line break-words">{toast.message}</span>
       <button
         onClick={onDismiss}

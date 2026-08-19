@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import Icon, { type IconName } from "../ui/Icon";
 import { useT } from "../../lib/I18nContext";
 import type {
   Tournament,
@@ -252,7 +253,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
           </thead>
           <tbody>
             {standings.map((s, i) => {
-              const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`;
+              const medal = `${i + 1}`;
               return (
                 <tr
                   key={s.player.id}
@@ -404,46 +405,46 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
         tournament.cap
       );
 
-      const highlightItems: { icon: string; label: string; value: string }[] = [];
+      const highlightItems: { icon: IconName; label: string; value: string }[] = [];
 
       if (highlights.mostWins) {
         highlightItems.push({
-          icon: "🏆",
+          icon: "trophy",
           label: t.print_most_wins,
           value: `${playerDisplayName(highlights.mostWins.player)} (${highlights.mostWins.wins} ${t.standings_wins})`,
         });
       }
       if (highlights.topScorer) {
         highlightItems.push({
-          icon: "🎯",
+          icon: "target",
           label: t.print_most_points,
           value: `${playerDisplayName(highlights.topScorer.player)} (${highlights.topScorer.totalPoints} ${t.common_points})`,
         });
       }
       if (highlights.closestMatch) {
         highlightItems.push({
-          icon: "🔥",
+          icon: "flame",
           label: t.print_closest_match,
           value: highlights.closestMatch.description,
         });
       }
       if (highlights.biggestWin) {
         highlightItems.push({
-          icon: "💪",
+          icon: "flame",
           label: t.print_biggest_win,
           value: highlights.biggestWin.description,
         });
       }
       if (highlights.highestScoringMatch) {
         highlightItems.push({
-          icon: "📈",
+          icon: "trendingUp",
           label: t.print_highest_scoring,
           value: highlights.highestScoringMatch.description,
         });
       }
       if (highlights.mostSetsMatch && tournament.sets_to_win > 1) {
         highlightItems.push({
-          icon: "⏱️",
+          icon: "clock",
           label: t.print_longest_match,
           value: highlights.mostSetsMatch.description,
         });
@@ -470,7 +471,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
                 }}
               >
                 <div style={{ fontSize: 10, color: "#666", marginBottom: 2 }}>
-                  {item.icon} {item.label}
+                  <Icon name={item.icon} /> {item.label}
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "#111" }}>
                   {item.value}
