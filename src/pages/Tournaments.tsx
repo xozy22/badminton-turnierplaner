@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { EmptyState } from "../components/ui/States";
+import { useConfirm } from "../components/ui/ConfirmDialog";
 import Icon from "../components/ui/Icon";
 import { Link, useNavigate } from "react-router-dom";
 import { getTournaments, deleteTournament, updateTournamentStatus, createTournament, createPlayer, getPlayers, addPlayerToTournament, updateTeamConfig, updateHallConfig, isTauri, getSportstaetten, createSportstaette, updateTournamentVenueId } from "../lib/db";
@@ -15,6 +16,7 @@ import { useDocumentTitle } from "../lib/useDocumentTitle";
 export default function Tournaments() {
   const { theme } = useTheme();
   const { t } = useT();
+  const [confirmDialog, askConfirm] = useConfirm();
   const { showError, showSuccess } = useToast();
   useDocumentTitle(t.nav_tournaments);
   const navigate = useNavigate();
@@ -52,7 +54,6 @@ export default function Tournaments() {
       setCreating(false);
     }
   };
-  const [deleteTarget, setDeleteTarget] = useState<Tournament | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
 
   const applyTemplate = async (tpl: Record<string, unknown>) => {
@@ -341,10 +342,22 @@ export default function Tournaments() {
     load();
   }, []);
 
-  const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return;
-    await deleteTournament(deleteTarget.id);
-    setDeleteTarget(null);
+  /**
+   * Deleting a tournament takes every round, match and result with it, so
+   * it asks for the word to be typed rather than for a click. The dialog
+   * could always do this; it was never asked to.
+   */
+  const handleDeleteConfirm = async (target: Tournament) => {
+    const ok = await askConfirm({
+      title: t.tournaments_delete_title,
+      message: t.tournaments_delete_message.replace("{name}", target.name),
+      icon: "trash",
+      tone: "danger",
+      confirmLabel: t.common_delete_permanently,
+      requireWord: t.tournaments_delete_confirm_word,
+    });
+    if (!ok) return;
+    await deleteTournament(target.id);
     load();
   };
 
@@ -444,7 +457,7 @@ export default function Tournaments() {
           </button>
         )}
         <button
-          onClick={() => setDeleteTarget(tr)}
+          onClick={() => void handleDeleteConfirm(tr)}
           className="text-muted hover:text-danger-text text-sm transition-colors"
           title={t.tournaments_delete_title}
         >
@@ -530,34 +543,7 @@ export default function Tournaments() {
       )}
 
       {/* Delete Confirmation Modal */}
-      {deleteTarget && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-sm p-6 border ${theme.cardBorder} text-center`}>
-            <div className="text-4xl mb-3"><Icon name="alert" /></div>
-            <h3 className={`text-lg font-bold ${theme.textPrimary} mb-2`}>
-              {t.tournaments_delete_title}
-            </h3>
-            <p className={`text-sm ${theme.textSecondary} mb-5`}>
-              <span className={`font-semibold ${theme.textPrimary}`}>"{deleteTarget.name}"</span>{" "}
-              {t.tournaments_delete_message.replace(`"{name}"`, "").trim()}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteTarget(null)}
-                className={`flex-1 ${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
-              >
-                {t.common_cancel}
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-md hover:bg-danger transition-all text-sm font-medium"
-              >
-                {t.common_delete_permanently}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {confirmDialog}
     </div>
   );
 }

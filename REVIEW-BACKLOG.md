@@ -866,14 +866,23 @@ Der Toast-Bereich ist eine `aria-live`-Region, die **dauerhaft im Baum bleibt** 
 
 ---
 
-### [ ] H2 — 55 ungenutzte Übersetzungsschlüssel
-**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `src/lib/i18n/de.ts`, `src/lib/i18n/en.ts`, `src/lib/i18n/types.ts`
+### [x] H2 — 55 ungenutzte Übersetzungsschlüssel — **erledigt**
+**Schwere:** niedrig · **Aufwand:** XS (angesetzt) · **Dateien:** i18n, `scripts/check-i18n-keys.mjs`, sechs Komponenten
 
-**Problem:** `pnpm check:i18n` meldet 55 ungenutzte Schlüssel (u. a. `tournament_unsaved_warning`, `tournaments_delete_confirm_word`, `stats_by_status`). Teils Reste entfernter Funktionen, teils Hinweis auf nie fertiggestellte Features. Das Skript existiert, wird aber von nichts erzwungen.
+**Der Punkt hieß „aufräumen". Von 55 Schlüsseln war ein Fünftel gar nicht tot:**
 
-**Fix:** Jeden Schlüssel prüfen: entfernen oder die zugehörige Funktion nachziehen. `check:i18n` anschließend in CI verpflichtend machen (J1).
+**Fünf waren Fehlalarme.** Die Zählmodi (`scoring_mode_21_ext` und vier weitere) werden zur Laufzeit zusammengesetzt: ``t[`scoring_mode_${m.id}`]``. Der Name steht nirgends im Quelltext, also meldete das Prüfskript sie als tot. Hätte ich der Liste vertraut, wären fünf Auswahlfelder leer geblieben. Das Skript kennt dieses Muster jetzt.
 
-**Fertig wenn:** `pnpm check:i18n` meldet 0 ungenutzte Schlüssel und läuft in CI.
+**Fünf waren die sichtbare Hälfte unfertiger Arbeit** — der Text war geschrieben, die letzte Verbindung fehlte:
+
+- **Ein Turnier wurde mit einem Klick gelöscht**, mitsamt allen Runden, Spielen und Ergebnissen. Die Tippbestätigung war im Dialog vorhanden und beide Texte dafür geschrieben — sie wurden nur nie angefordert. Jetzt muss „LÖSCHEN" getippt werden. Der alte Dialog war zugleich einer der letzten handgebauten Overlays ohne Fokusfalle und ohne Escape; über `useConfirm` hat er beides.
+- **Das Tippfeld zeigte nur das Wort**, „LÖSCHEN" über einem leeren Kasten, ohne zu sagen, was damit zu tun ist. Der Satz dafür lag ungenutzt daneben (aus `tournaments_delete_confirm_label` wurde `confirm_type_word`, weil der Dialog allgemein ist und der Text es immer war).
+- **Das Zurücknehmen einer Aufgabe lief ohne Rückfrage.** Was mit den bereits eingetragenen Walkover-Ergebnissen geschieht, kann niemand erraten — der Satz, der es erklärt, war da und wurde nie gezeigt.
+- **Eine blockierte Karte sagte „Spieler X — Feld 3"**, auch wenn Feld 3 zu einem anderen Turnier derselben Session gehört. Der Turnierleiter sucht dann Feld 3 im eigenen Turnier und findet dort niemanden. Die Konflikterkennung über Turniergrenzen funktionierte längst; nur die Erklärung fehlte. Der Turniername reist jetzt mit dem Konflikt mit.
+
+**Die übrigen 45** waren tatsächlich Reste — Texte entfernter Funktionen und von Ansichten, die um andere Formulierungen herum neu gebaut wurden. Entfernt.
+
+**Fertig wenn:** ~~`pnpm check:i18n` meldet 0 ungenutzte Schlüssel und läuft in CI~~ — erfüllt; die Prüfung ist von „advisory" auf verbindlich umgestellt.
 
 ---
 

@@ -35,12 +35,20 @@ export interface ConflictPlayer {
   court: number;
   /** Match-id the player is currently in (the active one, NOT the candidate). */
   conflictingMatchId: number;
+  /**
+   * Set only when the blocking match belongs to a *different* tournament in
+   * the same session. Without it the message names a court number that
+   * means nothing in the tournament the user is looking at.
+   */
+  tournamentName?: string;
 }
 
 /** Internal record stored per running player. */
 export interface RunningPlayerCourt {
   court: number;
   matchId: number;
+  /** Name of the owning tournament, when it is not the current one. */
+  tournamentName?: string;
 }
 
 /**
@@ -98,6 +106,7 @@ export function getMatchConflicts(
       playerId: pid,
       court: running.court,
       conflictingMatchId: running.matchId,
+      ...(running.tournamentName ? { tournamentName: running.tournamentName } : {}),
     });
   }
   return conflicts;

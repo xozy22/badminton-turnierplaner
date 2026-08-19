@@ -888,6 +888,20 @@ export default function TournamentView() {
 
   const handlePlayerUnretire = async (playerId: number) => {
     if (!tournament) return;
+
+    // What happens to the walkovers already recorded is the part nobody
+    // can guess: bringing a player back does not undo the matches their
+    // absence decided. The sentence saying so was written and never
+    // shown -- the action ran on a single click (REVIEW-BACKLOG.md H2).
+    const ok = await askConfirm({
+      title: t.retire_undo,
+      message: t.retire_undo_message,
+      icon: "medical",
+      tone: "accent",
+      confirmLabel: t.retire_undo_confirm,
+    });
+    if (!ok) return;
+
     // Same partner rule as retiring, so both directions stay symmetric.
     const partner = getFixedPartner(playerId);
     const playersToUnretire = partner !== null ? [playerId, partner] : [playerId];
@@ -1086,11 +1100,18 @@ export default function TournamentView() {
       for (const [pid, loc] of sessionCtx.playerCourts) {
         if (loc.tournamentId === tournament.id) continue; // already counted
         if (map.has(pid)) continue;
-        map.set(pid, { court: loc.court, matchId: loc.matchId });
+        // The name travels with the entry so the message can say which
+        // tournament is holding the player, not just a court number that
+        // does not exist in this one.
+        map.set(pid, {
+          court: loc.court,
+          matchId: loc.matchId,
+          tournamentName: sessionCtx.tournaments.find((tt) => tt.id === loc.tournamentId)?.name,
+        });
       }
     }
     return map;
-  }, [allMatches, sessionCtx.playerCourts, tournament?.session_id, tournament?.id]);
+  }, [allMatches, sessionCtx.playerCourts, sessionCtx.tournaments, tournament?.session_id, tournament?.id]);
 
   // Per-waiting-match list of player conflicts. Empty => match is safe to
   // assign. Used by the queue render (visual marker) and the MatchCard

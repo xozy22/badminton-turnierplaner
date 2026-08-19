@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import Icon from "../../components/ui/Icon";
 import type { Match, HallConfig, Round, TournamentStatus } from "../../lib/types";
+import { fill } from "../../lib/i18n/format";
 import { getCourtHallLabel } from "../../lib/types";
 import type { ConflictPlayer } from "../../lib/courtConflicts";
 import { CourtTimer } from "./CourtTimer";
@@ -369,9 +370,16 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
           const blockedTitle = isBlocked
             ? conflicts!
                 .map((c) =>
-                  t.player_conflict_row
-                    .replace("{player}", playerName(c.playerId))
-                    .replace("{court}", String(c.court)),
+                  c.tournamentName
+                    ? fill(t.session_player_busy_in_other, {
+                        player: playerName(c.playerId),
+                        tournament: c.tournamentName,
+                        court: String(c.court),
+                      })
+                    : fill(t.player_conflict_row, {
+                        player: playerName(c.playerId),
+                        court: String(c.court),
+                      }),
                 )
                 .join("\n")
             : t.court_drag_or_double_click;

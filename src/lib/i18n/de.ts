@@ -32,7 +32,6 @@ export const de: Translations = {
   shortcuts_general_fullscreen: "Vollbild (TV-Modus)",
   common_close: "Schließen",
   common_back: "Zurück",
-  common_next: "Weiter",
   common_export: "Export",
   common_import: "Import",
   common_search: "Suchen",
@@ -44,19 +43,13 @@ export const de: Translations = {
   common_loading: "Laden...",
   common_saving: "Speichern...",
   common_done: "Fertig",
-  common_none: "Keine",
-  common_yes: "Ja",
-  common_no: "Nein",
-  common_ok: "OK",
   common_field: "Feld",
   common_fields: "Felder",
-  common_court: "Feld",
   common_courts: "Felder",
   common_round: "Runde",
   common_vs: "vs",
   common_bye: "Freilos",
   common_set: "Satz",
-  common_sets: "Sätze",
   common_points: "Punkte",
   common_wins_abbr: "S",
   common_losses_abbr: "N",
@@ -67,7 +60,6 @@ export const de: Translations = {
   common_gender_female_short: "D",
   common_gender: "Geschlecht",
   common_age: "Alter",
-  common_birth_year: "Geburtsjahr",
   common_birth_date: "Geburtsdatum",
   common_club: "Verein",
   common_action_irreversible: "Diese Aktion kann nicht rückgängig gemacht werden.",
@@ -76,7 +68,6 @@ export const de: Translations = {
   common_confirm_type: "Tippe {word} zur Bestätigung:",
   common_delete_permanently: "Endgültig löschen",
   common_selected: "{count} ausgewählt",
-  common_of: "von",
   common_and_more: "... und {count} weitere",
   common_free: "Frei",
   common_occupied: "belegt",
@@ -131,7 +122,7 @@ export const de: Translations = {
   tournaments_none_yet: "Noch keine Turniere vorhanden.",
   tournaments_delete_title: "Turnier löschen?",
   tournaments_delete_message: "\"{name}\" wird mit allen Runden, Spielen und Ergebnissen unwiderruflich gelöscht.",
-  tournaments_delete_confirm_label: "Tippe {word} zur Bestätigung:",
+  confirm_type_word: "Tippe {word} zur Bestätigung:",
   tournaments_delete_confirm_word: "LÖSCHEN",
   tournaments_import: "Turnier importieren",
   tournaments_import_error: "Vorlage konnte nicht geladen werden",
@@ -140,7 +131,6 @@ export const de: Translations = {
   template_export_venue_label: "Sportstätte wird mitexportiert",
   template_export_venue_missing: "Diesem Turnier ist keine Sportstätte zugeordnet — die Vorlage wird ohne Venue-Block exportiert. Beim Import muss eine Sportstätte manuell ausgewählt werden.",
   tournaments_best_of: "Best of {count}",
-  tournaments_up_to: "bis {points}",
 
   // ===== Tournament Create / Edit =====
   tournament_create_title: "Neues Turnier erstellen",
@@ -183,7 +173,6 @@ export const de: Translations = {
   ko_modal_start_button: "KO starten",
   tournament_points_per_set: "Punkte pro Satz",
   tournament_venue: "Sportstätte",
-  tournament_venue_none: "-- Keine --",
   tournament_venue_required: "Sportstätte ist erforderlich",
   tournament_venue_pick_placeholder: "-- Sportstätte auswählen --",
   tournament_venue_no_venues_title: "Keine Sportstätte angelegt",
@@ -194,20 +183,16 @@ export const de: Translations = {
   tournament_halls_synced_from_venue: "Aus Sportstätte '{name}' übernommen",
   tournament_halls_edit_venue_link: "Hallen oder Felder ändern? Sportstätte bearbeiten",
   tournament_num_groups: "Anzahl Gruppen",
-  tournament_qualify_per_group: "Qualifikanten pro Gruppe",
   tournament_qualify_ko_count: "{count} Spieler im KO",
   tournament_ko_size: "KO-Bracket Größe",
   tournament_ko_size_hint: "Top {perGroup} pro Gruppe + {wildcards} beste Nachrücker",
   tournament_seeding_enable: "Setzliste aktivieren",
   tournament_seeding_hint: "Gesetzte Spieler treffen erst in späteren Runden aufeinander",
   tournament_entry_fee_enable: "Startgeld erheben",
-  tournament_entry_fee_hint: "Zahlungen pro Teilnehmer verwalten",
   tournament_entry_fee_per_person: "Pro Person (EUR)",
   tournament_entry_fee_per_team: "Pro Team (EUR)",
   tournament_entry_fee_hint_person: "Zahlungen pro Teilnehmer verwalten",
   tournament_entry_fee_hint_team: "Eine Zahlung pro Team — Partner wird automatisch als bezahlt markiert",
-  tournament_entry_fee_single: "Einzel (EUR)",
-  tournament_entry_fee_double: "Doppel (EUR)",
   tournament_min_rest_enable: "Mindest-Ruhezeit aktivieren",
   tournament_min_rest_hint: "Warnung anzeigen, wenn ein Spieler nach seinem letzten Match noch nicht genug Pause hatte",
   tournament_min_rest_label: "Mindest-Ruhezeit zwischen Spielen",
@@ -304,7 +289,6 @@ export const de: Translations = {
   tournament_players_shown: "{shown} von {total} Spielern angezeigt",
   tournament_players_selected_of: "({count} davon ausgewählt)",
   tournament_no_players_yet: "Noch keine Spieler vorhanden. Bitte erst Spieler anlegen.",
-  tournament_no_players_hint: "Noch keine Spieler vorhanden. Bitte erst Spieler anlegen.",
   tournament_no_filter_results: "Keine Spieler für diesen Filter gefunden.",
   tournament_continue_to: "Weiter zu {label}",
   tournament_summary: "Zusammenfassung",
@@ -420,7 +404,6 @@ export const de: Translations = {
   groups_count: "{count} Gruppen",
 
   // Top N
-  top_n: "Top {n}",
 
   // ===== Tournament View =====
   tournament_view_edit: "Bearbeiten",
@@ -444,7 +427,6 @@ export const de: Translations = {
   validation_teams_incomplete: "Erst {formed} von {expected} Teams gebildet",
   validation_errors_title: "Das Turnier kann so nicht starten",
   validation_warnings_title: "Hinweise",
-  export_results: "Ergebnisse exportieren",
   export_matches_csv: "Spiele (CSV)",
   export_standings_csv: "Rangliste (CSV)",
   export_payments_csv: "Startgeld (CSV)",
@@ -472,7 +454,6 @@ export const de: Translations = {
   tournament_view_tab_bracket: "Bracket",
   tournament_view_tab_standings: "Rangliste",
   tournament_view_tab_management: "Verwaltung",
-  tournament_view_all_groups: "Alle Gruppen",
   tournament_view_on_court: "Auf dem Feld ({count})",
   tournament_view_completed_matches: "Beendet ({count})",
   tournament_view_assign_court_first: "Bitte zuerst einem Feld zuweisen",
@@ -484,11 +465,8 @@ export const de: Translations = {
 
   // ===== Edit Tournament Modal =====
   edit_tournament_title: "Turnier bearbeiten",
-  edit_tournament_win_sets: "Gewinnsätze",
-  edit_tournament_points_set: "Punkte/Satz",
   edit_tournament_courts_label: "Spielfelder",
   edit_tournament_groups_count: "Anzahl Gruppen",
-  edit_tournament_qualify_group: "Qualifikanten/Gruppe",
   edit_tournament_fee_single: "Startgeld Einzel (EUR)",
   edit_tournament_fee_double: "Startgeld Doppel (EUR)",
   edit_tournament_saved: "Einstellungen gespeichert",
@@ -572,7 +550,6 @@ export const de: Translations = {
   bracket_winner: "Sieger",
   bracket_winners_bracket: "Gewinner-Runde",
   bracket_losers_bracket: "Verlierer-Runde",
-  bracket_grand_final: "Großes Finale",
 
   // ===== Court Overview =====
   court_field: "Feld {n}",
@@ -633,12 +610,10 @@ export const de: Translations = {
   import_step_mapping: "Zuordnung",
   import_step_preview: "Vorschau",
   import_step_done: "Fertig",
-  import_select_file: "Datei auswählen",
   import_file_hint: "Excel-Datei (.xlsx, .xls) oder CSV auswählen",
   import_choose_file: "Datei auswählen",
   import_sheet: "Tabellenblatt",
   import_rows_found: "{count} Zeilen gefunden. Bitte ordne die Spalten zu.",
-  import_column_name: "Spalte für Name *",
   import_column_first_name: "Spalte für Vorname",
   import_column_last_name: "Spalte für Nachname",
   import_column_gender: "Spalte für Geschlecht (optional)",
@@ -674,9 +649,6 @@ export const de: Translations = {
 
   // ===== Print View =====
   print_participants: "Teilnehmer ({count})",
-  print_all_results: "Alle Ergebnisse",
-  print_group_phase: "Gruppenphase",
-  print_ko_phase: "KO-Phase",
   print_group_tables: "Gruppentabellen",
   print_group: "Gruppe {n}",
   print_round: "Runde {n}",
@@ -698,8 +670,6 @@ export const de: Translations = {
   print_matches_completed: "{completed} von {total} Spielen abgeschlossen",
   print_sets_played: "{count} Sätze gespielt",
   print_total_points: "{count} Punkte gesamt",
-  print_footer: "Badminton Turnierplaner",
-  print_created_on: "Erstellt am {date}",
 
   // ===== Settings Page =====
   settings_title: "Einstellungen",
@@ -833,8 +803,6 @@ export const de: Translations = {
   stats_subtitle: "Turnier- und Spielerauswertungen.",
 
   stats_tournaments_overview: "Turnier-Übersicht",
-  stats_total_tournaments: "Turniere gesamt",
-  stats_by_status: "Nach Status",
   stats_by_format: "Nach Format",
   stats_by_mode: "Nach Modus",
 
@@ -855,7 +823,6 @@ export const de: Translations = {
   stats_courts_used: "Felder genutzt",
   stats_matches_per_court: "Spiele pro Feld",
   stats_avg_matches_per_court: "Durchschn. Spiele pro Feld",
-  stats_avg_time_per_court: "Durchschn. Zeit pro Feld",
 
   stats_player_demographics: "Teilnehmer-Statistiken",
   stats_gender_split: "Geschlechterverteilung",
@@ -875,7 +842,6 @@ export const de: Translations = {
   stats_filter_tournament: "Nach Turnier filtern",
 
   // ===== Unsaved changes warning =====
-  tournament_unsaved_warning: "Du hast ungespeicherte Änderungen. Willst du die Seite wirklich verlassen?",
 
   // ===== Database wipe =====
   settings_wipe_database: "Gesamte Datenbank zurücksetzen",
@@ -887,7 +853,6 @@ export const de: Translations = {
 
   // ===== Undo last round =====
   tournament_view_undo_round: "Letzte Runde rückgängig",
-  tournament_view_undo_round_confirm: "Die letzte Runde und alle zugehörigen Spiele werden endgültig gelöscht.",
   tournament_view_undo_round_title: "Runde rückgängig machen?",
   tournament_view_undo_target_label: "Folgende Runde wird gelöscht:",
   tournament_view_undo_match_count: "{n} Matches",
@@ -923,7 +888,6 @@ export const de: Translations = {
   certificate_place_1: "1. Platz",
   certificate_place_2: "2. Platz",
   certificate_place_3: "3. Platz",
-  certificate_tournament: "Turnier",
   certificate_date: "Datum",
   certificate_signature: "Turnierleitung",
   certificate_congratulations: "Herzlichen Glückwunsch!",
@@ -946,9 +910,6 @@ export const de: Translations = {
   // ===== Sessions (Multi-Tournament-Workspace) =====
   sessions_title: "Sessions",
   sessions_subtitle: "Mehrere Turniere parallel an derselben Sportstätte",
-  sessions_count_active: "{count} aktiv",
-  sessions_count_ended: "{count} beendet",
-  sessions_count_archived: "{count} archiviert",
   sessions_new: "Neue Session",
   sessions_none_yet: "Noch keine Sessions angelegt",
   sessions_no_active: "Keine aktiven Sessions",
@@ -1003,7 +964,6 @@ export const de: Translations = {
   session_started_at: "Gestartet",
   session_ended_at: "Beendet am",
   session_dashboard_title: "Session-Dashboard",
-  session_dashboard_subtitle: "Live-Übersicht über alle Turniere dieser Session",
   session_dashboard_courts_section: "Felder",
   session_dashboard_queue_section: "Warteschlange",
   session_dashboard_recent_section: "Letzte Ergebnisse",
@@ -1016,15 +976,10 @@ export const de: Translations = {
   session_pill_label: "Session",
   session_pill_open_dashboard: "Dashboard öffnen",
   session_switcher_label: "Andere Turniere in dieser Session",
-  session_court_busy_in_other: "Belegt von Turnier {tournament}",
-  session_player_busy_in_other: "Spieler spielt aktuell in Turnier {tournament} auf Court {court}",
-  session_court_dropdown_busy: "Court {court} (von {tournament} belegt)",
-  session_match_from_other_tournament: "{tournament}",
+  session_player_busy_in_other: "{player} — Feld {court} in „{tournament}“",
   tournament_create_session_label: "Session",
   tournament_create_session_none: "Keine Session",
   tournament_create_session_hint: "Optional - bindet das Turnier in einen Multi-Turnier-Workspace ein.",
   sportstaetten_in_use_error: "Sportstätte wird noch verwendet von: {names}",
   sportstaetten_active_sessions: "Aktive Sessions an dieser Sportstätte",
-  sportstaetten_no_active_sessions: "Keine aktiven Sessions.",
-  sportstaetten_start_session: "Session starten",
 };

@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import { useT } from "../../lib/I18nContext";
+import { fill } from "../../lib/i18n/format";
 import Modal, { ModalCancelButton, ModalConfirmButton } from "./Modal";
 import type { IconName } from "./Icon";
 
@@ -85,12 +86,16 @@ export function useConfirm(): [React.ReactNode, (request: ConfirmRequest) => Pro
     >
       {request?.requireWord && (
         <label className="block text-center text-sm">
-          <span className="text-secondary">{request.requireWord}</span>
+          {/* The word alone above an empty box does not say what to do
+              with it, so the sentence names the action. */}
+          <span className="text-secondary">
+            {fill(t.confirm_type_word, { word: request.requireWord })}
+          </span>
           <input
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             className="mt-2 w-full rounded-md border border-line-strong bg-surface-input px-3 py-2 text-center font-mono text-primary outline-none focus:border-accent"
-            aria-label={request.requireWord}
+            aria-label={fill(t.confirm_type_word, { word: request.requireWord })}
           />
         </label>
       )}
