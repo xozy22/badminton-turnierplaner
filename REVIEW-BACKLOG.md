@@ -912,36 +912,46 @@ Der Toast-Bereich ist eine `aria-live`-Region, die **dauerhaft im Baum bleibt** 
 
 # I · Sicherheit & Datenschutz
 
-### [ ] I1 — Content-Security-Policy erlaubt beliebige Ziele
-**Schwere:** mittel · **Aufwand:** XS · **Dateien:** `src-tauri/tauri.conf.json:23`
+### [x] I1 — Content-Security-Policy erlaubt beliebige Ziele — **erledigt**
+**Schwere:** mittel · **Aufwand:** XS · **Dateien:** `src-tauri/tauri.conf.json`, `src-tauri/capabilities/default.json`, `src/lib/livePublish.ts`, `src/pages/settings/LivePublishSettings.tsx`
 
-**Problem:** `connect-src 'self' ipc: … https: http:` erlaubt Verbindungen zu jedem beliebigen Host, auch unverschlüsselt. Für eine App, die genau einen konfigurierbaren Endpunkt anspricht, ist das unnötig weit — und `http:` bedeutet, dass das Shared Secret im Klartext über das Netz gehen kann.
+**Umgesetzt:** `http:` ist aus der CSP und aus den Berechtigungen verschwunden. Eine neue Funktion `checkEndpoint` unterscheidet drei Fälle — leer, unvollständig, unverschlüsselt — und wird an drei Stellen benutzt: beim Tippen (Meldung direkt unter dem Feld, `aria-invalid`), beim Speichern und beim Verbindungstest.
 
-**Fix:** `http:` streichen (nur `https:` erlauben), im Einstellungsdialog HTTP-Endpunkte ablehnen oder mit deutlicher Warnung versehen. Die `http:`-Regel in `capabilities/default.json` entsprechend entfernen.
+**Die vierte Stelle ist die wichtigste:** die Prüfung sitzt auch in `postJson`, dem einen Trichter, durch den jede Übertragung läuft. Eine Konfiguration aus einer älteren Version trägt weiterhin die Adresse, die sie bekommen hat — eine Prüfung nur am Eingabefeld hätte die weiter im Klartext senden lassen, bei jedem Heartbeat.
 
-**Fertig wenn:** Ein `http://`-Endpunkt wird beim Speichern abgelehnt; die CSP enthält kein `http:` mehr.
+Ohne Ausnahme für `localhost`: eine Bequemlichkeitslücke in einer Sicherheitsregel wird zur Regel.
 
----
-
-### [ ] I2 — Live-Push-Secret im Klartext gespeichert und angezeigt
-**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/livePublish.ts:24`, `src/pages/Settings.tsx`, `wordpress-plugin/boss-live-results/boss-live-results.php:210`
-
-**Problem:** Das gemeinsame Geheimnis liegt unverschlüsselt in `app_settings` (also in jedem `.db`-Backup, das der Nutzer weitergibt) und wird sowohl im Desktop-Einstellungsdialog als auch im WordPress-Adminbereich als `type="text"` im Klartext angezeigt.
-
-**Fix:** Im WordPress-Adminbereich `type="password"` mit „Anzeigen"-Umschalter; im Desktop dasselbe. Secret aus dem Vorlagen-Export und aus jeder Log-/Fehlerausgabe fernhalten (prüfen!). Optional: Speicherung im Betriebssystem-Schlüsselbund über ein Tauri-Plugin.
-
-**Fertig wenn:** Das Secret ist nirgends im Klartext sichtbar und in keiner exportierten Datei enthalten (außer bewusst im Backup, dann dokumentiert).
+**Fertig wenn:** ~~Ein `http://`-Endpunkt wird beim Speichern abgelehnt; die CSP enthält kein `http:` mehr~~ — erfüllt, mit sieben Tests.
 
 ---
 
-### [ ] I3 — WordPress-Endpunkt ohne Begrenzung, personenbezogene Daten öffentlich
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `wordpress-plugin/boss-live-results/boss-live-results.php:44-140`
+### [x] I2 — Live-Push-Secret im Klartext gespeichert und angezeigt — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `wordpress-plugin/boss-live-results/boss-live-results.php`, i18n
 
-**Problem:** `/push` hat `permission_callback => '__return_true'` mit manueller Secret-Prüfung (korrekt via `hash_equals`), aber keine Ratenbegrenzung und keine Größenprüfung — der Payload wird 1:1 als Post-Inhalt gespeichert. `/tournaments` lädt mit `numberposts => -1` alles. Zudem veröffentlicht die Anwendung Vor- und Nachnamen sowie Vereinszugehörigkeit von Vereinsmitgliedern auf einer öffentlichen Website; das ist eine Verarbeitung personenbezogener Daten, für die es weder einen Hinweis noch eine Einwilligungsmöglichkeit gibt.
+**Umgesetzt:** Im WordPress-Adminbereich ist das Feld jetzt `type="password"` mit „Show"-Umschalter (der Desktop-Dialog hatte das bereits). Ein Einstellungsformular wird über die Schulter gelesen, für einen Support-Thread abfotografiert oder beim Einrichten auf den Beamer gelegt — Maskierung kostet nichts und nimmt diese ganze Klasse von Versehen weg.
 
-**Fix:** Größenlimit und einfache Ratenbegrenzung für `/push`; `numberposts` begrenzen und paginieren; im Desktop beim Aktivieren von Live-Ergebnissen einen Datenschutzhinweis anzeigen und optional Anzeige nur mit abgekürztem Nachnamen („Max M.") oder ohne Verein anbieten.
+**Geprüft, nicht angenommen:** Das Secret taucht in keinem Export und in keinem Log-Eintrag auf. `PushLogEntry` führt Zeitstempel, Turnier, Status, Dauer und Fehlermeldung — das Secret sitzt im Header und wird nie mitgeschrieben.
 
-**Fertig wenn:** Endpunkte sind begrenzt; beim Aktivieren erscheint ein Datenschutzhinweis mit wählbarer Anonymisierungsstufe.
+**Bewusst so gelassen:** Im Datenbank-Backup bleibt es enthalten — eine Kopie der Datenbank ist eine Kopie der Datenbank. Der Hinweistext sagt das jetzt: er nennt sowohl die Spielerdaten als auch das Live-Geheimnis und bittet, die Datei entsprechend zu behandeln. Vorher stand dort nur, dass die App danach neu starten muss.
+
+**Fertig wenn:** ~~Das Secret ist nirgends im Klartext sichtbar und in keiner exportierten Datei enthalten (außer bewusst im Backup, dann dokumentiert)~~ — erfüllt.
+
+---
+
+### [x] I3 — WordPress-Endpunkt ohne Begrenzung, personenbezogene Daten öffentlich — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `wordpress-plugin/boss-live-results/boss-live-results.php`, `frontend.js`, `src/lib/livePublish.ts`, `src/lib/types.ts`, `src/lib/useLivePublisher.tsx`, `src/pages/TournamentView/index.tsx`, `src/pages/settings/LivePublishSettings.tsx`
+
+**Ein Fund beim Nachlesen, schwerer als der Punkt selbst:** Der Kopf von `livePublish.ts` versprach, dass nur Vorname, Nachname und Verein die App verlassen — „Geburtsdatum und Zahlungsdaten werden bewusst weggelassen". Für die `players`-Liste stimmte das. Die **Tabellenstände** trugen jedoch das vollständige `Player`-Objekt: `birth_date`, `gender`, `created_at`. Diese Felder gingen bei **jeder** Übertragung an die öffentliche Vereinsseite.
+
+Am realen Datenpfad nachgewiesen, bevor ich es behauptet habe: ein Schnappschuss aus `buildSnapshot` enthielt die Zeichenkette `1998-04-12` aus dem Testspieler. Zwei Filterpfade, einer davon vergessen — genau so entstehen solche Lücken. Es gibt jetzt einen Trichter (`toPublicStandings`), und der Test prüft beide Pfade getrennt.
+
+**Die Anonymisierungsstufe:** drei Stufen — voller Name mit Verein, abgekürzt mit Verein („Max M."), abgekürzt ohne Verein. Doppelnamen behalten beide Initialen („Müller-Lüdenscheidt" → „M.-L."); den halben Nachnamen einer Person wegzulassen liest sich für sie wie ein Fehler.
+
+Voreinstellung bleibt „voller Name" — eine stille Änderung würde die Anzeige jeder bestehenden Installation umschreiben. Stattdessen tritt die Entscheidung dorthin, wo sie anfällt: **beim Einschalten der Live-Ergebnisse** erscheint ein Hinweis, der benennt, was gleich öffentlich wird, und auf die Umstellmöglichkeit verweist. Ein Satz in den Einstellungen läse nur, wer die Verbindung eingerichtet hat — nicht, wer heute das Turnier leitet.
+
+**WordPress-Seite:** `/push` hat ein Größenlimit (2 MB; ein volles 64er-Turnier liegt bei etwa 120 KB) und eine Bremse gegen das Durchprobieren des Secrets. `hash_equals` ist zeitkonstant, das schützt gegen Timing — aber nicht gegen Raten. Gezählt werden **nur Fehlversuche**, zehn pro Viertelstunde und IP: ein laufendes Turnier überträgt bei jedem Ergebnis, und den legitimen Client zu drosseln wäre ein Denial-of-Service gegen den eigenen Nutzer. Die IP wird gehasht abgelegt, nicht im Klartext. `/tournaments` liefert jetzt Seiten statt alles (Vorgabe 50, maximal 100).
+
+**Fertig wenn:** ~~Endpunkte sind begrenzt; beim Aktivieren erscheint ein Datenschutzhinweis mit wählbarer Anonymisierungsstufe~~ — erfüllt.
 
 ---
 

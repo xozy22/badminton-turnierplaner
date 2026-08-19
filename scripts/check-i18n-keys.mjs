@@ -80,6 +80,7 @@ const ALLOWED_ASCII = new Set([
   "zuerst", "genaueste", "individuelle",
   "abschluss", "abgeschlossen", "abgeschlossene", "abgeschlossenen",
   "adresse", "ausscheiden", "ausschnitt", "dass", "muss", "musst",
+  "geheimnis", "geheimnisses", "geheimnisse", "wissen", "gewissen",
   "ergebnisse", "ergebnissen", "gelegenheitsspieler", "passenden",
   "stattdessen", "verlassen", "voraussetzung", "wiederholungsspiele",
   "wiederholungsspielen", "zusammenfassung",

@@ -254,6 +254,17 @@ export interface Translations {
   settings_live_publish_help: string;
   settings_live_publish_url: string;
   settings_live_publish_url_placeholder: string;
+  settings_live_publish_url_insecure: string;
+  settings_live_publish_url_malformed: string;
+  live_privacy_title: string;
+  live_privacy_notice_full: string;
+  live_privacy_notice_abbreviated: string;
+  live_privacy_notice_no_club: string;
+  settings_live_publish_privacy: string;
+  settings_live_publish_privacy_hint: string;
+  settings_live_publish_privacy_full: string;
+  settings_live_publish_privacy_abbreviated: string;
+  settings_live_publish_privacy_no_club: string;
   settings_live_publish_secret: string;
   settings_live_publish_secret_placeholder: string;
   settings_live_publish_test: string;

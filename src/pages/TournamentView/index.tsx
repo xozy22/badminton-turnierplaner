@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Icon from "../../components/ui/Icon";
+import { useConfirm } from "../../components/ui/ConfirmDialog";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import PrintDialog from "../../components/print/PrintDialog";
 import OverflowMenu from "../../components/ui/OverflowMenu";
@@ -916,6 +917,7 @@ export default function TournamentView() {
   // pushes suppressed). Mutually exclusive UI-wise with the inactive state.
   const [livePaused, setLivePaused] = useState(false);
   const [liveBusy, setLiveBusy] = useState(false);
+  const [confirmDialog, askConfirm] = useConfirm();
   // Live push status (lastPushAt, lastError, backoff state) for the inline
   // indicator next to the Live button. Updates in-place when the global
   // publisher pushes / fails.
@@ -1332,6 +1334,23 @@ export default function TournamentView() {
         showError(t.tournament_live_publish_no_config);
         return;
       }
+      // Names and clubs of club members are about to appear on a public
+      // website. Whoever runs the tournament should see that stated
+      // before it happens, not find out afterwards.
+      const level = config.privacyLevel ?? "full";
+      const ok = await askConfirm({
+        title: t.live_privacy_title,
+        message:
+          level === "full"
+            ? t.live_privacy_notice_full
+            : level === "abbreviated"
+              ? t.live_privacy_notice_abbreviated
+              : t.live_privacy_notice_no_club,
+        icon: "globe",
+        tone: "warning",
+        confirmLabel: t.tournament_live_publish_enable,
+      });
+      if (!ok) return;
       await setTournamentLive(tournamentId, true);
       setLiveActive(true);
       showSuccess(t.tournament_live_publish_enabled);
@@ -1847,6 +1866,8 @@ export default function TournamentView() {
           onConfirm={confirmRemovePlayer}
         />
       )}
+
+      {confirmDialog}
 
       <RestWarningModal
         warning={restWarning}

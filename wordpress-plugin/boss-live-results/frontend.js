@@ -446,7 +446,9 @@
   }
 
   async function fetchList() {
-    const r = await fetch(cfg.rest_base + "/tournaments", {
+    // The endpoint pages at 50 by default; asking explicitly keeps the
+    // number visible here rather than hidden in the server default.
+    const r = await fetch(cfg.rest_base + "/tournaments?per_page=50", {
       cache: "no-store",
       credentials: "same-origin",
     });

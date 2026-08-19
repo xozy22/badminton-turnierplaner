@@ -232,6 +232,12 @@ export interface LivePublishConfig {
   // any tournament is currently being pushed.
   endpoint: string;       // e.g. https://verein.de/wp-json/boss/v1/push
   secret: string;         // shared secret used in X-BOSS-Secret header
+  /**
+   * How much of a player's name reaches the public page. Absent means
+   * "full", which is what installations predating this option published.
+   * See PrivacyLevel in livePublish.ts.
+   */
+  privacyLevel?: "full" | "abbreviated" | "abbreviated_no_club";
   lastPushAt?: string;    // ISO of last successful push (any tournament)
   lastError?: string;     // last error message, cleared on next success
 }

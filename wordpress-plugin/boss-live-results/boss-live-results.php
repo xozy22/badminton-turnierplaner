@@ -38,6 +38,46 @@ add_action('init', function () {
 });
 
 // ---------------------------------------------------------------------------
+// Limits
+// ---------------------------------------------------------------------------
+
+/** Largest snapshot accepted, in bytes. A 64-player tournament with all
+ *  sets played lands around 120 KB; 2 MB leaves generous headroom while
+ *  keeping a runaway or hostile body out of the posts table. */
+const BOSS_MAX_BODY_BYTES = 2097152;
+
+/** Failed authentications tolerated per IP before the endpoint stops
+ *  answering, and the window they are counted in. Only *failures* count:
+ *  a tournament in progress pushes on every score, and throttling the
+ *  legitimate client would be a denial of service against its own user. */
+const BOSS_AUTH_FAIL_MAX    = 10;
+const BOSS_AUTH_FAIL_WINDOW = 900; // 15 minutes
+
+/** Cache key for the per-IP failure counter. The IP is hashed rather than
+ *  stored: the counter is not a visitor log, and a transient that outlives
+ *  its purpose should not hold an address. */
+function boss_fail_key() {
+    $ip = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : 'unknown';
+    return 'boss_authfail_' . md5($ip);
+}
+
+function boss_auth_failures() {
+    return (int) get_transient(boss_fail_key());
+}
+
+function boss_note_auth_failure() {
+    $key = boss_fail_key();
+    $n   = (int) get_transient($key);
+    // set_transient refreshes the window on each failure, so a slow drip
+    // of guesses cannot outlast it by pacing itself just under the edge.
+    set_transient($key, $n + 1, BOSS_AUTH_FAIL_WINDOW);
+}
+
+function boss_clear_auth_failures() {
+    delete_transient(boss_fail_key());
+}
+
+// ---------------------------------------------------------------------------
 // REST API
 // ---------------------------------------------------------------------------
 
@@ -68,11 +108,26 @@ add_action('rest_api_init', function () {
  *   - {schema:1, tournament:{id:N, ...}, ...}     → upsert snapshot
  */
 function boss_handle_push(WP_REST_Request $req) {
+    if (boss_auth_failures() >= BOSS_AUTH_FAIL_MAX) {
+        return new WP_Error('too_many', 'Too many failed attempts', [
+            'status' => 429,
+        ]);
+    }
+
+    // Size is checked before anything reads the body, so an oversized
+    // request costs a header lookup rather than a parse.
+    $raw = $req->get_body();
+    if (strlen($raw) > BOSS_MAX_BODY_BYTES) {
+        return new WP_Error('too_large', 'Payload too large', ['status' => 413]);
+    }
+
     $stored = (string) get_option(BOSS_OPT_SECRET, '');
     $sent   = (string) $req->get_header('x_boss_secret');
     if ($stored === '' || !hash_equals($stored, $sent)) {
+        boss_note_auth_failure();
         return new WP_Error('forbidden', 'Invalid secret', ['status' => 401]);
     }
+    boss_clear_auth_failures();
 
     $body = $req->get_json_params();
     if (!is_array($body) || (int) ($body['schema'] ?? 0) !== BOSS_SCHEMA_VERSION) {
@@ -153,11 +208,24 @@ function boss_handle_get_one(WP_REST_Request $req) {
     return is_array($data) ? $data : ['empty' => true, 'tournament_id' => $tid];
 }
 
-/** GET /wp-json/boss/v1/tournaments — list of all known tournaments. */
-function boss_handle_list() {
+/**
+ * GET /wp-json/boss/v1/tournaments — page of known tournaments.
+ *
+ * Used to fetch everything at once. A club that has run live results for a
+ * few seasons accumulates hundreds of snapshots, and an unbounded list is
+ * both a slow page and a free way to make the server do work.
+ *
+ * Accepts ?per_page (1..100, default 50) and ?page (1-based).
+ */
+function boss_handle_list(WP_REST_Request $req) {
+    $per_page = (int) ($req->get_param('per_page') ?: 50);
+    $per_page = max(1, min(100, $per_page));
+    $page     = max(1, (int) ($req->get_param('page') ?: 1));
+
     $posts = get_posts([
         'post_type'   => BOSS_CPT,
-        'numberposts' => -1,
+        'numberposts' => $per_page,
+        'offset'      => ($page - 1) * $per_page,
         'orderby'     => 'meta_value',
         'meta_key'    => 'boss_pushed_at',
         'order'       => 'DESC',
@@ -228,17 +296,32 @@ function boss_render_settings_page() {
                         <input
                             id="boss_live_secret"
                             name="<?php echo esc_attr(BOSS_OPT_SECRET); ?>"
-                            type="text"
+                            type="password"
                             value="<?php echo esc_attr($secret); ?>"
                             class="regular-text"
                             autocomplete="off"
                         />
+                        <button type="button" class="button" id="boss_live_secret_toggle"
+                                aria-controls="boss_live_secret" aria-expanded="false">Show</button>
                         <p class="description">Same value as in BOSS desktop. Pick a long random string.</p>
                     </td>
                 </tr>
             </table>
             <?php submit_button('Save'); ?>
         </form>
+        <script>
+        (function () {
+            var field  = document.getElementById('boss_live_secret');
+            var toggle = document.getElementById('boss_live_secret_toggle');
+            if (!field || !toggle) { return; }
+            toggle.addEventListener('click', function () {
+                var shown = field.type === 'text';
+                field.type = shown ? 'password' : 'text';
+                toggle.textContent = shown ? 'Show' : 'Hide';
+                toggle.setAttribute('aria-expanded', shown ? 'false' : 'true');
+            });
+        })();
+        </script>
 
         <h2>Stored tournaments</h2>
         <p><a href="<?php echo esc_url($list_url); ?>" class="button">Open list in admin</a></p>

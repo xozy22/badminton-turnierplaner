@@ -14,6 +14,7 @@ import { useToast } from "../../lib/ToastContext";
 import type { LivePublishConfig } from "../../lib/types";
 import {
   LIVE_PUBLISH_SETTING_KEY,
+  checkEndpoint,
   testConnection,
   getPushLog,
   clearPushLog,
@@ -30,6 +31,7 @@ export function LivePublishSettings() {
   const [config, setConfig] = useState<LivePublishConfig>({
     endpoint: "",
     secret: "",
+    privacyLevel: "full",
   });
   const [showSecret, setShowSecret] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -46,6 +48,7 @@ export function LivePublishSettings() {
           setConfig({
             endpoint: parsed.endpoint ?? "",
             secret: parsed.secret ?? "",
+            privacyLevel: parsed.privacyLevel ?? "full",
             lastPushAt: parsed.lastPushAt,
             lastError: parsed.lastError,
           });
@@ -59,6 +62,10 @@ export function LivePublishSettings() {
   }, []);
 
   const handleSave = async () => {
+    if (endpointProblem) {
+      showError(endpointProblem);
+      return;
+    }
     setSaving(true);
     try {
       // Strip transient diagnostic fields before persisting; LivePublisherHost
@@ -66,6 +73,7 @@ export function LivePublishSettings() {
       const toSave: LivePublishConfig = {
         endpoint: config.endpoint.trim(),
         secret: config.secret,
+        privacyLevel: config.privacyLevel ?? "full",
       };
       if (config.lastPushAt) toSave.lastPushAt = config.lastPushAt;
       if (config.lastError) toSave.lastError = config.lastError;
@@ -81,6 +89,10 @@ export function LivePublishSettings() {
   const handleTest = async () => {
     if (!config.endpoint || !config.secret) {
       showError(t.settings_live_publish_test_fail.replace("{error}", "URL/Secret"));
+      return;
+    }
+    if (endpointProblem) {
+      showError(endpointProblem);
       return;
     }
     setTesting(true);
@@ -106,6 +118,15 @@ export function LivePublishSettings() {
   const okCount = statuses.filter((s) => s.lastError === null).length;
   const errCount = statuses.filter((s) => s.lastError !== null).length;
 
+  // Only complain once there is something to complain about — an empty
+  // field is not yet a mistake.
+  const endpointCheck = checkEndpoint(config.endpoint);
+  const endpointProblem =
+    config.endpoint.trim() && !endpointCheck.ok
+      ? endpointCheck.reason === "insecure"
+        ? t.settings_live_publish_url_insecure
+        : t.settings_live_publish_url_malformed
+      : null;
   const configured = !!config.endpoint && !!config.secret;
 
   return (
@@ -125,9 +146,50 @@ export function LivePublishSettings() {
           value={config.endpoint}
           onChange={(e) => setConfig({ ...config, endpoint: e.target.value })}
           placeholder={t.settings_live_publish_url_placeholder}
-          className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-3 py-2 text-sm font-mono ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+          aria-invalid={!!endpointProblem}
+          aria-describedby={endpointProblem ? "live-endpoint-problem" : undefined}
+          className={`w-full ${theme.inputBg} ${theme.inputText} border ${
+            endpointProblem ? "border-danger" : theme.inputBorder
+          } rounded-md px-3 py-2 text-sm font-mono ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
         />
+        {endpointProblem && (
+          <p id="live-endpoint-problem" className="mt-1.5 flex items-start gap-1.5 text-xs text-danger-text">
+            <Icon name="alert" size={14} />
+            <span>{endpointProblem}</span>
+          </p>
+        )}
       </div>
+
+      {/* Privacy level — what of a name reaches the public page */}
+      <fieldset>
+        <legend className={`block text-xs font-medium ${theme.textSecondary} mb-1.5 uppercase tracking-wide`}>
+          {t.settings_live_publish_privacy}
+        </legend>
+        <div className="flex flex-col gap-1.5">
+          {(
+            [
+              ["full", t.settings_live_publish_privacy_full],
+              ["abbreviated", t.settings_live_publish_privacy_abbreviated],
+              ["abbreviated_no_club", t.settings_live_publish_privacy_no_club],
+            ] as const
+          ).map(([value, label]) => (
+            <label key={value} className="flex items-center gap-2 text-sm text-secondary">
+              <input
+                type="radio"
+                name="live-privacy"
+                value={value}
+                checked={(config.privacyLevel ?? "full") === value}
+                onChange={() => setConfig({ ...config, privacyLevel: value })}
+                className="accent-[var(--accent)]"
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
+        <p className={`mt-1.5 text-xs ${theme.textMuted}`}>
+          {t.settings_live_publish_privacy_hint}
+        </p>
+      </fieldset>
 
       {/* Secret */}
       <div>

@@ -280,7 +280,7 @@ function TournamentPublisher({ tournamentId, config }: TournamentPublisherProps)
       dataRef.current.matches,
       dataRef.current.sets,
       __APP_VERSION__,
-      { final: isFinal },
+      { final: isFinal, privacyLevel: config.privacyLevel },
     );
 
     // Heartbeat dedup — only skip when no state has changed since last push.
@@ -398,6 +398,7 @@ function TournamentPublisher({ tournamentId, config }: TournamentPublisherProps)
           matches,
           sets,
           __APP_VERSION__,
+          { privacyLevel: config.privacyLevel },
         );
         const sig = snapshotSignature(snap);
         if (sig !== lastSig.current) {
@@ -423,7 +424,11 @@ function TournamentPublisher({ tournamentId, config }: TournamentPublisherProps)
         debounceTimer.current = null;
       }
     };
-  }, [tournamentId]);
+    // The privacy level belongs here: it changes the snapshot, so a change
+    // has to invalidate the cached signature — otherwise switching to
+    // abbreviated names would leave the full ones published until the next
+    // score happened to differ.
+  }, [tournamentId, config.privacyLevel]);
 
   // Heartbeat loop: every 60s, push regardless of changes (acts as a
   // liveness signal so the WP page can show "still active" / handles
