@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { formatLabel, modeLabel } from "../lib/i18n/labels";
 import { EmptyState } from "../components/ui/States";
 import { useConfirm } from "../components/ui/ConfirmDialog";
 import Icon from "../components/ui/Icon";
@@ -428,7 +429,7 @@ export default function Tournaments() {
           })()}
         </div>
         <div className={`text-sm ${theme.textSecondary} mt-0.5`}>
-          {{ singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed }[tr.mode]} &middot; {{ round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall }[tr.format]} &middot;{" "}
+          {modeLabel(t, tr.mode)} &middot; {formatLabel(t, tr.format)} &middot;{" "}
           {t[`scoring_mode_${getScoringModeId(tr.points_per_set, tr.cap)}` as keyof typeof t] as string}
         </div>
       </Link>

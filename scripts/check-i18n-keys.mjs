@@ -126,10 +126,19 @@ if (declaredKeys.size === 0) {
   process.exit(2);
 }
 
-// Scan src/ (excluding i18n folder itself).
-const allFiles = walk(srcDir).filter(
-  (p) => !p.includes(join("lib", "i18n"))
-);
+// Scan src/, minus the catalogues themselves — otherwise every key would
+// count as used simply by being defined.
+//
+// labels.ts is the exception: it sits in that folder but is a consumer,
+// not a catalogue. It is the single place that maps a tournament format or
+// mode to its label, so the keys it reads are very much in use.
+const CATALOGUE_DIR = join("lib", "i18n");
+const CONSUMERS_IN_CATALOGUE_DIR = ["labels.ts"];
+
+const allFiles = walk(srcDir).filter((p) => {
+  if (!p.includes(CATALOGUE_DIR)) return true;
+  return CONSUMERS_IN_CATALOGUE_DIR.some((name) => p.endsWith(name));
+});
 
 // Build one big haystack instead of re-reading for each key.
 const haystackParts = allFiles.map((p) => readFileSync(p, "utf8"));

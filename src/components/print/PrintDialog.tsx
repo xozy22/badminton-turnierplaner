@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { formatLabel, modeLabel } from "../../lib/i18n/labels";
 import Icon from "../../components/ui/Icon";
 import PrintView from "./PrintView";
 import type { PrintMode } from "./PrintView";
@@ -146,29 +147,15 @@ export default function PrintDialog({
     if (standings.length < 1) return;
     setCertLoading(true);
     try {
-      const modeLabel = {
-        singles: t.mode_singles,
-        doubles: t.mode_doubles,
-        mixed: t.mode_mixed,
-      }[tournament.mode];
-      const formatLabel = {
-        round_robin: t.format_round_robin,
-        elimination: t.format_elimination,
-        random_doubles: t.format_random_doubles,
-        group_ko: t.format_group_ko,
-        swiss: t.format_swiss,
-        double_elimination: t.format_double_elimination,
-        monrad: t.format_monrad,
-        king_of_court: t.format_king_of_court,
-        waterfall: t.format_waterfall,
-      }[tournament.format];
+      const modeName = modeLabel(t, tournament.mode);
+      const formatName = formatLabel(t, tournament.format);
 
       const pdfBytes = await generateCertificates(
         tournament,
         standings,
         t,
-        modeLabel,
-        formatLabel,
+        modeName,
+        formatName,
       );
 
       try {

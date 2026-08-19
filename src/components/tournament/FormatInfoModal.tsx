@@ -1,4 +1,5 @@
 import type { ThemeColors } from "../../lib/theme";
+import { formatOptions } from "../../lib/i18n/labels";
 import Modal, { ModalCancelButton } from "../ui/Modal";
 import type { TournamentFormat } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
@@ -79,17 +80,7 @@ export default function FormatInfoModal({
 }: FormatInfoModalProps) {
   const { t } = useT();
 
-  const formatNames: Record<TournamentFormat, string> = {
-    round_robin: t.format_round_robin,
-    elimination: t.format_elimination,
-    random_doubles: t.format_random_doubles,
-    group_ko: t.format_group_ko,
-    swiss: t.format_swiss,
-    double_elimination: t.format_double_elimination,
-    monrad: t.format_monrad,
-    king_of_court: t.format_king_of_court,
-    waterfall: t.format_waterfall,
-  };
+  const formatNames: Record<TournamentFormat, string> = Object.fromEntries(formatOptions(t)) as Record<TournamentFormat, string>;
 
   const formatDescs: Record<TournamentFormat, string> = {
     round_robin: t.format_desc_round_robin,

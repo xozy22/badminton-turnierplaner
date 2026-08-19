@@ -8,6 +8,7 @@
 // settings are locked.
 
 import { useEffect, useState } from "react";
+import { formatOptions, modeOptions } from "../../../../lib/i18n/labels";
 import Modal, { ModalCancelButton, ModalConfirmButton } from "../../../../components/ui/Modal";
 import {
   SCORING_MODES,
@@ -118,7 +119,7 @@ export default function EditTournamentModal({
             <div>
               <label className={labelClass}>{t.tournament_mode}</label>
               <select value={mode} onChange={(e) => setMode(e.target.value as TournamentMode)} className={inputClass}>
-                {Object.entries({ singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed }).map(([k, v]) => (
+                {modeOptions(t).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
               </select>
@@ -127,7 +128,7 @@ export default function EditTournamentModal({
               <label className={labelClass}>{t.tournament_format}</label>
               <select value={format} onChange={(e) => setFormat(e.target.value as TournamentFormat)} className={inputClass}>
                 {VALID_FORMATS[mode].map((f) => {
-                  const fmtLabels: Record<string, string> = { round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall };
+                  const fmtLabels: Record<string, string> = Object.fromEntries(formatOptions(t));
                   return <option key={f} value={f}>{fmtLabels[f]}</option>;
                 })}
               </select>

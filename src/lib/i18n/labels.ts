@@ -59,3 +59,34 @@ export function paymentMethodLabel(t: Translations, method: PaymentMethod): stri
     case "paypal": return t.payment_paypal;
   }
 }
+
+/**
+ * The modes and formats in the order they are offered, for the pickers.
+ *
+ * The same two literal maps were written out eight times across six files
+ * — including twice in one file — because there was nowhere to put them.
+ * A new format had to be added to each of them (REVIEW-BACKLOG.md H4).
+ */
+export const MODES: TournamentMode[] = ["singles", "doubles", "mixed"];
+
+export const FORMATS: TournamentFormat[] = [
+  "round_robin",
+  "elimination",
+  "random_doubles",
+  "group_ko",
+  "swiss",
+  "double_elimination",
+  "monrad",
+  "king_of_court",
+  "waterfall",
+];
+
+/** `[value, label]` pairs for a mode picker, in offering order. */
+export function modeOptions(t: Translations): [TournamentMode, string][] {
+  return MODES.map((m) => [m, modeLabel(t, m)]);
+}
+
+/** `[value, label]` pairs for a format picker, in offering order. */
+export function formatOptions(t: Translations): [TournamentFormat, string][] {
+  return FORMATS.map((f) => [f, formatLabel(t, f)]);
+}

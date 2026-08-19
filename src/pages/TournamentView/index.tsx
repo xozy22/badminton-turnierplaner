@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { formatLabel } from "../../lib/i18n/labels";
+import { formatLabel, modeLabel } from "../../lib/i18n/labels";
 import Icon, { type IconName } from "../../components/ui/Icon";
 import { useConfirm } from "../../components/ui/ConfirmDialog";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
@@ -73,6 +73,7 @@ import {
   exportFileName,
 } from "../../lib/resultExport";
 import { useSessionContext } from "../../lib/sessionContext";
+import SessionBar from "./components/SessionBar";
 import TournamentModals from "./components/TournamentModals";
 import { useLiveControls } from "./lib/useLiveControls";
 import { useTournamentDialogs } from "./lib/useTournamentDialogs";
@@ -1144,58 +1145,12 @@ export default function TournamentView() {
 
   return (
     <div>
-      {/* Session bar — only when this tournament is part of a session.
-          Pill style adapts to session.status so the user can tell at a
-          glance whether the workspace is still live (violet) or wound
-          down (grey). The bar itself is always shown — even ended
-          sessions retain the cross-tournament context for live matches. */}
-      {tournament.session_id != null && sessionMeta && (() => {
-        const isActive = sessionMeta.status === "active";
-        const pillClass = isActive
-          ? "bg-phase-subtle text-phase-text border-phase"
-          : "bg-surface-sunken text-secondary border-line-strong";
-        const statusSuffix = sessionMeta.status === "ended" ? ` ${t.session_pill_ended_suffix}`
-          : sessionMeta.status === "archived" ? ` ${t.session_pill_archived_suffix}`
-            : "";
-        return (
-        <div className={`mb-3 ${theme.cardBg} border ${theme.cardBorder} rounded-lg px-4 py-2 flex items-center justify-between flex-wrap gap-2 shadow-sm`}>
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className={`text-xs font-bold uppercase tracking-wide border px-2 py-0.5 rounded-full ${pillClass}`}>
-              <Icon name="link" /> {t.session_pill_label}{statusSuffix}
-            </span>
-            <span className={`text-sm font-semibold ${theme.textPrimary}`}>
-              {sessionMeta.name}
-            </span>
-            <span className={`text-xs ${theme.textMuted}`}>
-              · {sessionCtx.tournaments.length} <Icon name="trophy" />
-            </span>
-            {sessionSiblings.length > 0 && (
-              <div className="flex items-center gap-1 flex-wrap ml-2">
-                <span className={`text-2xs uppercase tracking-wide ${theme.textMuted} mr-1`}>
-                  {t.session_switcher_label}:
-                </span>
-                {sessionSiblings.map((sib) => (
-                  <button
-                    key={sib.id}
-                    onClick={() => navigate(`/tournaments/${sib.id}`)}
-                    className={`text-xs font-medium border ${theme.inputBorder} ${theme.cardHoverBorder} ${theme.textSecondary} px-2 py-0.5 rounded-full transition-all`}
-                    title={sib.name}
-                  >
-                    {sib.name.length > 18 ? sib.name.slice(0, 18) + "…" : sib.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <button
-            onClick={() => navigate(`/sessions/${tournament.session_id}/live`)}
-            className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} text-xs font-semibold px-3 py-1.5 rounded-sm transition-all`}
-          >
-            <Icon name="monitor" /> {t.session_pill_open_dashboard} →
-          </button>
-        </div>
-        );
-      })()}
+      <SessionBar
+        tournament={tournament}
+        sessionMeta={sessionMeta}
+        sessionSiblings={sessionSiblings}
+        sessionTournamentCount={sessionCtx.tournaments.length}
+      />
 
       {/* Header */}
       {/* The title block and the action row share a line while there is
@@ -1209,7 +1164,7 @@ export default function TournamentView() {
           </h1>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <span className={`text-xs font-medium ${theme.cardBg} ${theme.textSecondary} border ${theme.cardBorder} px-2.5 py-1 rounded-full`}>
-              {({singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed} as Record<string, string>)[tournament.mode]}
+              {modeLabel(t, tournament.mode)}
             </span>
             <span className={`text-xs font-medium ${theme.cardBg} ${theme.textSecondary} border ${theme.cardBorder} px-2.5 py-1 rounded-full`}>
               {formatLabel(t, tournament.format)}
@@ -1520,7 +1475,7 @@ export default function TournamentView() {
               <div>
                 <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.tournament_mode}</span>
                 <div className={`font-medium ${theme.textPrimary} mt-0.5`}>
-                  {{ singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed }[tournament.mode]}
+                  {modeLabel(t, tournament.mode)}
                 </div>
               </div>
               <div>

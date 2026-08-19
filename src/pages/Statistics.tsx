@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { formatOptions, modeOptions } from "../lib/i18n/labels";
 import { LoadingState } from "../components/ui/States";
 import Icon from "../components/ui/Icon";
 import { getTournaments, getPlayers, getAllMatchesWithTournament, getAllSetsFlat } from "../lib/db";
@@ -113,13 +114,8 @@ export default function Statistics() {
     return `${h}h ${m}m`;
   };
 
-  const modeLabels: Record<string, string> = { singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed };
-  const fmtLabels: Record<string, string> = {
-    round_robin: t.format_round_robin, elimination: t.format_elimination,
-    random_doubles: t.format_random_doubles, group_ko: t.format_group_ko,
-    swiss: t.format_swiss, double_elimination: t.format_double_elimination,
-    monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall,
-  };
+  const modeLabels = Object.fromEntries(modeOptions(t)) as Record<string, string>;
+  const fmtLabels: Record<string, string> = Object.fromEntries(formatOptions(t));
 
   return (
     <div>

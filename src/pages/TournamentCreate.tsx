@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import { formatLabel, formatOptions, modeOptions } from "../lib/i18n/labels";
 import { formatMoney } from "../lib/datetime";
 import Icon from "../components/ui/Icon";
 import { useNavigate, useParams } from "react-router-dom";
@@ -60,13 +61,8 @@ export default function TournamentCreate() {
   const generateName = (m: TournamentMode, f: TournamentFormat) => {
     const now = new Date();
     const d = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
-    const modeLabels: Record<TournamentMode, string> = { singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed };
-    const fmtLabels: Record<TournamentFormat, string> = {
-      round_robin: t.format_round_robin, elimination: t.format_elimination,
-      random_doubles: t.format_random_doubles, group_ko: t.format_group_ko,
-      swiss: t.format_swiss, double_elimination: t.format_double_elimination,
-      monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall,
-    };
+    const modeLabels = Object.fromEntries(modeOptions(t)) as Record<TournamentMode, string>;
+    const fmtLabels: Record<TournamentFormat, string> = Object.fromEntries(formatOptions(t)) as Record<TournamentFormat, string>;
     return `${d} - ${modeLabels[m]} - ${fmtLabels[f]}`;
   };
 
@@ -714,7 +710,7 @@ export default function TournamentCreate() {
                       }}
                       className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
-                      {Object.entries({ singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed }).map(([k, v]) => (
+                      {modeOptions(t).map(([k, v]) => (
                         <option key={k} value={k}>
                           {v}
                         </option>
@@ -744,13 +740,11 @@ export default function TournamentCreate() {
                       }}
                       className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
-                      {VALID_FORMATS[mode].map((f) => {
-                        const fmtLabels: Record<string, string> = { round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall };
-                        return (
+                      {VALID_FORMATS[mode].map((f) => (
                         <option key={f} value={f}>
-                          {fmtLabels[f]}
+                          {formatLabel(t, f)}
                         </option>
-                      );})}
+                      ))}
                     </select>
                     <p className={`text-xs ${theme.textMuted} mt-1.5`}>
                       {format === "round_robin" ? t.format_desc_round_robin
@@ -1457,7 +1451,7 @@ export default function TournamentCreate() {
               <h2 className={`font-semibold ${theme.textPrimary} mb-3`}>{t.tournament_summary}</h2>
               <div className={`text-sm ${theme.textSecondary} space-y-1.5`}>
                 <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_name}</span> {name || "—"}</div>
-                <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_mode}</span> {({singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed} as Record<string, string>)[mode]} · {({round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall} as Record<string, string>)[format]}</div>
+                <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_mode}</span> {({singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed} as Record<string, string>)[mode]} · {(Object.fromEntries(formatOptions(t)) as Record<string, string>)[format]}</div>
                 {(format === "swiss" || format === "monrad" || format === "waterfall") && (
                   <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_swiss_rounds}:</span> {plannedRounds}</div>
                 )}
