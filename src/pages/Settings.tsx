@@ -14,6 +14,7 @@ import {
   FontSizeSelector,
 } from "./settings/AppearanceSettings";
 import { UpdateChecker } from "./settings/UpdateSettings";
+import { ReleaseNotesSection } from "./settings/ReleaseNotes";
 import { LivePublishSettings } from "./settings/LivePublishSettings";
 import { DatabaseSettings } from "./settings/DatabaseSettings";
 import { Section } from "./settings/Section";
@@ -48,11 +49,16 @@ export default function Settings() {
       </div>
 
       {/* ===== Updates ===== */}
-      {isTauri() && (
-        <Section title={t.settings_updates} icon="refresh" defaultOpen={false}>
-          <UpdateChecker />
-        </Section>
-      )}
+      {/* The release notes live here even in the browser build, where there
+          is no updater: "what changed" is worth reading either way. */}
+      <Section title={t.settings_updates} icon="refresh" defaultOpen={false}>
+        {isTauri() && (
+          <div className="mb-6 border-b border-line pb-6">
+            <UpdateChecker />
+          </div>
+        )}
+        <ReleaseNotesSection />
+      </Section>
 
       {/* ===== Language ===== */}
       <Section title={t.settings_language} icon="globe" defaultOpen={false}>

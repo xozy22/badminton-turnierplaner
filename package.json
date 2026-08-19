@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/build-release-notes.mjs && tsc -b && vite build",
     "lint": "eslint .",
     "check:i18n": "node scripts/check-i18n-keys.mjs",
     "check:emoji": "node scripts/check-emoji.mjs",
+    "build:notes": "node scripts/build-release-notes.mjs",
+    "check:notes": "node scripts/build-release-notes.mjs --check",
     "sync:version": "node scripts/sync-version.mjs",
     "check:version": "node scripts/sync-version.mjs --check",
     "preview": "vite preview",

@@ -77,7 +77,7 @@ const ALLOWED_ASCII = new Set([
   "dauer", "dauerspiel", "dauerhaft", "dauert", "turnierdauer",
   "manuell", "manuelle", "manuellen",
   "neu", "neue", "neuen", "neuer", "neues", "neueste",
-  "zuerst", "genaueste", "individuelle",
+  "zuerst", "genaueste", "individuelle", "quelle", "quellen",
   "abschluss", "abgeschlossen", "abgeschlossene", "abgeschlossenen",
   "adresse", "ausscheiden", "ausschnitt", "dass", "muss", "musst",
   "geheimnis", "geheimnisses", "geheimnisse", "wissen", "gewissen",

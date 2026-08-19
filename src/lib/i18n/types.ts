@@ -543,6 +543,11 @@ export interface Translations {
   seeding_title: string;
   seeding_groups_hint: string;
   seeding_group_drawn: string;
+  release_notes_title: string;
+  release_notes_hint: string;
+  release_notes_current: string;
+  release_notes_german_only: string;
+  release_notes_show_all: string;
   seeding_description: string;
   seeding_move_up: string;
   seeding_move_down: string;

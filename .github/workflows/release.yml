@@ -56,6 +56,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The release body used to be the literal string "Release v2.9.0",
+      # and the updater feed copied it into `notes` -- so that is what the
+      # update dialog showed people. It now comes from CHANGELOG.md.
+      #
+      # The step fails when the tag has no changelog entry, which is the
+      # right moment to notice: before the artefacts exist.
+      - name: Read release notes from the changelog
+        id: notes
+        shell: bash
+        run: |
+          node scripts/build-release-notes.mjs --notes "${{ github.ref_name }}" > RELEASE_NOTES.md
+          echo "Release notes for ${{ github.ref_name }}:"
+          cat RELEASE_NOTES.md
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -66,7 +80,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: ${{ github.ref_name }}
-          releaseBody: 'Release ${{ github.ref_name }}'
+          releaseBodyPath: RELEASE_NOTES.md
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

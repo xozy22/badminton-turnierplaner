@@ -68,6 +68,14 @@ jobs:
       - name: Version check
         run: pnpm check:version
 
+      # The release notes shipped inside the application are generated from
+      # CHANGELOG.md. This fails when the generated module is stale, when
+      # the two changelogs disagree, or when the version being built has no
+      # entry at all -- which is how a release once went out carrying the
+      # literal text "Release v2.9.0" as its notes.
+      - name: Release notes check
+        run: pnpm check:notes
+
   rust:
     name: Rust (tauri backend)
     runs-on: ubuntu-latest
