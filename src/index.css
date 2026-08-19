@@ -60,6 +60,10 @@
   --sidebar-text: #a7f3d0;    /* 11.81:1 on the gradient's darkest stop */
   --sidebar-hover: #064e3b80;
   --sidebar-accent: #34d399;
+  /* The active entry: its own pair, because the accent is not always
+     bright enough against the sidebar to mark anything. */
+  --sidebar-active: var(--accent);
+  --sidebar-active-fg: var(--accent-fg);
 
   /* Status. Text variants are the readable ones for use on --surface. */
   --danger: #b91c1c;
@@ -142,6 +146,127 @@
   --tv-bg: linear-gradient(to bottom, #030712, #431407, #030712);
   --scrollbar-thumb: #fed7aa;
   --scrollbar-thumb-hover: #fdba74;
+}
+
+/* ---------------------------------------------------------------------------
+   OSC-Edition — the club's own colours, taken from the variables its website
+   defines. Two readings of the same palette:
+
+     osc-night  the site's own arrangement, navy grounds and a yellow accent
+     osc-split  a navy sidebar over a light working area, where the yellow is
+                reserved for whatever is due next
+
+   The yellow decides the split. On navy it holds 13:1 and serves as text and
+   as a fill; on white it reaches 1.43:1 and cannot carry text at all — so the
+   light scheme accents in navy and lets the yellow appear only as a filled
+   marker with dark ink on it.
+   --------------------------------------------------------------------------- */
+
+[data-theme="osc-night"] {
+  --surface: #071129;
+  --surface-sunken: #040a1c;
+  --surface-raised: #0b1a3d;
+  --surface-input: #0b1a3d;
+  --page-bg: #040a1c;
+
+  --border: #8ba8e624;
+  --border-strong: #8ba8e647;
+
+  --text-primary: #eaf0ff;   /* 16.42:1 */
+  --text-secondary: #c3d0ec; /* 12.09:1 */
+  --text-muted: #8fa1c9;     /*  7.23:1 */
+
+  /* Dark ink on the accent, not white: white on this yellow is unreadable. */
+  --accent: #ffd400;
+  --accent-hover: #ffe14d;
+  --accent-fg: #131a00;      /* 12.48:1 on the accent */
+  --accent-subtle: #2a2200;
+  --accent-subtle-fg: #ffd400; /* 11.05:1 */
+  --accent-ring: #6b5a00;
+  --accent-border: #ffd400;
+  --accent-bright: #ffe14d;
+
+  --sidebar-bg: linear-gradient(to bottom, #071129, #040a1c, #000000);
+  --sidebar-border: #8ba8e647;
+  --sidebar-text: #8fa1c9;
+  --sidebar-hover: #12244f80;
+  --sidebar-accent: #ffd400;
+
+  --danger: #b91c1c;
+  --danger-fg: #ffffff;
+  --danger-subtle: #3a0d0d;
+  --danger-text: #ffa8a8;
+  --warning: #b45309;
+  --warning-fg: #ffffff;
+  --warning-subtle: #33240a;
+  --warning-text: #ffd98a;
+  --info: #1d4ed8;
+  --info-fg: #ffffff;
+  --info-subtle: #101f45;
+  --info-text: #a8c4ff;
+  --success: #047857;
+  --success-subtle: #06251b;
+  --success-text: #86efac;
+
+  --phase: #6d28d9;
+  --phase-hover: #5b21b6;
+  --phase-fg: #ffffff;
+  --phase-subtle: #241146;
+  --phase-text: #c9b6ff;
+
+  --stat-1: #071129;
+  --stat-2: #071129;
+  --stat-3: #071129;
+  --header-wash: linear-gradient(to right, #0b1a3d, transparent);
+  --tv-bg: linear-gradient(to bottom, #040a1c, #071129, #040a1c);
+
+  --scrollbar-thumb: #12244f;
+  --scrollbar-thumb-hover: #1c3468;
+
+  color-scheme: dark;
+}
+
+[data-theme="osc-split"] {
+  --surface: #ffffff;
+  --surface-sunken: #f6f8fc;
+  --surface-raised: #ffffff;
+  --surface-input: #ffffff;
+  --page-bg: linear-gradient(to bottom right, #eef2fa, #f6f8fc, #ffffff);
+
+  --border: #e4eaf5;
+  --border-strong: #c9d4e8;
+
+  --text-primary: #0b1a3d;   /* 17.08:1 */
+  --text-secondary: #3d4d6f; /*  8.44:1 */
+  --text-muted: #5b6b8c;     /*  5.35:1 */
+
+  /* Navy accents; the yellow lives in --accent-subtle, which is what the
+     next-step bar and the badges paint with. */
+  --accent: #12244f;
+  --accent-hover: #071129;
+  --accent-fg: #ffffff;      /* 15.10:1 on the accent */
+  --accent-subtle: #fff8d6;
+  --accent-subtle-fg: #3b2f00; /* 12.34:1 */
+  --accent-ring: #ffeba3;
+  --accent-border: #ffd400;
+  --accent-bright: #ffd400;
+
+  --sidebar-bg: linear-gradient(to bottom, #071129, #040a1c, #000000);
+  --sidebar-border: #8ba8e647;
+  --sidebar-text: #8fa1c9;
+  --sidebar-hover: #12244f80;
+  --sidebar-accent: #ffd400;
+  --sidebar-active: #ffd400;
+  --sidebar-active-fg: #131a00;
+
+  --stat-1: #ffffff;
+  --stat-2: #ffffff;
+  --stat-3: #ffffff;
+  --header-wash: linear-gradient(to right, #eef2fa, transparent);
+  --tv-bg: linear-gradient(to bottom, #040a1c, #071129, #040a1c);
+
+  --scrollbar-thumb: #c9d4e8;
+  --scrollbar-thumb-hover: #8ba8e6;
 }
 
 /* Dark is a variant of the surfaces, not a colour set of its own: it leaves
@@ -255,6 +380,8 @@
 
   --color-sidebar-text: var(--sidebar-text);
   --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-fg: var(--sidebar-active-fg);
 
   --color-danger: var(--danger);
   --color-danger-fg: var(--danger-fg);

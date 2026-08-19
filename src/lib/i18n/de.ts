@@ -745,6 +745,8 @@ export const de: Translations = {
   theme_emerald: "Smaragd",
   theme_sapphire: "Saphir",
   theme_amber: "Bernstein",
+  theme_osc_night: "Vereinsnacht",
+  theme_osc_split: "Vereinsfarben",
   theme_night: "Nachtmodus",
 
   // ===== Sportstaetten (Venues) Page =====

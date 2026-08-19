@@ -766,6 +766,8 @@ export interface Translations {
   theme_emerald: string;
   theme_sapphire: string;
   theme_amber: string;
+  theme_osc_night: string;
+  theme_osc_split: string;
   theme_night: string;
 
   // ===== Sportstaetten (Venues) Page =====

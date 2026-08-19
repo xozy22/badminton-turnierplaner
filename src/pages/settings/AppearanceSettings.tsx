@@ -27,9 +27,9 @@ export function ThemeSelector() {
       </label>
       <div className="grid grid-cols-2 gap-3">
         {(Object.entries(THEMES) as [ThemeId, typeof THEMES[ThemeId]][]).map(
-          ([id, { label, preview }]) => {
+          ([id, { label, preview, hintKey, dark }]) => {
             const isActive = themeId === id;
-            const isDarkTheme = id === "dark";
+            const isDarkTheme = dark;
             return (
               <button
                 key={id}
@@ -39,12 +39,15 @@ export function ThemeSelector() {
                     ? "shadow-lg"
                     : `${theme.inputBorder} hover:opacity-80 hover:shadow-sm`
                 }`}
-                style={isActive ? { borderColor: id === "dark" ? "#10b981" : preview, boxShadow: `0 0 0 3px ${id === "dark" ? "#10b981" : preview}40, 0 0 12px ${id === "dark" ? "#10b981" : preview}20` } : {}}
+                style={isActive ? { borderColor: dark ? preview : preview, boxShadow: `0 0 0 3px ${dark ? preview : preview}40, 0 0 12px ${dark ? preview : preview}20` } : {}}
               >
                 {/* Color swatch */}
                 <div
                   className="w-10 h-10 rounded-md shrink-0 shadow-inner flex items-center justify-center"
-                  style={{ background: isDarkTheme ? `linear-gradient(135deg, #111827, #1f2937)` : `linear-gradient(135deg, ${preview}, ${preview}dd)` }}
+                  // The swatch always shows the scheme's own colour. It used to paint
+                  // every dark scheme the same grey, which hid what the club
+                  // schemes actually look like.
+                  style={{ background: `linear-gradient(135deg, ${preview}, ${preview}dd)` }}
                 >
                   {isDarkTheme && <span className="text-lg"><Icon name="moon" /></span>}
                 </div>
@@ -53,11 +56,11 @@ export function ThemeSelector() {
                     {label}
                   </div>
                   <div className={`text-2xs ${theme.textMuted} uppercase tracking-wide mt-0.5`}>
-                    {id === "green" ? t.theme_emerald : id === "blue" ? t.theme_sapphire : id === "orange" ? t.theme_amber : t.theme_night}
+                    {t[hintKey]}
                   </div>
                 </div>
                 {isActive && (
-                  <span className="ml-auto text-sm font-bold" style={{ color: id === "dark" ? "#10b981" : preview }}>
+                  <span className="ml-auto text-sm font-bold" style={{ color: dark ? preview : preview }}>
                     <Icon name="check" />
                   </span>
                 )}

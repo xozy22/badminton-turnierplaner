@@ -1,4 +1,4 @@
-export type ThemeId = "green" | "blue" | "orange" | "dark";
+export type ThemeId = "green" | "blue" | "orange" | "dark" | "osc-night" | "osc-split";
 
 export interface ThemeColors {
   // Sidebar
@@ -89,7 +89,7 @@ const tokenTheme: ThemeColors = {
   // Sidebar
   sidebarBg: "bg-sidebar",
   sidebarBorder: "border-sidebar",
-  sidebarActiveBg: "bg-accent",
+  sidebarActiveBg: "bg-sidebar-active text-sidebar-active-fg",
   sidebarActiveShadow: "shadow-black/30",
   sidebarText: "text-sidebar-text",
   sidebarHoverBg: "hover-sidebar",
@@ -172,8 +172,11 @@ export const PRINT_COLORS: Record<ThemeId, PrintColors> = {
   green:  { accent: "#047857", accentLight: "#ecfdf5", accentBorder: "#d1fae5", winColor: "#047857", lossColor: "#b91c1c" },
   blue:   { accent: "#1d4ed8", accentLight: "#eff6ff", accentBorder: "#bfdbfe", winColor: "#1d4ed8", lossColor: "#b91c1c" },
   orange: { accent: "#c2410c", accentLight: "#fff7ed", accentBorder: "#fed7aa", winColor: "#c2410c", lossColor: "#b91c1c" },
-  // Print is always on white paper, so dark uses the light accent too.
+  // Print is always on white paper, so the dark schemes use an accent that
+  // works there: the club yellow would vanish on the page.
   dark:   { accent: "#047857", accentLight: "#ecfdf5", accentBorder: "#d1fae5", winColor: "#047857", lossColor: "#b91c1c" },
+  "osc-night": { accent: "#12244f", accentLight: "#eef2fa", accentBorder: "#c9d4e8", winColor: "#12244f", lossColor: "#b91c1c" },
+  "osc-split": { accent: "#12244f", accentLight: "#eef2fa", accentBorder: "#c9d4e8", winColor: "#12244f", lossColor: "#b91c1c" },
 };
 
 /**
@@ -181,11 +184,29 @@ export const PRINT_COLORS: Record<ThemeId, PrintColors> = {
  * `[data-theme="..."]`, so adding one means adding a variable block there
  * and an entry here — no class table to fill in.
  */
-export const THEMES: Record<ThemeId, { label: string; colors: ThemeColors; preview: string }> = {
-  green: { label: "Smaragd (Standard)", colors: tokenTheme, preview: "#047857" },
-  blue: { label: "Saphir", colors: tokenTheme, preview: "#1d4ed8" },
-  orange: { label: "Bernstein", colors: tokenTheme, preview: "#c2410c" },
-  dark: { label: "Dunkel", colors: tokenTheme, preview: "#111827" },
+export interface ThemeEntry {
+  label: string;
+  colors: ThemeColors;
+  /** Swatch colour in the settings picker. */
+  preview: string;
+  /** Translation key for the line under the name. */
+  hintKey: "theme_emerald" | "theme_sapphire" | "theme_amber" | "theme_night"
+    | "theme_osc_night" | "theme_osc_split";
+  /**
+   * Whether the scheme puts light text on dark surfaces. The picker used to
+   * derive this from `id === "dark"`, which called every later scheme a
+   * night mode — including the light one.
+   */
+  dark: boolean;
+}
+
+export const THEMES: Record<ThemeId, ThemeEntry> = {
+  green: { label: "Smaragd (Standard)", colors: tokenTheme, preview: "#047857", hintKey: "theme_emerald", dark: false },
+  blue: { label: "Saphir", colors: tokenTheme, preview: "#1d4ed8", hintKey: "theme_sapphire", dark: false },
+  orange: { label: "Bernstein", colors: tokenTheme, preview: "#c2410c", hintKey: "theme_amber", dark: false },
+  dark: { label: "Dunkel", colors: tokenTheme, preview: "#111827", hintKey: "theme_night", dark: true },
+  "osc-night": { label: "OSC Nachtblau", colors: tokenTheme, preview: "#ffd400", hintKey: "theme_osc_night", dark: true },
+  "osc-split": { label: "OSC Zweigeteilt", colors: tokenTheme, preview: "#12244f", hintKey: "theme_osc_split", dark: false },
 };
 
 // Font size

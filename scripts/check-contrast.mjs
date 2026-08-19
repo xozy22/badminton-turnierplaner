@@ -49,7 +49,7 @@ function contrast(fg, bg) {
  * which is the point of the arrangement.
  */
 function readThemes(css) {
-  const blocks = [...css.matchAll(/(:root|\[data-theme="(\w+)"\])\s*\{([^}]*)\}/g)];
+  const blocks = [...css.matchAll(/(:root|\[data-theme="([\w-]+)"\])\s*\{([^}]*)\}/g)];
   const root = {};
   const themes = {};
 
