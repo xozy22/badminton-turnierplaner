@@ -44,6 +44,8 @@ interface Args {
   runningPlayerCourts: Map<number, RunningPlayerCourt>;
   /** Courts held by sibling tournaments, keyed by court number. */
   occupiedCourts?: Map<number, { id: number; tournament_name: string }>;
+  /** Matches of the sibling tournaments, for the rest-time check. */
+  sessionMatches?: Match[];
   playerName: (id: number | null) => string;
   refreshScores: () => void | Promise<void>;
 }
@@ -61,6 +63,7 @@ export function useMatchActions({
   setRecentlyCompleted,
   runningPlayerCourts,
   occupiedCourts,
+  sessionMatches,
   playerName,
   refreshScores,
 }: Args) {
@@ -305,8 +308,10 @@ export function useMatchActions({
     if (!bypassRestCheck && court !== null && tournament && tournament.min_rest_minutes > 0) {
       const targetMatch = allMatches.find((m) => m.id === matchId);
       if (targetMatch) {
+        // Across the session, not just this tournament: a player who
+        // finished next door five minutes ago is just as tired.
         const restingMap = getRestingPlayers(
-          allMatches,
+          sessionMatches ? [...allMatches, ...sessionMatches] : allMatches,
           tournament.min_rest_minutes,
           Date.now(),
           matchId,

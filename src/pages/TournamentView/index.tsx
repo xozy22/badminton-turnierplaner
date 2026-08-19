@@ -294,6 +294,7 @@ export default function TournamentView() {
     // Courts held by sibling tournaments, so a drag onto one is refused
     // rather than producing two matches on the same court.
     occupiedCourts: sessionCtx.courtOccupancy,
+    sessionMatches: sessionCtx.matches,
     playerName,
     refreshScores,
   });

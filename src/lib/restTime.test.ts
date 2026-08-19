@@ -117,3 +117,42 @@ describe("getRestingPlayers", () => {
     expect(getRestingPlayers([recent], 15, NOW, recent.id).size).toBe(0);
   });
 });
+
+describe("rest time across a session", () => {
+  it("counts a match played in another tournament of the same session", () => {
+    // The player's body does not know which tournament it just played in.
+    // The caller concatenates its own matches with the session's, so the
+    // function has to cope with both lists — including the overlap, since
+    // the session list contains this tournament's matches too.
+    const now = Date.parse("2026-01-01T12:00:00Z");
+    const mine = makeMatch({
+      id: 1,
+      team1_p1: 7,
+      status: "completed",
+      completed_at: "2026-01-01T11:55:00Z",
+    });
+    const nextDoor = makeMatch({
+      id: 2,
+      team1_p1: 7,
+      status: "completed",
+      completed_at: "2026-01-01T11:58:00Z",
+    });
+
+    const resting = getRestingPlayers([mine, nextDoor], 10, now);
+    // The later of the two decides: two minutes ago, eight still to go.
+    expect(resting.get(7)?.minutesLeft).toBe(8);
+  });
+
+  it("is not confused when the same match appears in both lists", () => {
+    const now = Date.parse("2026-01-01T12:00:00Z");
+    const m = makeMatch({
+      id: 1,
+      team1_p1: 7,
+      status: "completed",
+      completed_at: "2026-01-01T11:55:00Z",
+    });
+    const once = getRestingPlayers([m], 10, now);
+    const twice = getRestingPlayers([m, m], 10, now);
+    expect(twice.get(7)?.minutesLeft).toBe(once.get(7)?.minutesLeft);
+  });
+});
