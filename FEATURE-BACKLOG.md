@@ -146,7 +146,7 @@ liegt, soll keinen Vorteil aus einer willkürlichen Reihenfolge ziehen.
 Bracket-Setzung ist seit der letzten Prüfung korrekt; darauf lässt sich das
 unmittelbar aufsetzen.
 
-### C2 — Vereinstrennung in der ersten Runde
+### C2 — Vereinstrennung in der ersten Runde ✔ erledigt (2026-08-19)
 **Nutzen:** hoch · **Aufwand:** S · *BTP: Option im Auslosungsassistenten*
 
 Möglichst keine Vereinskameraden in Runde eins. Steht so in der
@@ -158,6 +158,25 @@ BOSS kennt den Verein je Spieler bereits — die Angabe liegt ungenutzt herum.
 Das Handbuch ist dabei ehrlich: Die Trennung gelingt nicht immer, weil sie mit
 den Setzplätzen in Konflikt geraten kann. Also bestmöglich trennen, nicht
 erzwingen.
+
+**Umgesetzt.** Die Auslosung entsteht wie bisher und wird danach verbessert:
+Es werden nur ungesetzte Teilnehmer getauscht, und nur, wenn der Tausch die
+Zahl der Vereinsbegegnungen senkt. Damit terminiert das Verfahren immer — die
+Zahl ist ganzzahlig und fällt bei jedem Schritt —, die Setzplätze bleiben
+unberührt, und unter gleich guten Auslosungen bleibt die Wahl zufällig.
+
+Gilt für den K.-o.-Baum und für die Gruppenaufteilung. Bei der Gruppenphase
+ist es dieselbe Frage: Vereinskameraden gehören in verschiedene Gruppen.
+
+**Abweichung vom Vorschlag:** Kein Schalter im Assistenten. Die Trennung
+kostet nichts, wo sie nicht greift — bei einem reinen Vereinsturnier oder
+ohne erfasste Vereine ändert sie die Auslosung nicht —, und ein Schalter, den
+niemand ausschaltet, ist Ballast.
+
+Ein fehlender Verein zählt als *kein* Verein, nicht als gemeinsamer. Die
+Gegenprobe steht im Test: Ohne die Trennung trifft eine Zufallsauslosung bei
+vier gegen vier in 22,6 % der Fälle die perfekte Trennung — der Test über
+zwanzig Läufe würde also ohne den Code praktisch nie bestehen.
 
 ### C3 — Qualifikation vor dem Hauptfeld
 **Nutzen:** niedrig · **Aufwand:** L · *BTP: „Qualifikations-Gruppensystem mit Hauptfeld"*
@@ -309,7 +328,7 @@ Dann allerdings ist es Pflicht und nicht Kür.
 
 Wenn nur drei Punkte umgesetzt werden:
 
-1. **C1 Setzgruppen** und **C2 Vereinstrennung** — kleiner Aufwand,
+1. **C1 Setzgruppen** und **C2 Vereinstrennung** ✔ — kleiner Aufwand,
    unmittelbar fairere Turniere, und die nötigen Daten liegen längst vor.
 2. **D1 Ergebnis-Status** ✔ — „Kein Spiel" behebt eine Sackgasse, die BOSS
    heute genauso hat, wie das Handbuch sie für den BTP beschreibt.

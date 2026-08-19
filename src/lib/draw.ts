@@ -239,6 +239,89 @@ export interface BracketMatch {
   team2_p2: number | null;
 }
 
+// --- Club separation -------------------------------------------------------
+//
+// Tournament regulations ask for club-mates to be kept apart in the first
+// round, and a club tournament with several guest clubs wants the same. The
+// club is recorded per player and went unused (FEATURE-BACKLOG.md C2).
+//
+// It is a preference, not a rule: seeded positions are fixed, and a field
+// where one club supplies most of the entries cannot be separated at all.
+// So the draw is made as before and then improved by swapping unseeded
+// entries, accepting only swaps that reduce the number of club clashes.
+// Nothing is ever forced, and the result stays random among the draws that
+// separate equally well.
+
+/** Which club a player belongs to; null or empty when none is recorded. */
+export type ClubLookup = (playerId: number) => string | null;
+
+/**
+ * The clubs behind one entry. A doubles pair can bring two, and an entry
+ * with no club recorded brings none -- those never clash with anything,
+ * which is the right reading: an unknown club is not evidence of sameness.
+ */
+function clubsOf(entry: readonly (number | null)[], clubOf: ClubLookup): string[] {
+  const out: string[] = [];
+  for (const id of entry) {
+    if (id === null) continue;
+    const club = clubOf(id);
+    if (club && club.trim() !== "") out.push(club.trim().toLowerCase());
+  }
+  return out;
+}
+
+/** True when two entries share at least one club. */
+function shareClub(
+  a: readonly (number | null)[],
+  b: readonly (number | null)[],
+  clubOf: ClubLookup,
+): boolean {
+  const ca = clubsOf(a, clubOf);
+  if (ca.length === 0) return false;
+  const cb = new Set(clubsOf(b, clubOf));
+  return ca.some((c) => cb.has(c));
+}
+
+/**
+ * Swaps entries between positions until no swap reduces the clash count.
+ *
+ * `movable` lists the positions that may be touched -- everything else is
+ * seeded and stays where the seeding put it. `clashes` counts the clashes
+ * of a whole arrangement; the caller defines what "together" means, which
+ * is a first-round pairing for a bracket and a shared group for a group
+ * stage.
+ *
+ * Only strict improvements are accepted, so the loop always terminates:
+ * the clash count is a non-negative integer that falls with every step.
+ */
+function reduceClashes<T>(
+  slots: T[],
+  movable: number[],
+  clashes: (arrangement: T[]) => number,
+): void {
+  let current = clashes(slots);
+  // One pass per clash at most: each accepted swap removes at least one.
+  for (let guard = current; guard > 0 && current > 0; guard--) {
+    let improved = false;
+    // Random order, so equally good draws stay equally likely.
+    for (const i of shuffle(movable)) {
+      for (const j of shuffle(movable)) {
+        if (i === j) continue;
+        [slots[i], slots[j]] = [slots[j], slots[i]];
+        const after = clashes(slots);
+        if (after < current) {
+          current = after;
+          improved = true;
+          break;
+        }
+        [slots[i], slots[j]] = [slots[j], slots[i]];
+      }
+      if (improved) break;
+    }
+    if (!improved) return;
+  }
+}
+
 /** A participant in a knockout bracket: one player, or a doubles team. */
 type Participant = [number, number | null];
 
@@ -255,7 +338,12 @@ type Participant = [number, number | null];
  * included, form the next round — which is why a bye is a first-class
  * entry here rather than a skipped one (see REVIEW-BACKLOG.md A2).
  */
-function buildBracket(ordered: Participant[]): BracketMatch[] {
+function buildBracket(
+  ordered: Participant[],
+  /** Entries at rank < this stay on their seeded slot. */
+  seededCount = 0,
+  clubOf?: ClubLookup,
+): BracketMatch[] {
   const size = nextPowerOf2(ordered.length);
 
   // `seedForSlot[i]` is the rank that belongs on slot i, zero-based. Read
@@ -271,6 +359,26 @@ function buildBracket(ordered: Participant[]): BracketMatch[] {
   const slots: (Participant | null)[] = seedForSlot.map(
     (rank) => ordered[rank] ?? null,
   );
+
+  if (clubOf) {
+    // Only the unseeded slots may move, and an empty slot stays empty: it
+    // is the bye for the top seeds and moving it would hand the bye to
+    // somebody else.
+    const movable = slots
+      .map((entry, i) => ({ i, rank: seedForSlot[i], entry }))
+      .filter(({ rank, entry }) => entry !== null && rank >= seededCount)
+      .map(({ i }) => i);
+
+    reduceClashes(slots, movable, (arrangement) => {
+      let n = 0;
+      for (let i = 0; i < arrangement.length; i += 2) {
+        const a = arrangement[i];
+        const b = arrangement[i + 1];
+        if (a && b && shareClub(a, b, clubOf)) n++;
+      }
+      return n;
+    });
+  }
 
   const matches: BracketMatch[] = [];
   for (let i = 0; i < size; i += 2) {
@@ -301,7 +409,7 @@ export function generateEliminationBracket(
   const unseeded = shuffle(players.filter((p) => !seededSet.has(p.id))).map((p) => p.id);
 
   const ordered: Participant[] = [...seeded, ...unseeded].map((id) => [id, null]);
-  return buildBracket(ordered);
+  return buildBracket(ordered, seeded.length, (id) => byId.get(id)?.club ?? null);
 }
 
 /**
@@ -311,7 +419,8 @@ export function generateEliminationBracket(
  */
 export function generateEliminationBracketDoubles(
   teams: [number, number][],
-  seedTeams?: [number, number][]
+  seedTeams?: [number, number][],
+  clubOf?: ClubLookup
 ): BracketMatch[] {
   const key = (t: [number, number]) => pairingKey(t[0], t[1]);
   const known = new Map(teams.map((t) => [key(t), t]));
@@ -329,7 +438,7 @@ export function generateEliminationBracketDoubles(
   const unseeded = shuffle(teams.filter((t) => !seenSeeds.has(key(t))));
 
   const ordered: Participant[] = [...seeded, ...unseeded].map((t) => [t[0], t[1]]);
-  return buildBracket(ordered);
+  return buildBracket(ordered, seeded.length, clubOf);
 }
 
 /**
@@ -494,10 +603,59 @@ export function formFixedMixedTeams(
  * strongest teams end up in different groups, the rest is drawn at random.
  * Seeding used to be ignored here entirely (REVIEW-BACKLOG.md B9).
  */
+
+/**
+ * Spreads club-mates across groups, on the same terms as the bracket: only
+ * unseeded entries move, and only when the swap reduces the number of pairs
+ * of club-mates sharing a group (FEATURE-BACKLOG.md C2).
+ *
+ * `groups` is modified in place. `isSeeded` marks the entries the seeding
+ * placed, which stay in the group they were snaked into.
+ */
+function separateClubsAcrossGroups<T extends readonly (number | null)[]>(
+  groups: T[][],
+  isSeeded: (entry: T) => boolean,
+  clubOf: ClubLookup,
+): void {
+  // Flatten to one array so a swap is a plain index exchange, remembering
+  // which group each position belongs to.
+  const flat: T[] = [];
+  const groupOfPos: number[] = [];
+  groups.forEach((members, g) => {
+    for (const m of members) {
+      flat.push(m);
+      groupOfPos.push(g);
+    }
+  });
+
+  const movable = flat
+    .map((entry, i) => ({ i, entry }))
+    .filter(({ entry }) => !isSeeded(entry))
+    .map(({ i }) => i);
+
+  reduceClashes(flat, movable, (arrangement) => {
+    let n = 0;
+    for (let i = 0; i < arrangement.length; i++) {
+      for (let j = i + 1; j < arrangement.length; j++) {
+        if (groupOfPos[i] !== groupOfPos[j]) continue;
+        if (shareClub(arrangement[i], arrangement[j], clubOf)) n++;
+      }
+    }
+    return n;
+  });
+
+  // Write the improved arrangement back into the groups.
+  let pos = 0;
+  groups.forEach((members) => {
+    for (let k = 0; k < members.length; k++) members[k] = flat[pos++];
+  });
+}
+
 export function splitTeamsIntoGroups(
   teams: [number, number][],
   numGroups: number,
-  seedTeams?: [number, number][]
+  seedTeams?: [number, number][],
+  clubOf?: ClubLookup
 ): [number, number][][] {
   const groups: [number, number][][] = Array.from({ length: numGroups }, () => []);
   const key = (t: [number, number]) => pairingKey(t[0], t[1]);
@@ -526,6 +684,10 @@ export function splitTeamsIntoGroups(
   });
   rest.forEach((team, i) => groups[i % numGroups].push(team));
 
+  if (clubOf) {
+    separateClubsAcrossGroups(groups, (t) => seenSeeds.has(key(t)), clubOf);
+  }
+
   return groups;
 }
 
@@ -543,6 +705,7 @@ export function splitIntoGroups(
   seeds?: number[]
 ): Player[][] {
   const groups: Player[][] = Array.from({ length: numGroups }, () => []);
+  const seededIdsForClubs = new Set(seeds ?? []);
 
   if (seeds && seeds.length > 0) {
     const playerMap = new Map(players.map((p) => [p.id, p]));
@@ -562,6 +725,19 @@ export function splitIntoGroups(
     const shuffled = shuffle(players);
     shuffled.forEach((p, i) => groups[i % numGroups].push(p));
   }
+
+  // Player objects rather than ids here, so the swap works on a projection
+  // and is written back by position.
+  const ids = groups.map((g) => g.map((p) => [p.id, null] as [number, null]));
+  separateClubsAcrossGroups(
+    ids,
+    (entry) => seededIdsForClubs.has(entry[0]!),
+    (id) => players.find((p) => p.id === id)?.club ?? null,
+  );
+  const byId = new Map(players.map((p) => [p.id, p]));
+  ids.forEach((group, g) => {
+    groups[g] = group.map((entry) => byId.get(entry[0]!)!);
+  });
 
   return groups;
 }

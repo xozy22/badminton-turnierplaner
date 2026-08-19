@@ -20,6 +20,7 @@ import {
   generateRoundRobinDoubles,
   splitIntoGroups,
   splitTeamsIntoGroups,
+  type ClubLookup,
 } from "../draw";
 import {
   calculateStandings,
@@ -65,11 +66,25 @@ export function seedTeamsFrom(
     .map((entry) => entry.team);
 }
 
+/**
+ * Which club a player belongs to, for the draw. Singles reads it from the
+ * player list directly; doubles needs this because it only carries ids
+ * (FEATURE-BACKLOG.md C2).
+ */
+function clubLookup(ctx: FormatContext): ClubLookup {
+  const byId = new Map(ctx.players.map((p) => [p.id, p.club]));
+  return (id) => byId.get(id) ?? null;
+}
+
 /** The opening bracket for a knockout, singles or doubles. */
 function openingBracket(ctx: FormatContext): BracketMatch[] {
   return ctx.tournament.mode === "singles"
     ? generateEliminationBracket(ctx.players, ctx.seedOrder)
-    : generateEliminationBracketDoubles(ctx.teams, seedTeamsFrom(ctx.teams, ctx.seedOrder));
+    : generateEliminationBracketDoubles(
+        ctx.teams,
+        seedTeamsFrom(ctx.teams, ctx.seedOrder),
+        clubLookup(ctx),
+      );
 }
 
 // ------------------------------------------------------- Single elimination
@@ -410,6 +425,7 @@ export const groupKoEngine: FormatEngine = {
         ctx.teams,
         numGroups,
         seedTeamsFrom(ctx.teams, ctx.seedOrder),
+        clubLookup(ctx),
       );
       groups.forEach((group, index) => {
         if (group.length < 2) return;

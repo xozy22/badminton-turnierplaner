@@ -23,7 +23,7 @@ import {
   getPreviousPairings,
   getPreviousPairingCounts,
 } from "./draw";
-import { makePlayers, makeMixedPlayers, makeMatch, resetIds } from "../test/factories";
+import { makePlayer, makePlayers, makeMixedPlayers, makeMatch, resetIds } from "../test/factories";
 import type { Player, StandingEntry } from "./types";
 
 beforeEach(resetIds);
@@ -950,6 +950,97 @@ describe("bracket seeding — the standard pairings", () => {
       expect(byeSeeds.sort((a, b) => a - b), `${count} players`).toEqual(
         Array.from({ length: byeSeeds.length }, (_, i) => i + 1),
       );
+    }
+  });
+});
+
+describe("club separation (FEATURE-BACKLOG.md C2)", () => {
+  const withClub = (club: string | null) => makePlayer({ club });
+
+  /** Pairs of the first round that put two players of one club together. */
+  const clashesIn = (bracket: { team1_p1: number; team2_p1: number | null }[], clubById: Map<number, string | null>) =>
+    bracket.filter(
+      (m) =>
+        m.team2_p1 !== null &&
+        clubById.get(m.team1_p1) != null &&
+        clubById.get(m.team1_p1) === clubById.get(m.team2_p1),
+    ).length;
+
+  it("keeps club-mates out of the first round when the field allows it", () => {
+    // Four from each club into an eight-slot bracket: a perfect separation
+    // exists, so the draw has to find it. Repeated, because the draw is
+    // random and a single run could pass by luck.
+    for (let run = 0; run < 20; run++) {
+      const players = [
+        ...Array.from({ length: 4 }, () => withClub("TV Rot")),
+        ...Array.from({ length: 4 }, () => withClub("SC Blau")),
+      ];
+      const clubById = new Map(players.map((p) => [p.id, p.club]));
+      const bracket = generateEliminationBracket(players);
+      expect(clashesIn(bracket, clubById), `run ${run}`).toBe(0);
+    }
+  });
+
+  it("separates as far as it can when a club is over-represented", () => {
+    // Six from one club and two from another cannot be separated fully:
+    // four first-round matches, and six players of one club must meet each
+    // other at least twice. The point is that it does not give up.
+    for (let run = 0; run < 10; run++) {
+      const players = [
+        ...Array.from({ length: 6 }, () => withClub("TV Rot")),
+        ...Array.from({ length: 2 }, () => withClub("SC Blau")),
+      ];
+      const clubById = new Map(players.map((p) => [p.id, p.club]));
+      expect(clashesIn(generateEliminationBracket(players), clubById), `run ${run}`).toBe(2);
+    }
+  });
+
+  it("does not hang when everyone shares a club", () => {
+    const players = Array.from({ length: 8 }, () => withClub("TV Rot"));
+    const bracket = generateEliminationBracket(players);
+    expect(bracket).toHaveLength(4);
+  });
+
+  it("treats a missing club as no club, not as a shared one", () => {
+    // Null is absence of information. Reading it as "same club" would
+    // scatter players for no reason and could displace a real separation.
+    const players = Array.from({ length: 8 }, () => withClub(null));
+    const clubById = new Map(players.map((p) => [p.id, p.club]));
+    expect(clashesIn(generateEliminationBracket(players), clubById)).toBe(0);
+  });
+
+  it("leaves the seeded positions where the seeding put them", () => {
+    // The regulation asks for separation, but not at the price of the
+    // seeding: the top two seeds still stand at opposite ends.
+    const players = [
+      ...Array.from({ length: 4 }, () => withClub("TV Rot")),
+      ...Array.from({ length: 4 }, () => withClub("SC Blau")),
+    ];
+    const seeds = [players[0].id, players[4].id, players[1].id, players[5].id];
+    for (let run = 0; run < 20; run++) {
+      const bracket = generateEliminationBracket(players, seeds);
+      const matchOf = (id: number) =>
+        bracket.findIndex((m) => m.team1_p1 === id || m.team2_p1 === id);
+
+      // Seed 1 opens the bracket, seed 2 stands in the other half, and no
+      // two seeds share a first-round match.
+      expect(bracket[0].team1_p1, `run ${run}`).toBe(seeds[0]);
+      expect(matchOf(seeds[1]), `run ${run}`).toBeGreaterThanOrEqual(bracket.length / 2);
+      expect(new Set(seeds.map(matchOf)).size, `run ${run}`).toBe(seeds.length);
+    }
+  });
+
+  it("spreads club-mates across the groups", () => {
+    for (let run = 0; run < 20; run++) {
+      const players = [
+        ...Array.from({ length: 4 }, () => withClub("TV Rot")),
+        ...Array.from({ length: 4 }, () => withClub("SC Blau")),
+      ];
+      const groups = splitIntoGroups(players, 4);
+      for (const g of groups) {
+        const clubs = g.map((p) => p.club);
+        expect(new Set(clubs).size, `run ${run}`).toBe(clubs.length);
+      }
     }
   });
 });
