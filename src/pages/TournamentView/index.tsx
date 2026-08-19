@@ -5,11 +5,6 @@ import { useParams, useLocation, useNavigate } from "react-router-dom";
 import NextStepBar from "../../components/tournament/NextStepBar";
 import { LoadingState, NotFoundState } from "../../components/ui/States";
 import { useTheme } from "../../lib/ThemeContext";
-import {
-  updateTournamentStatus,
-  isTauri,
-  deleteRoundsAtomically,
-} from "../../lib/db";
 import type {
   Match,
   GameSet,
@@ -19,15 +14,7 @@ import { useT } from "../../lib/I18nContext";
 import { useToast } from "../../lib/ToastContext";
 import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { getEffectiveScoring } from "./lib/effectiveScoring";
-import { getUndoTarget } from "./lib/undoTarget";
 import { engineFor } from "../../lib/formats";
-import {
-  matchesToCsv,
-  standingsToCsv,
-  paymentsToCsv,
-  toJsonExport,
-  exportFileName,
-} from "../../lib/resultExport";
 import { useSessionContext } from "../../lib/sessionContext";
 import SessionBar from "./components/SessionBar";
 import TournamentHeader from "./components/TournamentHeader";
@@ -40,6 +27,8 @@ import { useMatchActions } from "./lib/useMatchActions";
 import { useRosterActions } from "./lib/useRosterActions";
 import { useCourtDerivations } from "./lib/useCourtDerivations";
 import { useFormatControl } from "./lib/useFormatControl";
+import { useTournamentActions } from "./lib/useTournamentActions";
+import { useUndoRound } from "./lib/useUndoRound";
 import { useTournamentDialogs } from "./lib/useTournamentDialogs";
 import {
   useTournamentData,
@@ -49,7 +38,7 @@ import {
 export default function TournamentView() {
   const { theme } = useTheme();
   const { t } = useT();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess } = useToast();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -100,8 +89,6 @@ export default function TournamentView() {
   const {
     showAddPlayer,
     setShowAddPlayer,
-    setShowReopenConfirm,
-    setShowUndoRound,
     setRetireTarget,
   } = dialogs;
 
@@ -114,17 +101,11 @@ export default function TournamentView() {
       try { return JSON.parse(tournament.team_config) as [number, number][]; } catch (err) { console.error("TournamentView: failed to parse team_config JSON:", err); }
     }
     return undefined;
-  }, [navTeamsFromState, tournament?.team_config]);
+  }, [navTeamsFromState, tournament]);
   const [collapsedClubs, setCollapsedClubs] = useState<Set<string>>(new Set());
   const [viewTab, setViewTab] = useState<"spiele" | "gruppen" | "bracket" | "rangliste" | "verwaltung">("spiele");
   const [recentlyCompleted, setRecentlyCompleted] = useState<Set<number>>(new Set());
   const [editingMatchIds, setEditingMatchIds] = useState<Set<number>>(new Set());
-  // Hard player-overlap block: opens when the user tries to assign a match
-  // whose players are still on another court. No bypass — only "close".
-  const recentlyCompletedRef = React.useRef(recentlyCompleted)
-  recentlyCompletedRef.current = recentlyCompleted;
-  const activeRoundRef = React.useRef(activeRound);
-  activeRoundRef.current = activeRound;
 
 
   // ---- Multi-tournament-workspace integration ----
@@ -212,31 +193,6 @@ export default function TournamentView() {
     loadAll,
   });
 
-  const openTvWindow = async () => {
-    if (isTauri()) {
-      try {
-        const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-        const tvWin = new WebviewWindow(`tv-${tournamentId}`, {
-          url: `/tv/${tournamentId}`,
-          title: `${t.tournament_view_tv_mode}: ${tournament?.name ?? ""}`,
-          width: 1920,
-          height: 1080,
-          fullscreen: false,
-          maximized: true,
-          decorations: true,
-          dragDropEnabled: false,
-        });
-        tvWin.once("tauri://error", (e) => {
-          console.error("TV window error:", e);
-        });
-      } catch (err) {
-        console.error("Failed to open TV window:", err);
-      }
-    } else {
-      const url = `${window.location.origin}/tv/${tournamentId}`;
-      window.open(url, `tv-${tournamentId}`, "width=1920,height=1080,menubar=no,toolbar=no");
-    }
-  };
 
 
   // onChange: Nur den eingegebenen Wert speichern, KEIN Auto-Fill
@@ -259,16 +215,7 @@ export default function TournamentView() {
   });
 
 
-  const handleCompleteTournament = async () => {
-    await updateTournamentStatus(tournamentId, "completed");
-    loadAll();
-  };
 
-  const handleReopenTournament = async () => {
-    await updateTournamentStatus(tournamentId, "active");
-    setShowReopenConfirm(false);
-    loadAll();
-  };
 
 
   // Live publishing: opt-in, pause, push now, stop (REVIEW-BACKLOG.md D1).
@@ -285,73 +232,37 @@ export default function TournamentView() {
   } = useLiveControls({ tournamentId, askConfirm });
 
 
-  /**
-   * Memoized "what does the next undo step delete?" computation. Returns
-   * null when there's nothing to undo. The result is used both to disable
-   * the Undo button (no target → no click) and to drive the rich confirm
-   * modal (preview of what will be lost).
-   *
-   * Strategy:
-   *   1. Pick the round with the largest id — that's the most-recently
-   *      created one in DB-insertion order.
-   *   2. Bronze + Final pairing: when the head is a `third_place` round,
-   *      look for the Final/winners round with the same `round_number`
-   *      and bundle them. Same the other way around. Both get deleted in
-   *      one logical undo step.
-   *   3. Aggregate stats over the involved rounds so the modal can show
-   *      what data the user is about to lose.
-   *   4. Predict the post-undo phase transition (full reset / back-to-
-   *      group / no change) — see decision matrix in plan.
-   */
-  const undoTarget = useMemo(
-    () => getUndoTarget(tournament, rounds, matchesByRound, setsByMatch, t),
-    [tournament, rounds, matchesByRound, setsByMatch, t],
-  );
+  // Taking back the last round (REVIEW-BACKLOG.md D1).
+  const { undoTarget, performUndo } = useUndoRound({
+    tournamentId,
+    tournament,
+    rounds,
+    matchesByRound,
+    setsByMatch,
+    dialogs,
+    loadAll,
+  });
 
-  /**
-   * Execute the undo step previewed by the modal. Idempotent against
-   * stale clicks (re-reads `undoTarget` at call time; if it's null,
-   * silently no-ops). Cleanup order: delete rounds first (FK cascades to
-   * matches/sets), then apply phase transition, then reload + toast.
-   */
-  const performUndo = async () => {
-    const target = undoTarget;
-    if (!target) {
-      setShowUndoRound(false);
-      return;
-    }
+  // Complete, reopen, archive, export, TV display.
+  const {
+    openTvWindow,
+    handleCompleteTournament,
+    handleReopenTournament,
+    handleExport,
+    handleArchive,
+  } = useTournamentActions({
+    tournamentId,
+    tournament,
+    players,
+    rounds,
+    allMatches,
+    setsByMatch,
+    standings,
+    paymentData,
+    dialogs,
+    loadAll,
+  });
 
-    // Deletes and the follow-up state change go together: a half-applied
-    // undo would leave the tournament in a phase that no longer matches its
-    // rounds (REVIEW-BACKLOG.md A6). Descending id keeps the order
-    // predictable while the transaction runs.
-    const roundIds = [...target.rounds].sort((a, b) => b.id - a.id).map((r) => r.id);
-    try {
-      await deleteRoundsAtomically(
-        tournamentId,
-        roundIds,
-        target.resetStatusToDraft
-          ? { status: "draft", phase: "ready" }
-          : target.isGroupKoBackToGroup
-            ? { phase: "group", clearKoScoring: true }
-            : {},
-      );
-    } catch (err) {
-      console.error("performUndo: failed:", err);
-      showError(String(err));
-      setShowUndoRound(false);
-      return;
-    }
-
-    setShowUndoRound(false);
-    showSuccess(
-      t.tournament_view_undo_done
-        .replace("{label}", target.label)
-        .replace("{matches}", String(target.matchCount))
-        .replace("{sets}", String(target.setCount)),
-    );
-    loadAll();
-  };
 
   /**
    * Matches, sets and participants of one group — for the group tables in
@@ -479,7 +390,7 @@ export default function TournamentView() {
   const sessionSiblings = useMemo(() => {
     if (!tournament?.session_id) return [];
     return sessionCtx.tournaments.filter((tt) => tt.id !== tournament.id);
-  }, [sessionCtx.tournaments, tournament?.session_id, tournament?.id]);
+  }, [sessionCtx.tournaments, tournament]);
 
   // A tournament that never arrives is not the same as one still loading:
   // the id may be stale, and the view used to say "loading" forever
@@ -500,70 +411,7 @@ export default function TournamentView() {
     );
   }
 
-  /**
-   * Writes one of the export files. In the packaged app a native save
-   * dialog picks the location; in the browser the file is downloaded
-   * (REVIEW-BACKLOG.md C9).
-   */
-  const handleExport = async (kind: "matches" | "standings" | "payments" | "json") => {
-    if (!tournament) return;
 
-    const allSets: GameSet[] = [];
-    for (const list of setsByMatch.values()) allSets.push(...list);
-
-    const input = {
-      tournament,
-      players,
-      rounds,
-      matches: allMatches,
-      sets: allSets,
-      standings,
-      paymentData,
-      locale: undefined,
-    };
-
-    const isJson = kind === "json";
-    const content = isJson
-      ? toJsonExport(input)
-      : kind === "matches"
-        ? matchesToCsv(input)
-        : kind === "standings"
-          ? standingsToCsv(input)
-          : paymentsToCsv(input);
-    const fileName = exportFileName(tournament, kind, isJson ? "json" : "csv");
-
-    try {
-      if (isTauri()) {
-        const { save } = await import("@tauri-apps/plugin-dialog");
-        const { writeTextFile } = await import("@tauri-apps/plugin-fs");
-        const path = await save({
-          defaultPath: fileName,
-          filters: [{ name: isJson ? "JSON" : "CSV", extensions: [isJson ? "json" : "csv"] }],
-        });
-        if (!path) return;
-        // BOM so Excel opens the file as UTF-8 instead of mangling umlauts.
-        await writeTextFile(path, isJson ? content : `\ufeff${content}`);
-      } else {
-        const blob = new Blob([isJson ? content : `\ufeff${content}`], {
-          type: isJson ? "application/json" : "text/csv;charset=utf-8",
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = fileName;
-        link.click();
-        URL.revokeObjectURL(url);
-      }
-      showSuccess(t.export_done.replace("{file}", fileName));
-    } catch (err) {
-      showError(t.export_failed.replace("{error}", String(err)));
-    }
-  };
-
-  const handleArchive = async () => {
-    await updateTournamentStatus(tournamentId, "archived");
-    loadAll();
-  };
 
 
   return (
