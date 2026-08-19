@@ -85,7 +85,7 @@ export function getUndoTarget(
   // the trophy marker so the user sees both deletions at once.
   const primary = pair[0];
   const labelForRound = (r: Round): string => {
-    if (r.phase === "third_place") return `🥉 ${t.bracket_third_place_short}`;
+    if (r.phase === "third_place") return t.bracket_third_place_short;
     if (r.phase === "group" && r.group_number != null) {
       // Local round-index within the group (handles non-contiguous round_numbers).
       const groupRounds = rounds
@@ -101,7 +101,7 @@ export function getUndoTarget(
   };
   let label = labelForRound(primary);
   if (pair.length > 1 && pair.some((r) => r.phase === "third_place")) {
-    label += ` + 🥉 ${t.bracket_third_place_short}`;
+    label += ` + ${t.bracket_third_place_short}`;
   }
 
   // Phase transition prediction.

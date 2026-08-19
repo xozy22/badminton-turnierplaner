@@ -134,12 +134,22 @@ const allFiles = walk(srcDir).filter(
 const haystackParts = allFiles.map((p) => readFileSync(p, "utf8"));
 const haystack = haystackParts.join("\n");
 
+// Keys assembled at runtime, e.g. t[`scoring_mode_${m.id}`]. The literal
+// key never appears in the source, so a name-only scan reports every one of
+// them as dead -- and deleting them would empty the control they fill. The
+// prefixes are collected from the source and the keys behind them counted
+// as used.
+const dynamicPrefixes = [
+  ...haystack.matchAll(/t\[\s*`([a-z0-9_]+)\$\{/gi),
+].map((m) => m[1]);
+
 // For each key, check if it appears as `t.key`, `.key`, or `"key"`.
 const unused = [];
 for (const key of declaredKeys) {
   const direct = new RegExp(`[.\\[]\\s*${key}\\b`);
   const quoted = new RegExp(`["'\`]${key}["'\`]`);
-  if (!direct.test(haystack) && !quoted.test(haystack)) {
+  const dynamic = dynamicPrefixes.some((prefix) => key.startsWith(prefix));
+  if (!direct.test(haystack) && !quoted.test(haystack) && !dynamic) {
     unused.push(key);
   }
 }

@@ -90,7 +90,13 @@ export function UpdateChecker() {
           disabled={checking || downloading}
           className={`${theme.primaryBg} text-white px-4 py-2 rounded-md ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium disabled:opacity-50`}
         >
-          {checking ? t.settings_checking : `🔄 ${t.settings_check_updates}`}
+          {checking ? (
+            t.settings_checking
+          ) : (
+            <>
+              <Icon name="refresh" /> {t.settings_check_updates}
+            </>
+          )}
         </button>
       </div>
 

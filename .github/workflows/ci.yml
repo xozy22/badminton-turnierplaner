@@ -56,6 +56,12 @@ jobs:
         continue-on-error: true
         run: pnpm check:i18n
 
+      # Enforced, not advisory: this one starts at zero and stays there.
+      # Emoji crept back twice after F10, both times in a spelling the
+      # previous sweep could not see.
+      - name: Emoji check
+        run: pnpm check:emoji
+
   rust:
     name: Rust (tauri backend)
     runs-on: ubuntu-latest

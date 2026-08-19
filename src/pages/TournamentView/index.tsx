@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import Icon from "../../components/ui/Icon";
+import Icon, { type IconName } from "../../components/ui/Icon";
 import { useConfirm } from "../../components/ui/ConfirmDialog";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import PrintDialog from "../../components/print/PrintDialog";
@@ -1179,24 +1179,31 @@ export default function TournamentView() {
   const canStartKo = isGroupKo && canAdvanceFormat && koRounds.length === 0;
   const canAdvanceOther = canAdvanceFormat && !canStartKo;
 
-  /** Label and colour of the single advance button, per format. */
-  const advanceButtonLabel = (() => {
+  /**
+   * Icon and text of the single advance button, per format.
+   *
+   * Kept apart rather than glued into one string: the text also feeds
+   * NextStepBar, which is an aria-live region. While the emoji was part of
+   * the string, a screen reader announced "Next step: repeat-arrow next
+   * Swiss round".
+   */
+  const advanceButton: { icon: IconName; label: string } = (() => {
     switch (tournament?.format) {
       case "elimination":
       case "group_ko":
-        return `➡️ ${t.tournament_view_next_ko_round}`;
+        return { icon: "arrowRight", label: t.tournament_view_next_ko_round };
       case "double_elimination":
-        return `➡️ ${t.tournament_view_advance_bracket}`;
+        return { icon: "arrowRight", label: t.tournament_view_advance_bracket };
       case "swiss":
-        return `🔄 ${t.tournament_view_next_swiss_round}`;
+        return { icon: "refresh", label: t.tournament_view_next_swiss_round };
       case "monrad":
-        return `🔄 ${t.tournament_view_next_monrad_round}`;
+        return { icon: "refresh", label: t.tournament_view_next_monrad_round };
       case "king_of_court":
-        return `🎯 ${t.tournament_view_next_kotc_match}`;
+        return { icon: "target", label: t.tournament_view_next_kotc_match };
       case "waterfall":
-        return `🔄 ${t.tournament_view_next_waterfall_round}`;
+        return { icon: "refresh", label: t.tournament_view_next_waterfall_round };
       default:
-        return `🎲 ${t.tournament_view_next_round}`;
+        return { icon: "dice", label: t.tournament_view_next_round };
     }
   })();
   const advanceButtonStyle =
@@ -1592,7 +1599,7 @@ export default function TournamentView() {
               onClick={advanceFormat}
               className={`${advanceButtonStyle} text-white px-5 py-2.5 rounded-md shadow-sm hover:shadow-sm transition-all text-sm font-medium`}
             >
-              {advanceButtonLabel}
+              <Icon name={advanceButton.icon} /> {advanceButton.label}
             </button>
           )}
           {tournament.status === "active" && rounds.length > 0 && (
@@ -1695,7 +1702,7 @@ export default function TournamentView() {
                   aria-label={livePaused ? t.tournament_live_publish_resume : t.tournament_live_publish_pause}
                   className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} w-8 h-8 flex items-center justify-center rounded-sm hover:border-warning hover:text-warning-text transition-all text-sm disabled:opacity-50`}
                 >
-                  {livePaused ? "▶️" : "⏸️"}
+                  <Icon name={livePaused ? "play" : "ban"} />
                 </button>
                 {!livePaused && (
                   <button
@@ -1724,23 +1731,23 @@ export default function TournamentView() {
             items={[
               ...(rounds.length > 0
                 ? [
-                    { icon: "🖨️", label: t.tournament_view_print, onClick: () => setShowPrint(true) },
+                    { icon: "printer" as const, label: t.tournament_view_print, onClick: () => setShowPrint(true) },
                     // The export dropdown used to be a button of its own with
                     // its own menu; four entries here cost less width and one
                     // interaction less (REVIEW-BACKLOG.md F3).
-                    { icon: "⬇️", label: t.export_matches_csv, onClick: () => handleExport("matches") },
-                    { icon: "⬇️", label: t.export_standings_csv, onClick: () => handleExport("standings") },
-                    { icon: "⬇️", label: t.export_payments_csv, onClick: () => handleExport("payments") },
-                    { icon: "⬇️", label: t.export_json, onClick: () => handleExport("json") },
+                    { icon: "download" as const, label: t.export_matches_csv, onClick: () => handleExport("matches") },
+                    { icon: "download" as const, label: t.export_standings_csv, onClick: () => handleExport("standings") },
+                    { icon: "download" as const, label: t.export_payments_csv, onClick: () => handleExport("payments") },
+                    { icon: "download" as const, label: t.export_json, onClick: () => handleExport("json") },
                   ]
                 : []),
               ...(tournament.status === "active"
-                ? [{ icon: "📺", label: t.tournament_view_tv_mode, onClick: openTvWindow }]
+                ? [{ icon: "monitor" as const, label: t.tournament_view_tv_mode, onClick: openTvWindow }]
                 : []),
               ...(!liveActive
                 ? [
                     {
-                      icon: "📡",
+                      icon: "megaphone" as const,
                       label: t.tournament_live_publish_enable,
                       onClick: handleEnableLive,
                       disabled: liveBusy || tournament.status === "draft",
@@ -1754,17 +1761,17 @@ export default function TournamentView() {
               ...(tournament.status === "draft"
                 ? [
                     {
-                      icon: "✏️",
+                      icon: "pencil" as const,
                       label: t.tournament_view_edit,
                       onClick: () => navigate(`/tournaments/${tournament.id}/edit`),
                     },
                     {
-                      icon: "📋",
+                      icon: "clipboard" as const,
                       label: t.tournament_view_template,
                       onClick: () => setShowTemplateExport(true),
                     },
                     {
-                      icon: "🗑️",
+                      icon: "trash" as const,
                       label: t.tournament_view_delete,
                       onClick: () => setShowDeleteConfirm(true),
                       destructive: true,
@@ -1925,8 +1932,7 @@ export default function TournamentView() {
       {rounds.length === 0 && tournament.status === "draft" && (
         <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-8 mb-6`}>
           <div className="text-center mb-6">
-            <div className="text-4xl mb-3" aria-hidden="true">🏸</div>
-            <div className={`text-lg font-semibold ${theme.textPrimary}`}>
+                <div className={`text-lg font-semibold ${theme.textPrimary}`}>
               {t.tournament_view_not_started}
             </div>
             <div className={`text-sm ${theme.textMuted} mt-1`}>
@@ -1999,7 +2005,7 @@ export default function TournamentView() {
           0,
         )}
         canAdvance={canAdvanceFormat}
-        advanceLabel={advanceButtonLabel}
+        advanceLabel={advanceButton.label}
       />
 
       {/* A tab strip, declared as one: without the roles a screen reader
@@ -2158,7 +2164,9 @@ export default function TournamentView() {
               {/* Dedicated bronze playoff button (any KO format) */}
               {thirdPlaceRound && (
                 <div className="flex gap-2 flex-wrap items-center">
-                  <span className="text-xs font-bold text-orange-500 uppercase tracking-wide w-8" aria-hidden="true">🥉</span>
+                  <span className="w-8 text-[#a1642f]" aria-hidden="true">
+                    <Icon name="medal" size={14} />
+                  </span>
                   <button
                     onClick={() => { setActiveRound(thirdPlaceRound.id); setShowAllGroups(false); }}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${

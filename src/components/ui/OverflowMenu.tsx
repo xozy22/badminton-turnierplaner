@@ -9,12 +9,14 @@
 // (REVIEW-BACKLOG.md F3).
 
 import { useEffect, useRef, useState } from "react";
-import Icon from "../../components/ui/Icon";
+import Icon, { type IconName } from "./Icon";
 import { useT } from "../../lib/I18nContext";
 
 export interface OverflowItem {
   label: string;
-  icon?: string;
+  /** From the icon set -- not a character, so it inherits colour
+   *  and stays out of the spoken label. */
+  icon?: IconName;
   onClick: () => void;
   disabled?: boolean;
   /** Renders in the danger tone and sits below a separator. */
@@ -105,7 +107,7 @@ function MenuButton({ item, onDone }: { item: OverflowItem; onDone: () => void }
         item.destructive ? "text-danger-text" : "text-primary"
       }`}
     >
-      {item.icon && <span aria-hidden="true">{item.icon}</span>}
+      {item.icon && <Icon name={item.icon} size={14} />}
       {item.label}
     </button>
   );

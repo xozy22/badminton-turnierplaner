@@ -64,7 +64,7 @@ export default function VerwaltungTab({
     <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
       <div className={`px-5 py-3 border-b ${theme.cardBorder} ${theme.headerGradient} flex justify-between items-center`}>
         <span className={`font-semibold text-sm ${theme.standingsHeaderText}`}>
-          {"\u{1F465}"} {t.management_participants.replace("{count}", String(players.length))}
+          <Icon name="users" /> {t.management_participants.replace("{count}", String(players.length))}
           {(tournament.entry_fee_single > 0 || tournament.entry_fee_double > 0) && (() => {
             const fee = tournament.mode === "singles" ? tournament.entry_fee_single : tournament.entry_fee_double;
             let paidCount: number, totalCount: number;
@@ -93,7 +93,7 @@ export default function VerwaltungTab({
             const openAmount = openCount * fee;
             return (
               <span className={`ml-2 font-normal text-xs ${theme.textSecondary}`}>
-                {"\u{1F4B0}"} {t.management_paid_count.replace("{paid}", String(paidCount)).replace("{total}", String(totalCount))}
+                <Icon name="coins" /> {t.management_paid_count.replace("{paid}", String(paidCount)).replace("{total}", String(totalCount))}
                 &nbsp;&middot;&nbsp;
                 <span className="text-emerald-500">{t.management_paid_amount.replace("{amount}", String(paidAmount))}</span>
                 {openAmount > 0 && (
@@ -152,7 +152,7 @@ export default function VerwaltungTab({
             placeholder={t.management_search_placeholder}
             className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
           />
-          <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}>{"\u{1F50D}"}</span>
+          <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}><Icon name="search" size={12} /></span>
           {verwaltungSearch && (
             <button onClick={() => setVerwaltungSearch("")} className={`absolute right-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} hover:opacity-80 text-xs`}>{"\u2715"}</button>
           )}
@@ -283,7 +283,7 @@ export default function VerwaltungTab({
                           <td className={`px-3 py-2 pl-6 font-medium ${isRetired ? `${theme.textMuted} line-through` : theme.textPrimary}`}>
                             {playerDisplayName(pd.player)}
                             <SeedBadge rank={pd.seed_rank} />
-                            {isRetired && <span className="ml-1.5 text-2xs text-danger-text no-underline inline-block">{"\u{1F3E5}"}</span>}
+                            {isRetired && <span className="ml-1.5 text-2xs text-danger-text no-underline inline-block"><Icon name="medical" size={12} /></span>}
                           </td>
                           <td className="px-2 py-2 text-center">
                             <span className={`text-2xs font-medium px-1.5 py-0.5 rounded-full ${pd.player.gender === "m" ? "bg-info-subtle text-blue-500" : "bg-pink-50 text-pink-500"}`}>
@@ -388,7 +388,7 @@ export default function VerwaltungTab({
                                   title={t.management_retire_title}
                                   className="text-xs text-warning-text hover:text-warning-text ml-1"
                                 >
-                                  {"\u{1F3E5}"}
+                                  <Icon name="medical" size={12} />
                                 </button>
                               )}
                               {tournament.status === "active" && isRetired && (

@@ -1,4 +1,5 @@
 import type { ThemeColors } from "../../lib/theme";
+import Icon from "../ui/Icon";
 import type {
   Tournament,
   Player,
@@ -19,11 +20,22 @@ export default function RanglisteTab({ standings, theme }: RanglisteTabProps) {
   const { t } = useT();
   // Buchholz only exists for Swiss/Monrad tables — the column appears with it.
   const showBuchholz = standings.some((s) => s.buchholz !== undefined);
+  /**
+   * Places one to three get a medal, the rest their number.
+   *
+   * The medal is decoration on top of the position, which the number beside
+   * it already states, so it carries no spoken name of its own. Gold, silver
+   * and bronze are tinted through the colour — one shape serves all three.
+   */
   const rankMedal = (i: number) => {
-    if (i === 0) return "\u{1F947}";
-    if (i === 1) return "\u{1F948}";
-    if (i === 2) return "\u{1F949}";
-    return `${i + 1}`;
+    const tint = ["text-[#c9a227]", "text-[#8a8f98]", "text-[#a1642f]"][i];
+    if (!tint) return `${i + 1}`;
+    return (
+      <span className={`inline-flex items-center gap-1 ${tint}`}>
+        <Icon name="medal" size={14} />
+        <span className={theme.textSecondary}>{i + 1}</span>
+      </span>
+    );
   };
 
   return (
@@ -32,7 +44,7 @@ export default function RanglisteTab({ standings, theme }: RanglisteTabProps) {
       <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
         <div className={`px-5 py-3 border-b ${theme.cardBorder} ${theme.headerGradient}`}>
           <span className={`font-semibold text-sm ${theme.standingsHeaderText}`}>
-            {"\u{1F4CA}"} {t.standings_title}
+            <Icon name="chart" /> {t.standings_title}
           </span>
         </div>
         <table className="w-full text-xs">

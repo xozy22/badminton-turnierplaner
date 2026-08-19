@@ -4,6 +4,7 @@
 // Extracted from the 1483-line Settings page (REVIEW-BACKLOG.md D5).
 
 import { useEffect, useState, useRef } from "react";
+import Icon from "../../components/ui/Icon";
 import { getAppSetting, setAppSetting, deleteAppSetting } from "../../lib/db";
 import { useTheme } from "../../lib/ThemeContext";
 import { useT } from "../../lib/I18nContext";
@@ -315,7 +316,9 @@ export function LogoUploader() {
           {logo ? (
             <img src={logo} alt="Logo" className="w-full h-full object-contain" />
           ) : (
-            <span className="text-3xl" aria-hidden="true">🏸</span>
+            <span className="text-muted" aria-hidden="true">
+              <Icon name="file" size={28} />
+            </span>
           )}
         </div>
 
