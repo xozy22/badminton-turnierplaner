@@ -886,14 +886,18 @@ Der Toast-Bereich ist eine `aria-live`-Region, die **dauerhaft im Baum bleibt** 
 
 ---
 
-### [ ] H3 — Deutsche Changelog-Abschnitte im englischen README
-**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `README.md` (46 KB), `README_DE.md` (34 KB)
+### [x] H3 — Deutsche Changelog-Abschnitte im englischen README — **erledigt**
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `CHANGELOG.md` (neu), `README.md`, `README_DE.md`
 
-**Problem:** Ab v2.7 sind die Versionsabschnitte auf Deutsch mitten im englischen Dokument („Match per Rechtsklick zurueck in die Warteschlange (v2.9.0)"). Beide READMEs sind zugleich Feature-Dokumentation und Changelog und dadurch für Neueinsteiger unbrauchbar lang.
+**Umgesetzt:** `CHANGELOG.md` im Keep-a-Changelog-Format, verlinkt aus der Kopfzeile beider READMEs. Beide sind von 434 bzw. 358 auf **275 Zeilen** gekommen und haben jetzt dieselbe Gliederung — vorher endete die englische Fassung bei v2.9.0, die deutsche bei v2.7.5.
 
-**Fix:** `CHANGELOG.md` abspalten (Keep-a-Changelog-Format), README auf Zweck, Screenshots, Installation, Kurzüberblick und Entwicklungshinweise kürzen (Ziel: unter 300 Zeilen), deutsche und englische Fassung inhaltlich abgleichen.
+**Die Versionshinweise sind unverändert übernommen**, deutsch wie englisch gemischt. Historische Notizen umzuschreiben würde riskieren, ihre Bedeutung zu verschieben; ein Vermerk oben sagt das. Korrigiert wurden nur die ASCII-Ersatzschreibungen — „zurueck", „Sportstaette", „Menue" und rund vierzig weitere. Die Ersetzung lief über eine Liste ganzer Wörter, nicht über ein Muster wie „ue → ü": das hätte aus „neue" ein „neü" gemacht. Danach habe ich die Restliste einzeln durchgesehen; was übrig blieb, war englisch („Queue", „request") oder echtes „eu" („Dauer", „zuerst").
 
-**Fertig wenn:** README unter 300 Zeilen, Changelog vollständig ausgelagert, beide Sprachen konsistent.
+**Eine Zusicherung musste richtiggestellt werden.** Der Eintrag zu v2.7.0 versprach: „Only first name, last name, and club are transmitted. Birth dates and payment info are deliberately stripped." Das stimmte nur für die Spielerliste — die Tabellenstände trugen das vollständige Objekt (siehe I3). Ein Nachtrag steht jetzt direkt über dem Eintrag und sagt, wer davon betroffen sein könnte. Eine falsche Aussage über eine Datenschutzeigenschaft stehenzulassen, während man weiß, dass sie falsch ist, geht nicht.
+
+**Die Projektstruktur war zudem veraltet:** 61 Zeilen, die `TournamentView.tsx` noch als Datei führten (längst ein Verzeichnis), `components/ui/` gar nicht kannten und `scripts/` nicht erwähnten. Auf 20 Zeilen gekürzt und richtiggestellt.
+
+**Fertig wenn:** ~~README unter 300 Zeilen, Changelog vollständig ausgelagert, beide Sprachen konsistent~~ — erfüllt.
 
 ---
 
