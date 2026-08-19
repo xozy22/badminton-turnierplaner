@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { formatLabel } from "../../lib/i18n/labels";
 import Icon, { type IconName } from "../../components/ui/Icon";
 import { useConfirm } from "../../components/ui/ConfirmDialog";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
@@ -277,7 +278,7 @@ export default function TournamentView() {
     setSetsByMatch(sbm);
     setAllMatches(allMatches);
 
-    const swissLike = tournament.format === "swiss" || tournament.format === "monrad";
+    const swissLike = engineFor(tournament.format).display.usesBuchholz;
     setStandings(
       calculateStandings(
         players,
@@ -842,7 +843,7 @@ export default function TournamentView() {
     (playerId: number): number | null => {
       if (!tournament) return null;
       if (tournament.mode === "singles") return null;
-      if (tournament.format === "random_doubles") return null;
+      if (engineFor(tournament.format).display.reshufflesPartners) return null;
 
       for (const [a, b] of navTeams ?? []) {
         if (a === playerId) return b;
@@ -1138,8 +1139,9 @@ export default function TournamentView() {
   // the group phase of a `group_ko` tournament; everything else falls
   // back to the existing default behavior.
   const isGroupPhaseActive =
-    tournament?.format === "group_ko" &&
-    tournament?.current_phase === "group";
+    !!tournament &&
+    engineFor(tournament.format).display.hasGroupPhase &&
+    tournament.current_phase === "group";
 
   // Computed for the WHOLE group_ko format, not just the active group
   // phase, so the bar can act as a history reference once KO has started
@@ -1147,8 +1149,11 @@ export default function TournamentView() {
   // to the active group phase — KO matches must not be reordered by
   // group remaining counts.
   const groupProgress = useMemo(
-    () => tournament?.format === "group_ko" ? getGroupProgress(rounds, matchesByRound) : [],
-    [tournament?.format, rounds, matchesByRound],
+    () =>
+      tournament && engineFor(tournament.format).display.hasGroupPhase
+        ? getGroupProgress(rounds, matchesByRound)
+        : [],
+    [tournament, rounds, matchesByRound],
   );
 
   const remainingByGroup = useMemo(
@@ -1195,7 +1200,7 @@ export default function TournamentView() {
 
   // Group phase still needs its own button because starting the KO opens a
   // modal for the (optional) different KO scoring first.
-  const isGroupKo = tournament?.format === "group_ko";
+  const isGroupKo = !!tournament && engineFor(tournament.format).display.hasGroupPhase;
   const koRounds = rounds.filter((r) => r.phase === "ko");
   const canStartKo = isGroupKo && canAdvanceFormat && koRounds.length === 0;
   const canAdvanceOther = canAdvanceFormat && !canStartKo;
@@ -1227,13 +1232,15 @@ export default function TournamentView() {
         return { icon: "dice", label: t.tournament_view_next_round };
     }
   })();
-  const advanceButtonStyle =
-    tournament?.format === "elimination" ||
-    tournament?.format === "group_ko" ||
-    tournament?.format === "double_elimination"
-      ? "bg-phase hover:bg-phase"
-      : "bg-warning hover:bg-warning";
+  const advanceButtonStyle = engine?.display.hasBracket
+    ? "bg-phase hover:bg-phase"
+    : "bg-warning hover:bg-warning";
 
+  // These two stay as format checks on purpose: they choose between two
+  // different bracket components (single vs. double elimination), which is
+  // a real difference between two formats rather than a property both could
+  // declare. `display.hasBracket` says a bracket exists; which one it is
+  // remains the view's business.
   const isElimination = tournament?.format === "elimination";
   const isDoubleElimination = tournament?.format === "double_elimination";
   const winnersRounds = rounds.filter((r) => r.phase === "winners");
@@ -1538,7 +1545,7 @@ export default function TournamentView() {
               {({singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed} as Record<string, string>)[tournament.mode]}
             </span>
             <span className={`text-xs font-medium ${theme.cardBg} ${theme.textSecondary} border ${theme.cardBorder} px-2.5 py-1 rounded-full`}>
-              {({round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall} as Record<string, string>)[tournament.format]}
+              {formatLabel(t, tournament.format)}
             </span>
             <span className={`text-xs font-medium ${theme.cardBg} ${theme.textSecondary} border ${theme.cardBorder} px-2.5 py-1 rounded-full`}>
               {isGroupKo && tournament.ko_points_per_set != null
@@ -1973,7 +1980,7 @@ export default function TournamentView() {
               <div>
                 <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.tournament_format}</span>
                 <div className={`font-medium ${theme.textPrimary} mt-0.5`}>
-                  {{ round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall }[tournament.format]}
+                  {formatLabel(t, tournament.format)}
                 </div>
               </div>
               <div>

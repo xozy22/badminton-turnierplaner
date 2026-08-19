@@ -70,6 +70,27 @@ export interface FormatPlan {
   activateLastRound?: boolean;
 }
 
+/**
+ * What a format needs shown, as opposed to how it plays.
+ *
+ * The view used to answer these by testing `tournament.format` — fourteen
+ * times, for the bracket, the Buchholz column, the group progress bar and
+ * the King-of-the-Court queue. Adding a format meant finding all of them
+ * again, in a different file (REVIEW-BACKLOG.md D2).
+ */
+export interface FormatDisplay {
+  /** Draws a bracket rather than a table of rounds. */
+  hasBracket: boolean;
+  /** Runs a group phase before anything else. */
+  hasGroupPhase: boolean;
+  /** Standings carry a Buchholz column. */
+  usesBuchholz: boolean;
+  /** Players wait in a queue rather than being drawn into rounds. */
+  usesQueue: boolean;
+  /** Pairings change every round, so fixed teams make no sense. */
+  reshufflesPartners: boolean;
+}
+
 export interface FormatEngine {
   id: TournamentFormat;
   /**
@@ -77,6 +98,8 @@ export interface FormatEngine {
    * Round-robin doubles and knockout do; random doubles does not.
    */
   usesFixedTeams: boolean;
+  /** How the format wants to be shown. See {@link FormatDisplay}. */
+  display: FormatDisplay;
   /** The opening schedule. `null` when the setup cannot produce one. */
   start(ctx: FormatContext): FormatPlan | null;
   /** Whether {@link advance} would produce anything right now. */

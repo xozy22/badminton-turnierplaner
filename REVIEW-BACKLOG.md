@@ -18,7 +18,7 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | | offen: Ansichten in Komponenten zerlegen (D1), Anzeige-Eigenschaften in die Format-Engines (D2), Datenbankverwaltung aus den Einstellungen lösen (D5) | |
 | **4** ✅ | E1–E4 (Performance) — erledigt; E5 von 145 auf 64 KB (Ziel 60) | Schnelle Gewinne |
 | **5** ✅ | F1–F10, G1–G5 (Design & Barrierefreiheit) — erledigt | Das „komplett überarbeitet"-Gefühl |
-| **6** | H1 ✅, H2–H5, I1–I5, J3–J6 | Politur & Sicherheit |
+| **6** ✅ | H1–H5, I1–I5, J3–J6 (Politur & Sicherheit) — erledigt | Politur & Sicherheit |
 
 ---
 
@@ -415,16 +415,22 @@ Trennzeichen ist das Semikolon und die Datei beginnt mit einem BOM, damit Excel 
 
 ---
 
-### [~] D2 — Format-Logik als if/else-Kaskade statt Strategie pro Format — **Engine steht, View verzweigt noch**
-**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/lib/formats/` (neu), `src/pages/TournamentView/index.tsx`
+### [x] D2 — Format-Logik als if/else-Kaskade statt Strategie pro Format — **erledigt**
+**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/lib/formats/`, `src/pages/TournamentView/index.tsx`
 
 **Problem:** Start und Fortschritt jedes der neun Formate lagen als if/else-Kaskade in der Ansicht.
 
-**Bisher umgesetzt:** `src/lib/formats/` enthält eine `FormatEngine` pro Format hinter einer gemeinsamen Schnittstelle (`start`, `canAdvance`, `advance`, `progress`) und eine Registry. Die Ansicht ruft `engineFor(format)` — der gesamte Start- und Weiterschaltpfad ist frei von Format-Verzweigungen, und 37 Tests decken die Engines ab, darunter ein Durchlauf jedes Formats von Anfang bis Ende.
+**Umgesetzt, erster Teil:** `src/lib/formats/` enthält eine `FormatEngine` pro Format hinter einer gemeinsamen Schnittstelle (`start`, `canAdvance`, `advance`, `progress`) und eine Registry. Der gesamte Start- und Weiterschaltpfad ist frei von Format-Verzweigungen.
 
-**Was fehlt:** In der Ansicht stehen weiterhin **14** Abfragen auf `tournament.format` — für Anzeigeentscheidungen: Buchholz-Wertung bei Swiss/Monrad, Gruppenfortschritt bei `group_ko`, Bracket-Ansicht bei den K.-o.-Formaten, Warteschlange bei King of the Court. Ein neues Format braucht also weiterhin Eingriffe in der Ansicht. Der zweite Teil des Kriteriums ist damit offen; dafür müssten die Engines auch ihre Anzeige-Eigenschaften beschreiben (etwa `hasBracket`, `usesBuchholz`, `hasGroupPhase`).
+**Umgesetzt, zweiter Teil:** Die verbliebenen **14** Abfragen auf `tournament.format` betrafen keine Logik mehr, sondern die Darstellung — Bracket, Buchholz-Spalte, Gruppenfortschritt, Warteschlange. Genau deshalb war der Punkt aber noch offen: ein neues Format hätte weiterhin Eingriffe in einer anderen Datei verlangt. Die Engines beschreiben ihre Anzeige jetzt selbst (`display: { hasBracket, hasGroupPhase, usesBuchholz, usesQueue, reshufflesPartners }`).
 
-**Fertig wenn:** Ein neues Format lässt sich durch Anlegen **einer** Datei plus Registry-Eintrag ergänzen; die Ansicht enthält keine formatspezifischen Verzweigungen mehr.
+**Zwei Abfragen bleiben, und zwar absichtlich:** `isElimination` und `isDoubleElimination` wählen zwischen **zwei verschiedenen** Bracket-Komponenten. Das ist ein echter Unterschied zwischen zwei Formaten, keine Eigenschaft, die beide angeben könnten — `hasBracket` sagt, dass es ein Bracket gibt; welches, bleibt Sache der Ansicht. Im Code als solche gekennzeichnet.
+
+Nebenbei: Dieselbe neunstellige Zuordnung von Format zu Beschriftung stand **zweimal** in derselben Datei; beide sind durch `formatLabel()` aus H4 ersetzt.
+
+**Ein Fund beim Prüfen dieser Arbeit:** Die Wurzel-`tsconfig.json` ist eine reine Verweisdatei mit `"files": []`. `npx tsc --noEmit` sieht damit **keine einzige Quelldatei** und meldet Erfolg — ich hatte in dieser Sitzung mehrfach „Typen sauber" gemeldet, während in `livePublish.ts` ein echter Fehler aus der I3-Arbeit stand (`PublicStandingEntry[]` an eine `StandingEntry[]`-Variable). Die CI hätte ihn beim nächsten Lauf gefangen, meine lokale Prüfung nicht. Behoben, und die richtige Form (`tsc -b`) steht jetzt in `CLAUDE.md`.
+
+**Fertig wenn:** ~~Ein neues Format lässt sich durch Anlegen einer Datei plus Registry-Eintrag ergänzen; die Ansicht enthält keine formatspezifischen Verzweigungen mehr~~ — erfüllt, bis auf die zwei begründeten Ausnahmen. Fünf Tests sichern, dass jede registrierte Engine ihre Anzeige vollständig angibt.
 
 ---
 

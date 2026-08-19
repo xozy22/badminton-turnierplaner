@@ -73,6 +73,13 @@ function phaseData(ctx: FormatContext, phase: string | null) {
 
 export const roundRobinEngine: FormatEngine = {
   id: "round_robin",
+  display: {
+    hasBracket: false,
+    hasGroupPhase: false,
+    usesBuchholz: false,
+    usesQueue: false,
+    reshufflesPartners: false,
+  },
   usesFixedTeams: true,
 
   start(ctx) {
@@ -101,6 +108,13 @@ export const roundRobinEngine: FormatEngine = {
 
 export const randomDoublesEngine: FormatEngine = {
   id: "random_doubles",
+  display: {
+    hasBracket: false,
+    hasGroupPhase: false,
+    usesBuchholz: false,
+    usesQueue: false,
+    reshufflesPartners: true,
+  },
   usesFixedTeams: false,
 
   start(ctx) {
@@ -228,6 +242,13 @@ function swissLikeProgress(ctx: FormatContext) {
 
 export const swissEngine: FormatEngine = {
   id: "swiss",
+  display: {
+    hasBracket: false,
+    hasGroupPhase: false,
+    usesBuchholz: true,
+    usesQueue: false,
+    reshufflesPartners: false,
+  },
   usesFixedTeams: true,
   start: swissLikeStart,
   canAdvance: swissLikeCanAdvance,
@@ -237,6 +258,13 @@ export const swissEngine: FormatEngine = {
 
 export const monradEngine: FormatEngine = {
   id: "monrad",
+  display: {
+    hasBracket: false,
+    hasGroupPhase: false,
+    usesBuchholz: true,
+    usesQueue: false,
+    reshufflesPartners: false,
+  },
   usesFixedTeams: true,
   start: swissLikeStart,
   canAdvance: swissLikeCanAdvance,
@@ -248,6 +276,13 @@ export const monradEngine: FormatEngine = {
 
 export const kingOfCourtEngine: FormatEngine = {
   id: "king_of_court",
+  display: {
+    hasBracket: false,
+    hasGroupPhase: false,
+    usesBuchholz: false,
+    usesQueue: true,
+    reshufflesPartners: true,
+  },
   usesFixedTeams: false,
 
   start(ctx) {
@@ -352,6 +387,13 @@ function waterfallRestCounts(ctx: FormatContext): Map<number, number> {
 
 export const waterfallEngine: FormatEngine = {
   id: "waterfall",
+  display: {
+    hasBracket: false,
+    hasGroupPhase: false,
+    usesBuchholz: false,
+    usesQueue: false,
+    reshufflesPartners: true,
+  },
   usesFixedTeams: false,
 
   start(ctx) {

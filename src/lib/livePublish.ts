@@ -415,7 +415,7 @@ export function buildSnapshot(
     : calculateStandings(players, matches, setsByMatch);
 
   // For group_ko: compute standings per group separately.
-  let groups: { number: number; standings: StandingEntry[] }[] | undefined;
+  let groups: { number: number; standings: PublicStandingEntry[] }[] | undefined;
   if (tournament.format === "group_ko" && tournament.num_groups > 0) {
     const groupRounds = rounds.filter((r) => r.phase === "group");
     const byGroup = new Map<number, Round[]>();

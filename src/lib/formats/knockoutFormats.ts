@@ -143,6 +143,13 @@ function knockoutAdvance(
 
 export const eliminationEngine: FormatEngine = {
   id: "elimination",
+  display: {
+    hasBracket: true,
+    hasGroupPhase: false,
+    usesBuchholz: false,
+    usesQueue: false,
+    reshufflesPartners: false,
+  },
   usesFixedTeams: true,
 
   start(ctx) {
@@ -347,6 +354,13 @@ export function buildKnockoutFromGroups(ctx: FormatContext): MatchSpec[] {
 
 export const groupKoEngine: FormatEngine = {
   id: "group_ko",
+  display: {
+    hasBracket: true,
+    hasGroupPhase: true,
+    usesBuchholz: false,
+    usesQueue: false,
+    reshufflesPartners: false,
+  },
   usesFixedTeams: true,
 
   start(ctx) {
@@ -453,6 +467,13 @@ export function doubleEliminationState(ctx: FormatContext): BracketMatchState[] 
 
 export const doubleEliminationEngine: FormatEngine = {
   id: "double_elimination",
+  display: {
+    hasBracket: true,
+    hasGroupPhase: false,
+    usesBuchholz: false,
+    usesQueue: false,
+    reshufflesPartners: false,
+  },
   usesFixedTeams: true,
 
   start(ctx) {

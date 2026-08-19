@@ -69,10 +69,17 @@ Begründungen für den heutigen Zustand in
 
 ## Befehle
 
+> **`npx tsc --noEmit` prüft in diesem Projekt nichts.** Die Wurzel-`tsconfig.json`
+> ist eine reine Verweisdatei mit `"files": []`; ohne `-b` sieht TypeScript
+> keine einzige Quelldatei und meldet folgerichtig Erfolg. Die Typprüfung
+> heißt **`npx tsc -b`** oder `pnpm build`. Das ist keine Feinheit: eine ganze
+> Arbeitssitzung lang wurde „Typen sauber" gemeldet, während ein echter
+> Fehler in `livePublish.ts` unentdeckt blieb.
+
 ```bash
 pnpm dev            # Entwicklungsserver
 pnpm test           # Tests, beide Backends
-pnpm build          # Typprüfung und Bündelung
+pnpm build          # Typprüfung (tsc -b) und Bündelung
 pnpm check:i18n     # Übersetzungsschlüssel
 pnpm check:emoji    # Emojis in der Oberfläche
 pnpm check:version  # package.json gegen tauri.conf.json

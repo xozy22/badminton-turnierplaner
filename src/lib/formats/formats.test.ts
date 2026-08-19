@@ -635,3 +635,58 @@ describe("knockoutSizes — what qualify_per_group actually means", () => {
     });
   });
 });
+
+describe("display properties — what D2 was actually about", () => {
+  it("every registered format declares how it wants to be shown", () => {
+    // The point of the criterion "one file plus a registry entry": if a new
+    // engine could omit this, the view would fall back to a default and the
+    // format would render wrongly rather than fail to compile.
+    for (const [id, engine] of Object.entries(FORMAT_ENGINES)) {
+      expect(engine.display, `${id} has no display block`).toBeDefined();
+      for (const key of [
+        "hasBracket",
+        "hasGroupPhase",
+        "usesBuchholz",
+        "usesQueue",
+        "reshufflesPartners",
+      ] as const) {
+        expect(typeof engine.display[key], `${id}.display.${key}`).toBe("boolean");
+      }
+    }
+  });
+
+  it("the bracket formats are the knockout ones", () => {
+    const withBracket = Object.entries(FORMAT_ENGINES)
+      .filter(([, e]) => e.display.hasBracket)
+      .map(([id]) => id)
+      .sort();
+    expect(withBracket).toEqual(["double_elimination", "elimination", "group_ko"]);
+  });
+
+  it("only group_ko has a group phase", () => {
+    // round_robin puts its rounds in phase "group" too, but that is the
+    // storage phase, not a group stage feeding a knockout.
+    const withGroups = Object.entries(FORMAT_ENGINES)
+      .filter(([, e]) => e.display.hasGroupPhase)
+      .map(([id]) => id);
+    expect(withGroups).toEqual(["group_ko"]);
+  });
+
+  it("Buchholz belongs to Swiss and Monrad", () => {
+    const withBuchholz = Object.entries(FORMAT_ENGINES)
+      .filter(([, e]) => e.display.usesBuchholz)
+      .map(([id]) => id)
+      .sort();
+    expect(withBuchholz).toEqual(["monrad", "swiss"]);
+  });
+
+  it("a format that reshuffles partners cannot use fixed teams", () => {
+    // The two are opposites; a format claiming both would break the team
+    // pairing screen.
+    for (const [id, engine] of Object.entries(FORMAT_ENGINES)) {
+      if (engine.display.reshufflesPartners) {
+        expect(engine.usesFixedTeams, `${id} claims both`).toBe(false);
+      }
+    }
+  });
+});
