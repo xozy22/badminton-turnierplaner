@@ -282,7 +282,7 @@ schneller: Die 21 ist die Regel, die andere Zahl die eigentliche Information.
 Zu prüfen, nicht blind zu übernehmen — bei Verlängerungsergebnissen (24:22)
 ist die heutige Richtung im Vorteil. Vielleicht ist es eine Einstellung.
 
-### D3 — Schiedsrichterzettel
+### D3 — Schiedsrichterzettel ✔ erledigt (2026-08-19)
 **Nutzen:** mittel · **Aufwand:** S · *BTP: acht „Spielkarten" auf ein DIN-A4-Blatt*
 
 Kleine Zettel mit Paarung, Feld und Zeit, acht pro Blatt, auf Wunsch auch leer
@@ -290,6 +290,22 @@ zum Selbstausfüllen. BOSS hat eine Druckansicht mit fünf Modi — dieser fehlt
 
 Für Vereinsturniere gut brauchbar: Der Zettel geht mit aufs Feld und kommt
 ausgefüllt zurück.
+
+**Umgesetzt.** Zwei neue Druckarten: „Schiedsrichterzettel" mit den Paarungen
+und „Leere Zettel" zum Selbstausfüllen, beide acht je Blatt in zwei Spalten.
+Jeder Zettel trägt Turniername, Runde, Feld und Zeit, dann je Seite so viele
+Kästchen, wie das Turnier Sätze kennt, und unten Sieger und Unterschrift.
+
+Was schon feststeht, ist gedruckt; was von Hand kommt, ist ein Kästchen oder
+eine Linie — das ist der ganze Zweck eines Zettels, der ausgefüllt zurückkommt.
+
+**Abweichung vom Vorschlag:** Der Turnierkopf entfällt bei diesen beiden
+Arten. Er hätte eine Zeile von acht Zetteln gekostet; der Turniername steht
+stattdessen klein auf jedem einzelnen, wo er ohnehin hingehört.
+
+Gedruckt werden nur Spiele, die noch anstehen — ein Zettel für ein
+entschiedenes Spiel wandert direkt in den Papierkorb. Freilose bekommen
+keinen: Es gibt niemanden, dem man ihn geben könnte.
 
 ---
 

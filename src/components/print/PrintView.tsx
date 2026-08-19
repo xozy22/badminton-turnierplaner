@@ -19,7 +19,16 @@ import type { PrintColors } from "../../lib/theme";
 import { PRINT_COLORS } from "../../lib/theme";
 import type { ThemeId } from "../../lib/theme";
 
-export type PrintMode = "schedule" | "round" | "standings" | "full" | "report";
+export type PrintMode =
+  | "schedule"
+  | "round"
+  | "standings"
+  | "full"
+  | "report"
+  /** Umpire cards for the matches to be played, eight to a sheet. */
+  | "scorecards"
+  /** The same card, empty, for filling in by hand. */
+  | "scorecards_blank";
 
 interface PrintViewProps {
   tournament: Tournament;
@@ -64,6 +73,8 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
       return p2 ? `${playerName(p1)} / ${playerName(p2)}` : playerName(p1);
     };
 
+    const isScoreCards = mode === "scorecards" || mode === "scorecards_blank";
+
     const now = new Date().toLocaleDateString(locale, {
       day: "2-digit",
       month: "2-digit",
@@ -104,6 +115,161 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
         </div>
       </div>
     );
+
+    /**
+     * One umpire card: who plays whom, on which court, with empty boxes
+     * for the sets.
+     *
+     * It goes out to the court and comes back filled in, which is the
+     * whole point -- so everything that has to be written by hand is a
+     * box, and everything already known is printed (FEATURE-BACKLOG.md
+     * D3).
+     */
+    const renderScoreCard = (m: Match | null, roundLabel: string, key: number) => {
+      const maxSets = tournament.sets_to_win * 2 - 1;
+      const boxRow = (label: string) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 3 }}>
+          <span
+            style={{
+              fontSize: 8,
+              width: 62,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              fontWeight: 600,
+            }}
+          >
+            {label}
+          </span>
+          {Array.from({ length: maxSets }, (_, i) => (
+            <span
+              key={i}
+              style={{
+                width: 22,
+                height: 18,
+                border: "1px solid #999",
+                borderRadius: 2,
+                display: "inline-block",
+              }}
+            />
+          ))}
+        </div>
+      );
+
+      return (
+        <div
+          key={key}
+          style={{
+            border: `1px solid ${c.accent}`,
+            borderRadius: 3,
+            padding: 8,
+            height: 118,
+            boxSizing: "border-box",
+            breakInside: "avoid",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 7,
+                color: "#666",
+                borderBottom: "1px solid #ddd",
+                paddingBottom: 2,
+              }}
+            >
+              <span
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: 150,
+                }}
+              >
+                {tournament.name}
+              </span>
+              <span>{roundLabel}</span>
+            </div>
+
+            <div style={{ display: "flex", gap: 6, marginTop: 4, fontSize: 7, color: "#666" }}>
+              <span>
+                {t.common_field}:{" "}
+                <b style={{ color: "#111", fontSize: 9 }}>
+                  {m?.court ?? "____"}
+                </b>
+              </span>
+              <span>
+                {t.print_card_time}: <b style={{ color: "#111" }}>______</b>
+              </span>
+            </div>
+
+            {boxRow(m ? teamLabel(m, 1) : "____________")}
+            {boxRow(m && m.team2_p1 !== null ? teamLabel(m, 2) : "____________")}
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 7, color: "#666" }}>
+            <span>
+              {t.print_card_winner}: ______________
+            </span>
+            <span>{t.print_card_signature}: __________</span>
+          </div>
+        </div>
+      );
+    };
+
+    /**
+     * The matches the cards are printed for: the selected round when there
+     * is one, otherwise everything still to be played. A card for a match
+     * that is already decided would go straight into the bin.
+     */
+    const cardMatches = (): { match: Match; roundLabel: string }[] => {
+      const out: { match: Match; roundLabel: string }[] = [];
+      const wanted = activeRoundId
+        ? rounds.filter((r) => r.id === activeRoundId)
+        : rounds;
+      for (const r of wanted) {
+        const label = `${t.common_round} ${r.round_number}`;
+        for (const m of matchesByRound.get(r.id) ?? []) {
+          if (m.status === "completed") continue;
+          // A bye has nobody to hand a card to.
+          if (m.team2_p1 === null) continue;
+          out.push({ match: m, roundLabel: label });
+        }
+      }
+      return out;
+    };
+
+    const renderScoreCards = () => {
+      const blank = mode === "scorecards_blank";
+      const entries = blank ? [] : cardMatches();
+      // Blank sheets come as a full page; a partly filled page is padded
+      // out so the grid does not collapse to one short column.
+      const total = blank ? 8 : Math.max(entries.length, 1);
+      const padded = Math.ceil(total / 2) * 2;
+
+      return (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 8,
+          }}
+        >
+          {Array.from({ length: padded }, (_, i) => {
+            const entry = entries[i];
+            return renderScoreCard(
+              entry?.match ?? null,
+              entry?.roundLabel ?? (blank ? "" : t.print_card_blank_label),
+              i,
+            );
+          })}
+        </div>
+      );
+    };
 
     const renderMatchRow = (m: Match, idx: number) => {
       const sets = setsByMatch.get(m.id) || [];
@@ -543,7 +709,11 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
           backgroundColor: "white",
         }}
       >
-        {renderHeader()}
+        {/* The cards fill the sheet on their own -- a tournament header
+            above them would cost one row of eight. */}
+        {!isScoreCards && renderHeader()}
+
+        {isScoreCards && renderScoreCards()}
 
         {/* Report mode: Highlights + Group Standings + Standings + Participants + All Rounds */}
         {mode === "report" && (
@@ -613,6 +783,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
         {/* Footer */}
         <div
           style={{
+            display: isScoreCards ? "none" : "block",
             marginTop: 30,
             paddingTop: 10,
             borderTop: "1px solid #e5e7eb",

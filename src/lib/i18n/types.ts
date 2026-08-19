@@ -560,6 +560,14 @@ export interface Translations {
   draw_preview_sitting_out: string;
   draw_preview_summary: string;
   draw_preview_no_redraw: string;
+  print_card_time: string;
+  print_card_winner: string;
+  print_card_signature: string;
+  print_card_blank_label: string;
+  print_mode_scorecards: string;
+  print_mode_scorecards_desc: string;
+  print_mode_scorecards_blank: string;
+  print_mode_scorecards_blank_desc: string;
   seeding_description: string;
   seeding_move_up: string;
   seeding_move_down: string;

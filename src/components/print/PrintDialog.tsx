@@ -55,6 +55,8 @@ export default function PrintDialog({
     { value: "schedule", label: t.print_schedule, desc: t.print_schedule_desc },
     { value: "round", label: t.print_current_round, desc: t.print_current_round_desc },
     { value: "standings", label: t.print_standings, desc: t.print_standings_desc },
+    { value: "scorecards", label: t.print_mode_scorecards, desc: t.print_mode_scorecards_desc },
+    { value: "scorecards_blank", label: t.print_mode_scorecards_blank, desc: t.print_mode_scorecards_blank_desc },
   ];
   const printRef = useRef<HTMLDivElement>(null);
 
