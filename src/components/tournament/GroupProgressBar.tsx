@@ -100,6 +100,10 @@ export default function GroupProgressBar({ progress }: Props) {
                       ? "bg-rose-400"
                       : "bg-phase"
                   }`}
+                  role="progressbar"
+                  aria-valuenow={pct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
                   style={{ width: `${pct}%` }}
                 />
               </div>

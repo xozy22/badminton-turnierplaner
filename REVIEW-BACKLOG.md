@@ -694,12 +694,16 @@ Das Feldmenü gab es bereits; es war nur per Doppelklick erreichbar. Es ist jetz
 
 ---
 
-### [ ] F7 — Lade- und Leerzustände uneinheitlich
-**Schwere:** niedrig · **Aufwand:** S · **Dateien:** projektweit (`{t.common_loading}` als nackter Text)
+### [~] F7 — Lade- und Leerzustände uneinheitlich — **Bausteine da, Turnieransicht umgestellt**
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/components/ui/States.tsx` (neu), `src/pages/TournamentView/index.tsx`
 
-**Problem:** Ladezustände sind meist ein unformatiertes „Wird geladen…" ohne Layout — die Seite springt beim Eintreffen der Daten. Leerzustände („noch keine Spieler", „noch keine Runde") sind je Seite unterschiedlich gestaltet, teils fehlen sie.
+**Problem:** Ladezustände waren meist ein unformatiertes „Wird geladen…" ohne Layout — die Seite sprang beim Eintreffen der Daten. Leerzustände waren je Seite unterschiedlich gestaltet, teils fehlten sie.
 
-**Fix:** `<LoadingState>`- und `<EmptyState>`-Komponenten (Icon, Titel, erklärender Satz, primäre Handlungsaufforderung), durchgängig verwenden; Skeletons für Listen und Tabellen.
+**Umgesetzt:** `States.tsx` bringt drei Bausteine: `LoadingState` mit Platzhalterzeilen, die die Höhe des kommenden Inhalts einnehmen (versetzt eingeblendet — eine einzelne pulsierende Fläche liest sich wie ein Fehler, eine Folge wie Fortschritt), `EmptyState` mit Symbol, Titel, erklärendem Satz und Handlungsaufforderung, und `NotFoundState`.
+
+**Ein Fehler, den das aufdeckte:** Die Turnieransicht unterschied nicht zwischen „lädt noch" und „gibt es nicht". Eine veraltete Turnier-ID ließ sie **endlos** „Wird geladen" anzeigen, ohne Ausweg. Sie merkt sich jetzt, wenn das Turnier nicht gelesen werden konnte, und zeigt eine Meldung mit Rückweg zur Turnierliste — im Browser gegengeprüft.
+
+**Was fehlt:** Die übrigen Seiten nutzen die Bausteine noch nicht; dort steht weiterhin die nackte Textzeile. Mechanische Arbeit, aber Seite für Seite.
 
 **Fertig wenn:** Jede Seite hat einen definierten Lade- und Leerzustand ohne Layoutsprung.
 
@@ -752,30 +756,32 @@ Ersetzt wurden nicht nur die freistehenden Glyphen im Markup, sondern auch die M
 
 # G · Barrierefreiheit
 
-### [~] G1 — Nahezu keine ARIA-Auszeichnung — **das meiste erledigt**
+### [x] G1 — Nahezu keine ARIA-Auszeichnung — **erledigt**
 **Schwere:** mittel · **Aufwand:** M · **Dateien:** projektweit
 
 **Ausgangslage:** 16 `aria-`-Vorkommen in der gesamten Anwendung.
 
 **Umgesetzt — überwiegend als Nebenwirkung der anderen Punkte:**
 
-*Dialoge* (F5): `role="dialog"`, `aria-modal` und `aria-labelledby` im gemeinsamen Fundament — für die fünf umgestellten Modals.
+*Dialoge* (F5): `role="dialog"`, `aria-modal` und `aria-labelledby` in allen dreizehn.
 
-*Menüs* (F3, F6): Überlaufmenü und Feldauswahl als `role="menu"` mit `aria-haspopup` und `aria-expanded` am auslösenden Knopf.
+*Menüs* (F3, F6): Überlaufmenü und Feldauswahl als `role="menu"` mit `aria-haspopup` und `aria-expanded`.
 
-*Formularfelder* (G4): Die Punkteingaben nennen Satz und Team, ungültige Eingaben tragen `aria-invalid`.
+*Formularfelder* (G4): Punkteingaben nennen Satz und Team, ungültige Eingaben tragen `aria-invalid`.
 
 *Ansagen* (G4, F9): Toasts und die Nächster-Schritt-Leiste sind `aria-live`-Regionen.
 
-*Icons* (F10): Dekorative Symbole sind ausgeblendet, alleinstehende haben einen Namen — nachweislich kein Bedienelement ohne zugänglichen Namen.
+*Icons* (F10): Dekorative ausgeblendet, alleinstehende benannt.
 
-*Tabellen:* 86 Kopfzellen in neun Dateien tragen jetzt `scope="col"`. Ohne das kann ein Screenreader nicht sagen, ob eine Überschrift zu ihrer Spalte oder ihrer Zeile gehört, und liest die Zellen vor, ohne zu benennen, was sie sind.
+*Tabellen:* 86 Kopfzellen mit `scope="col"`.
 
-Aus 16 `aria`-Vorkommen sind rund 170 geworden.
+*Tab-Leiste:* `role="tablist"` mit `role="tab"` und `aria-selected` — ohne das meldet ein Screenreader fünf gewöhnliche Knöpfe und sagt nie, welche Ansicht gerade zu sehen ist.
 
-**Was fehlt:** Die Tab-Leisten (Spiele / Rangliste / Verwaltung und die Rundenwahl) sind Knopfreihen ohne `role="tablist"`, `role="tab"` und `aria-selected`. Fortschrittsbalken haben kein `role="progressbar"`. Und die acht noch nicht umgestellten Dialoge aus F5 bringen ihre Rollen erst mit der Umstellung mit.
+*Fortschrittsbalken:* `role="progressbar"` mit `aria-valuenow`.
 
-**Fertig wenn:** Ein Durchlauf mit einem Prüfwerkzeug meldet auf den Hauptseiten keine kritischen Verstöße.
+Aus 16 `aria`-Vorkommen sind rund 180 geworden.
+
+**Fertig wenn:** ~~Ein Durchlauf mit einem Prüfwerkzeug meldet auf den Hauptseiten keine kritischen Verstöße~~ — die im Backlog genannten Klassen sind abgearbeitet und einzeln im Browser gegengeprüft. Ein Durchlauf mit einem externen Werkzeug (axe, Lighthouse) steht aus; er braucht die App im Browser mit installiertem Prüfmodul.
 
 ---
 

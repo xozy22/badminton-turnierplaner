@@ -897,6 +897,7 @@ export interface Translations {
   tournament_view_undo_done: string;
 
   // ===== Reopen tournament =====
+  tournament_not_found: string;
   tournament_view_reopen: string;
   tournament_view_reopen_confirm: string;
 

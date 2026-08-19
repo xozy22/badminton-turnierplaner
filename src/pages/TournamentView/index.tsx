@@ -4,6 +4,7 @@ import { useParams, useLocation, useNavigate } from "react-router-dom";
 import PrintDialog from "../../components/print/PrintDialog";
 import OverflowMenu from "../../components/ui/OverflowMenu";
 import NextStepBar from "../../components/tournament/NextStepBar";
+import { LoadingState, NotFoundState } from "../../components/ui/States";
 import { useTheme } from "../../lib/ThemeContext";
 import TemplateExportModal from "../../components/tournament/TemplateExportModal";
 import DeleteTournamentModal from "../../components/tournament/DeleteTournamentModal";
@@ -132,6 +133,7 @@ export default function TournamentView() {
   const navTeamsFromState = navState?.teams;
   const navSavedSuccess = !!navState?.savedSuccess;
   const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   useDocumentTitle(tournament?.name ?? t.nav_tournaments);
   const navTeams = useMemo(() => {
     if (navTeamsFromState && navTeamsFromState.length > 0) return navTeamsFromState;
@@ -290,8 +292,16 @@ export default function TournamentView() {
     // queries depends on another, so they go out together instead of one
     // after the next — over Tauri's IPC each one is a serialise/
     // deserialise hop (REVIEW-BACKLOG.md D7).
-    const [td, ap, p, r, allMatches, allSets, retiredIds, pd] = await Promise.all([
-      getTournament(tournamentId),
+    let td: Tournament;
+    try {
+      td = await getTournament(tournamentId);
+    } catch {
+      setLoadFailed(true);
+      return;
+    }
+    setLoadFailed(false);
+
+    const [ap, p, r, allMatches, allSets, retiredIds, pd] = await Promise.all([
       getPlayers(),
       getTournamentPlayers(tournamentId),
       getRounds(tournamentId),
@@ -1219,7 +1229,24 @@ export default function TournamentView() {
     return sessionCtx.tournaments.filter((tt) => tt.id !== tournament.id);
   }, [sessionCtx.tournaments, tournament?.session_id, tournament?.id]);
 
-  if (!tournament) return <div>{t.common_loading}</div>;
+  // A tournament that never arrives is not the same as one still loading:
+  // the id may be stale, and the view used to say "loading" forever
+  // (REVIEW-BACKLOG.md F7).
+  if (!tournament) {
+    return (
+      <div className="p-6">
+        {loadFailed ? (
+          <NotFoundState
+            title={t.tournament_not_found}
+            backTo="/tournaments"
+            backLabel={t.nav_tournaments}
+          />
+        ) : (
+          <LoadingState rows={4} />
+        )}
+      </div>
+    );
+  }
 
   /**
    * Writes one of the export files. In the packaged app a native save
@@ -1954,9 +1981,15 @@ export default function TournamentView() {
         advanceLabel={advanceButtonLabel}
       />
 
-      {/* View Tabs */}
+      {/* A tab strip, declared as one: without the roles a screen reader
+          announces five ordinary buttons and never says which view is
+          showing (REVIEW-BACKLOG.md G1). */}
       {rounds.length > 0 && (
-        <div className={`flex border-b-2 ${theme.inputBorder} mb-5`}>
+        <div
+          role="tablist"
+          aria-label={t.tournament_view_tab_matches}
+          className={`flex border-b-2 ${theme.inputBorder} mb-5`}
+        >
           {(() => {
             const hasBracket = koRoundsForBracket.length > 0 && (isElimination || (isGroupKo && tournament.current_phase === "ko"));
             const hasDoubleElimBracket = isDoubleElimination && (winnersRounds.length > 0 || losersRounds.length > 0);
@@ -1972,6 +2005,8 @@ export default function TournamentView() {
           })().map((tab) => (
             <button
               key={tab.key}
+              role="tab"
+              aria-selected={viewTab === tab.key}
               onClick={() => setViewTab(tab.key)}
               className={`px-6 py-3 text-sm font-semibold transition-all duration-200 relative rounded-t-lg ${
                 viewTab === tab.key

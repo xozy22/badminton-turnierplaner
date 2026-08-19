@@ -873,6 +873,7 @@ export const en: Translations = {
   tournament_view_undo_done: "Round \"{label}\" undone ({matches} matches, {sets} sets)",
 
   // ===== Reopen tournament =====
+  tournament_not_found: "This tournament no longer exists.",
   tournament_view_reopen: "Reopen tournament",
   tournament_view_reopen_confirm: "Tournament will be set back to active.",
 

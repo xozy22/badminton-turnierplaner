@@ -873,6 +873,7 @@ export const de: Translations = {
   tournament_view_undo_done: "Runde \"{label}\" rückgängig gemacht ({matches} Matches, {sets} Sätze)",
 
   // ===== Reopen tournament =====
+  tournament_not_found: "Dieses Turnier gibt es nicht mehr.",
   tournament_view_reopen: "Turnier wieder öffnen",
   tournament_view_reopen_confirm: "Turnier wird wieder auf aktiv gesetzt.",
 
