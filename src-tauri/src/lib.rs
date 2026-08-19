@@ -27,7 +27,7 @@ const BACKUP_KEEP: usize = 5;
 /// Wird gegen die Migrationsliste geprueft (`debug_assert` in `run`), damit
 /// die Konstante nicht stillschweigend veraltet, wenn eine Migration
 /// hinzukommt.
-const CURRENT_SCHEMA_VERSION: i64 = 19;
+const CURRENT_SCHEMA_VERSION: i64 = 20;
 
 /// Datum und Uhrzeit als `YYYY-MM-DD_HHMM`, aus Unix-Sekunden.
 ///
@@ -1298,6 +1298,29 @@ pub fn run() {
             sql: "
                 ALTER TABLE tournaments ADD COLUMN play_date TEXT;
                 ALTER TABLE tournaments ADD COLUMN start_time TEXT;
+            ",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 20,
+            description: "say why a match ended without being played",
+            // `walkover` already said "no sets were played". It never said
+            // why, and it could not express the one case the handbook calls
+            // out: neither side turned up, so nobody won (FEATURE-BACKLOG.md
+            // D1). Without it such a match stays pending forever and the
+            // tournament can never be finished.
+            //
+            // NULL means the match was played normally. The four other
+            // values -- walkover, retired, no_match, disqualified -- all
+            // imply walkover = 1, which is what keeps them out of every
+            // set and point ratio. `no_match` is the only one that leaves
+            // winner_team NULL.
+            //
+            // Matches already marked walkover keep that flag and get the
+            // value that used to be the only meaning of it.
+            sql: "
+                ALTER TABLE matches ADD COLUMN outcome TEXT;
+                UPDATE matches SET outcome = 'walkover' WHERE walkover = 1;
             ",
             kind: MigrationKind::Up,
         },

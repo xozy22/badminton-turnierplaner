@@ -139,6 +139,38 @@ describe("matchesToCsv", () => {
     expect(csv.split("\r\n")[1]).toContain("kampflos");
   });
 
+  it("names which kind of unplayed match it was", () => {
+    // "kampflos" used to cover all of them, which lost the difference
+    // between a no-show and a match neither side turned up for.
+    const [a, b] = [makePlayer(), makePlayer()];
+    const cases: { outcome: "retired" | "disqualified" | "no_match"; label: string }[] = [
+      { outcome: "retired", label: "Aufgabe" },
+      { outcome: "disqualified", label: "Disqualifikation" },
+      { outcome: "no_match", label: "kein Spiel" },
+    ];
+
+    for (const c of cases) {
+      const m = makeMatch({
+        round_id: 1,
+        team1_p1: a.id,
+        team2_p1: b.id,
+        winner_team: c.outcome === "no_match" ? null : 1,
+        status: "completed",
+        walkover: 1,
+        outcome: c.outcome,
+      });
+      const csv = matchesToCsv({
+        tournament: makeTournament(),
+        players: [a, b],
+        rounds: [round],
+        matches: [m],
+        sets: [],
+        standings: [],
+      });
+      expect(csv.split("\r\n")[1], c.outcome).toContain(c.label);
+    }
+  });
+
   it("shows both partners of a doubles team", () => {
     const players = [makePlayer({ first_name: "Anna" }), makePlayer({ first_name: "Bea" }), makePlayer({ first_name: "Cem" }), makePlayer({ first_name: "Dana" })];
     const m = makeMatch({

@@ -34,6 +34,7 @@ export default function CompletedMatchesSection({
   onCourtChange,
   onAnnounce,
   onReset,
+  onOutcome,
   isActive,
   theme,
   hasOtherMatches,
@@ -57,6 +58,8 @@ export default function CompletedMatchesSection({
   onCourtChange: (matchId: number, court: number | null) => void;
   onAnnounce: (court: number, team1: string, team2: string) => void;
   onReset: (matchId: number) => void;
+  /** Opens the "this match was not played" dialog. */
+  onOutcome?: (matchId: number) => void;
   isActive: boolean;
   theme: ThemeColors;
   hasOtherMatches: boolean;
@@ -77,6 +80,18 @@ export default function CompletedMatchesSection({
   // completed ones are reference/history. Editing matches stay visible
   // either way (the user is mid-edit and would lose the input UI).
   const [isOpen, setIsOpen] = useState(false);
+
+  /** Null for a played match, so the score line stands as it did. */
+  const outcomeLabel = (m: Match) =>
+    m.outcome === "walkover"
+      ? t.outcome_badge_walkover
+      : m.outcome === "retired"
+        ? t.outcome_badge_retired
+        : m.outcome === "disqualified"
+          ? t.outcome_badge_disqualified
+          : m.outcome === "no_match"
+            ? t.outcome_badge_no_match
+            : null;
 
   const teamLabel = (m: Match) => {
     const t1 = m.team1_p2
@@ -119,6 +134,7 @@ export default function CompletedMatchesSection({
           onCourtChange={onCourtChange}
           onAnnounce={onAnnounce}
           onReset={onReset}
+          onOutcome={onOutcome}
           isActive={isActive}
           theme={theme}
           allMatches={allMatches}
@@ -188,12 +204,22 @@ export default function CompletedMatchesSection({
                 </span>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-3">
-                <span className={`font-mono font-bold text-sm ${theme.textPrimary}`}>
-                  {s1}:{s2}
-                </span>
-                <span className={`font-mono text-xs ${theme.textMuted}`}>
-                  ({sets.filter(s => s.team1_score > 0 || s.team2_score > 0).map(s => `${s.team1_score}:${s.team2_score}`).join(", ")})
-                </span>
+                {outcomeLabel(m) ? (
+                  // A match that was not played has no sets to show. "0:0 ()"
+                  // read as a played match that ended goalless.
+                  <span className="rounded-full bg-warning-subtle px-2 py-0.5 text-xs font-medium text-warning-text">
+                    {outcomeLabel(m)}
+                  </span>
+                ) : (
+                  <>
+                    <span className={`font-mono font-bold text-sm ${theme.textPrimary}`}>
+                      {s1}:{s2}
+                    </span>
+                    <span className={`font-mono text-xs ${theme.textMuted}`}>
+                      ({sets.filter(s => s.team1_score > 0 || s.team2_score > 0).map(s => `${s.team1_score}:${s.team2_score}`).join(", ")})
+                    </span>
+                  </>
+                )}
                 {isActive && (
                   <button
                     onClick={() => onReset(m.id)}

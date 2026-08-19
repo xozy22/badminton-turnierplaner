@@ -36,6 +36,7 @@ export default function MatchCard({
   onCourtChange,
   onAnnounce,
   onReset,
+  onOutcome,
   isActive,
   theme,
   allMatches,
@@ -75,6 +76,8 @@ export default function MatchCard({
   onCourtChange: (matchId: number, court: number | null) => void;
   onAnnounce?: (court: number, team1: string, team2: string) => void;
   onReset: (matchId: number) => void;
+  /** Opens the "this match was not played" dialog. */
+  onOutcome?: (matchId: number) => void;
   isActive: boolean;
   theme: ThemeColors;
   allMatches: Match[];
@@ -112,6 +115,18 @@ export default function MatchCard({
   // JSX renderer that inlines RestIndicator after each player name. Only renders
   // clocks when the tournament is active AND has rest time configured AND the
   // match itself isn't completed yet (a completed match has no scheduling value).
+  // Null for a played match, so the ordinary "completed" badge stands.
+  const outcomeLabel =
+    match.outcome === "walkover"
+      ? t.outcome_badge_walkover
+      : match.outcome === "retired"
+        ? t.outcome_badge_retired
+        : match.outcome === "disqualified"
+          ? t.outcome_badge_disqualified
+          : match.outcome === "no_match"
+            ? t.outcome_badge_no_match
+            : null;
+
   const showRestIcons =
     isActive && minRestMinutes > 0 && match.status !== "completed";
   const renderTeam = (p1: number | null, p2: number | null) =>
@@ -249,11 +264,18 @@ export default function MatchCard({
               {team1SetsWon}:{team2SetsWon}
             </span>
           )}
-          {match.status === "completed" && (
-            <span className={`text-xs font-medium ${theme.activeBadgeBg} ${theme.activeBadgeText} px-2.5 py-1 rounded-full`}>
-              {t.tournament_view_match_completed}
-            </span>
-          )}
+          {match.status === "completed" &&
+            (outcomeLabel ? (
+              // "Completed" alone would read as a played match. Which of the
+              // four reasons applies is the whole point of recording one.
+              <span className="rounded-full bg-warning-subtle px-2.5 py-1 text-xs font-medium text-warning-text">
+                {outcomeLabel}
+              </span>
+            ) : (
+              <span className={`text-xs font-medium ${theme.activeBadgeBg} ${theme.activeBadgeText} px-2.5 py-1 rounded-full`}>
+                {t.tournament_view_match_completed}
+              </span>
+            ))}
           {isActive && match.status === "completed" && (
             <button
               onClick={() => onReset(match.id)}
@@ -263,6 +285,17 @@ export default function MatchCard({
               {t.tournament_view_edit_results}
             </button>
           )}
+          {/* A match that was not played at all. Byes are already decided. */}
+          {isActive && match.status !== "completed" && match.team2_p1 !== null && onOutcome && (
+            <button
+              onClick={() => onOutcome(match.id)}
+              className="text-xs font-medium text-muted transition-colors hover:text-warning-text"
+              title={t.outcome_title}
+            >
+              {t.outcome_button}
+            </button>
+          )}
+
           {/* Announce to TV */}
           {isActive && match.court && match.status !== "completed" && onAnnounce && (
             <button

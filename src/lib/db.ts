@@ -10,6 +10,7 @@ import type {
   PaymentMethod,
   Round,
   Match,
+  MatchOutcome,
   GameSet,
 } from "./types";
 import { playerDisplayName } from "./types";
@@ -132,7 +133,7 @@ const REQUIRED_SCHEMA: Record<string, string[]> = {
   rounds: ["id", "tournament_id", "round_number", "phase", "group_number"],
   matches: [
     "id", "round_id", "team1_p1", "team1_p2", "team2_p1", "team2_p2",
-    "winner_team", "status", "walkover", "court", "court_assigned_at",
+    "winner_team", "status", "walkover", "outcome", "court", "court_assigned_at",
     "started_at", "completed_at",
   ],
   sets: ["id", "match_id", "set_number", "team1_score", "team2_score"],
@@ -565,6 +566,8 @@ function normalizeTournament(t: Tournament): Tournament {
     enable_third_place: t.enable_third_place ?? 0,
     session_id: t.session_id ?? null,
     planned_rounds: t.planned_rounds ?? null,
+    play_date: t.play_date ?? null,
+    start_time: t.start_time ?? null,
   };
 }
 
@@ -1207,6 +1210,7 @@ export async function createMatch(
     winner_team: null,
     status: "pending",
     walkover: 0,
+    outcome: null,
     started_at: startedAt,
     completed_at: null,
   });
@@ -1295,18 +1299,34 @@ export async function updatePlannedRounds(id: number, rounds: number | null): Pr
 }
 
 /**
- * Awards a match without play: retirement, no-show, or an opponent who
- * never turned up. The winner is credited, but the match carries no sets,
- * so it stays out of every set/point ratio.
+ * Closes a match that was not played, and records why.
+ *
+ * The winner -- if there is one -- is credited, but the match carries no
+ * sets, so it stays out of every set/point ratio.
+ *
+ * `winnerTeam` is null only for `no_match`, where neither side turned up.
+ * That match still counts as completed: the tournament has to be able to
+ * finish, and a match nobody played is not a match still to be played
+ * (FEATURE-BACKLOG.md D1).
  */
-export async function setMatchWalkover(matchId: number, winnerTeam: 1 | 2): Promise<void> {
+export async function setMatchOutcome(
+  matchId: number,
+  outcome: Exclude<MatchOutcome, null>,
+  winnerTeam: 1 | 2 | null,
+): Promise<void> {
+  if (outcome === "no_match" && winnerTeam !== null) {
+    throw new Error("no_match cannot have a winner");
+  }
+  if (outcome !== "no_match" && winnerTeam === null) {
+    throw new Error(`${outcome} needs a winner`);
+  }
   const completedAt = nowIso();
   if (isTauri()) {
     const d = await getTauriDb();
     await d.execute("DELETE FROM sets WHERE match_id = $1", [matchId]);
     await d.execute(
-      "UPDATE matches SET winner_team = $1, status = 'completed', walkover = 1, court = NULL, completed_at = $2 WHERE id = $3",
-      [winnerTeam, completedAt, matchId],
+      "UPDATE matches SET winner_team = $1, status = 'completed', walkover = 1, outcome = $2, court = NULL, completed_at = $3 WHERE id = $4",
+      [winnerTeam, outcome, completedAt, matchId],
     );
     await notifyDataChanged({ kind: "match" });
     return;
@@ -1318,11 +1338,17 @@ export async function setMatchWalkover(matchId: number, winnerTeam: 1 | 2): Prom
     m.winner_team = winnerTeam;
     m.status = "completed";
     m.walkover = 1;
+    m.outcome = outcome;
     m.court = null;
     m.completed_at = completedAt;
   }
   saveStore(store);
   await notifyDataChanged({ kind: "match" });
+}
+
+/** The plain no-show, kept as its own name because most callers mean this one. */
+export async function setMatchWalkover(matchId: number, winnerTeam: 1 | 2): Promise<void> {
+  await setMatchOutcome(matchId, "walkover", winnerTeam);
 }
 
 /** One match to create. `team2_p1 === null` marks a bye (no opponent). */
@@ -1538,7 +1564,7 @@ export async function updateMatchResult(matchId: number, winnerTeam: 1 | 2 | nul
     if (isTauri()) {
       const d = await getTauriDb();
       await d.execute(
-        "UPDATE matches SET winner_team = NULL, status = 'active', completed_at = NULL, walkover = 0 WHERE id = $1",
+        "UPDATE matches SET winner_team = NULL, status = 'active', completed_at = NULL, walkover = 0, outcome = NULL WHERE id = $1",
         [matchId]
       );
       await notifyDataChanged({ kind: "match" });
@@ -1551,6 +1577,7 @@ export async function updateMatchResult(matchId: number, winnerTeam: 1 | 2 | nul
       m.status = "active";
       m.completed_at = null;
       m.walkover = 0;
+    m.outcome = null;
     }
     saveStore(store);
     await notifyDataChanged({ kind: "match" });
@@ -1581,7 +1608,7 @@ export async function reopenMatch(matchId: number): Promise<void> {
   if (isTauri()) {
     const d = await getTauriDb();
     await d.execute(
-      "UPDATE matches SET winner_team = NULL, status = 'pending', completed_at = NULL, walkover = 0 WHERE id = $1",
+      "UPDATE matches SET winner_team = NULL, status = 'pending', completed_at = NULL, walkover = 0, outcome = NULL WHERE id = $1",
       [matchId]
     );
     await notifyDataChanged({ kind: "match" });
@@ -1594,6 +1621,7 @@ export async function reopenMatch(matchId: number): Promise<void> {
     m.status = "pending";
     m.completed_at = null;
     m.walkover = 0;
+    m.outcome = null;
   }
   saveStore(store);
   await notifyDataChanged({ kind: "match" });

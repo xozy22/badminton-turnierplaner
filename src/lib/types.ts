@@ -4,6 +4,23 @@ export type TournamentFormat = "round_robin" | "elimination" | "random_doubles" 
 export type TournamentStatus = "draft" | "active" | "completed" | "archived";
 export type MatchStatus = "pending" | "active" | "completed";
 
+/**
+ * Why a match carries no sets.
+ *
+ * - `walkover` -- one side did not turn up.
+ * - `retired` -- one side stopped mid-match.
+ * - `disqualified` -- one side was removed from the match.
+ * - `no_match` -- neither side turned up. Nobody wins.
+ *
+ * null means the match was played and the sets say what happened.
+ */
+export type MatchOutcome =
+  | "walkover"
+  | "retired"
+  | "disqualified"
+  | "no_match"
+  | null;
+
 export interface Player {
   id: number;
   first_name: string;
@@ -209,6 +226,16 @@ export interface Match {
    * 21:0 sets. Persisted via migration v15.
    */
   walkover: number;
+  /**
+   * Why the match was not played, or null when it was. All four values
+   * imply `walkover = 1`; `outcome` only says which of them applies, so
+   * the printout and the result file can name it (FEATURE-BACKLOG.md D1).
+   *
+   * `no_match` is the one that leaves `winner_team` null: neither side
+   * turned up, so nobody won. Before it existed such a match stayed
+   * pending forever and the tournament could never be finished.
+   */
+  outcome: MatchOutcome;
   started_at: string | null;
   completed_at: string | null;
 }

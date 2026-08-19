@@ -227,6 +227,66 @@ describe("elimination", () => {
     expect(new Set(semiFinalists).size).toBe(4);
   });
 
+  it("keeps the bracket halves apart when a match had no winner", () => {
+    // Both sides of quarter-final 2 stayed away, so it was closed as
+    // no_match. Dropping that slot would shift every later winner left and
+    // pair the top half of the bracket against the bottom half.
+    const ctx = makeContext({
+      tournament: makeTournament({ format: "elimination", status: "active" }),
+      players: makePlayers(8),
+    });
+    const engine = engineFor("elimination");
+    const afterStart = apply(ctx, engine.start(ctx)!);
+
+    const quarters = afterStart.matchesByRound.get(1)!;
+    expect(quarters).toHaveLength(4);
+    const survivor = quarters[0].team1_p1;
+    const thirdWinner = quarters[2].team1_p1;
+    const fourthWinner = quarters[3].team1_p1;
+
+    quarters[1].winner_team = null;
+    quarters[1].walkover = 1;
+    quarters[1].outcome = "no_match";
+
+    const plan = engine.advance(afterStart)!;
+    const semis = plan.rounds[0].matches;
+
+    // Two semi-finals: one bye, one real match between the bottom half.
+    expect(semis).toHaveLength(2);
+    expect(semis[0]).toMatchObject({
+      team1_p1: survivor,
+      team2_p1: null,
+      completed: true,
+    });
+    expect(semis[1]).toMatchObject({
+      team1_p1: thirdWinner,
+      team2_p1: fourthWinner,
+    });
+  });
+
+  it("leaves the slot empty when neither half produced anyone", () => {
+    const ctx = makeContext({
+      tournament: makeTournament({ format: "elimination", status: "active" }),
+      players: makePlayers(8),
+    });
+    const engine = engineFor("elimination");
+    const afterStart = apply(ctx, engine.start(ctx)!);
+
+    const quarters = afterStart.matchesByRound.get(1)!;
+    const bottomWinner = quarters[2].team1_p1;
+    for (const i of [0, 1]) {
+      quarters[i].winner_team = null;
+      quarters[i].walkover = 1;
+      quarters[i].outcome = "no_match";
+    }
+
+    const plan = engine.advance(afterStart)!;
+    // Only the bottom half is left, so there is one semi-final and the top
+    // half of the bracket carries no player at all.
+    expect(plan.rounds[0].matches).toHaveLength(1);
+    expect(plan.rounds[0].matches[0].team1_p1).toBe(bottomWinner);
+  });
+
   it("stops after the final", () => {
     const ctx = makeContext({
       tournament: makeTournament({ format: "elimination", status: "active" }),

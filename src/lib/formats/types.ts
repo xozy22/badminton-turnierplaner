@@ -141,14 +141,28 @@ export function nextRoundNumber(ctx: FormatContext): number {
   return ctx.rounds.length + 1;
 }
 
-/** Winners of a round; a bye advances its player. */
-export function winnersOfRound(ctx: FormatContext, roundId: number): {
-  p1: number;
-  p2: number | null;
-}[] {
-  const winners: { p1: number; p2: number | null }[] = [];
+export type BracketSlot = { p1: number; p2: number | null } | null;
+
+/**
+ * Winners of a round, one entry per match, in bracket order. A bye
+ * advances its player.
+ *
+ * A match that ended with no winner at all -- both sides absent, recorded
+ * as `no_match` -- yields null rather than being dropped. The position
+ * matters: dropping it would shift every later entry left and pair the
+ * two halves of the bracket against each other. Null leaves the slot
+ * empty, and the neighbour advances on a bye, which is what an empty
+ * slot has always meant here (FEATURE-BACKLOG.md D1).
+ */
+export function winnersOfRound(ctx: FormatContext, roundId: number): BracketSlot[] {
+  const winners: BracketSlot[] = [];
   for (const m of ctx.matchesByRound.get(roundId) ?? []) {
-    if (!m.winner_team) continue;
+    if (!m.winner_team) {
+      // Only a decided round gets this far, so a missing winner means the
+      // match was closed as no_match rather than still being open.
+      winners.push(null);
+      continue;
+    }
     if (m.team2_p1 === null || m.winner_team === 1) {
       winners.push({ p1: m.team1_p1, p2: m.team1_p2 });
     } else {

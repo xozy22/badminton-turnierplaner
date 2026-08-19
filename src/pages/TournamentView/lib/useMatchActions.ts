@@ -14,6 +14,7 @@
 import {
   clearMatchCourt,
   reopenMatch,
+  setMatchOutcome,
   updateMatchCourt,
   updateMatchResult,
   upsertSet,
@@ -27,7 +28,7 @@ import { getMatchConflicts } from "../../../lib/courtConflicts";
 import { getRestingPlayers } from "../../../lib/restTime";
 import type { TournamentDialogs } from "./useTournamentDialogs";
 import type { getEffectiveScoring } from "./effectiveScoring";
-import type { GameSet, Match, Tournament } from "../../../lib/types";
+import type { GameSet, Match, MatchOutcome, Tournament } from "../../../lib/types";
 import type { RunningPlayerCourt } from "../../../lib/courtConflicts";
 
 interface Args {
@@ -352,6 +353,38 @@ export function useMatchActions({
     }
   };
 
+  /**
+   * Opens the "this match was not played" dialog. A match with no opponent
+   * is a bye and already decided, so it never gets there.
+   */
+  const handleOutcomeRequest = (matchId: number) => {
+    const match = allMatches.find((m) => m.id === matchId);
+    if (!match || match.team2_p1 === null) return;
+    const label = (p1: number | null, p2: number | null) =>
+      p2 ? `${playerName(p1)} / ${playerName(p2)}` : playerName(p1);
+    dialogs.setOutcomeTarget({
+      matchId,
+      team1: label(match.team1_p1, match.team1_p2),
+      team2: label(match.team2_p1, match.team2_p2),
+    });
+  };
+
+  const handleOutcomeConfirm = async (
+    outcome: Exclude<MatchOutcome, null>,
+    winnerTeam: 1 | 2 | null,
+  ) => {
+    const target = dialogs.outcomeTarget;
+    if (!target) return;
+    dialogs.setOutcomeTarget(null);
+    await setMatchOutcome(target.matchId, outcome, winnerTeam);
+    setEditingMatchIds((prev) => {
+      const next = new Set(prev);
+      next.delete(target.matchId);
+      return next;
+    });
+    await refreshScores();
+  };
+
   const handleReopenMatch = async (matchId: number) => {
     setEditingMatchIds((prev) => new Set(prev).add(matchId));
     // Clear court (but keep court_assigned_at) so it doesn't show on a field
@@ -366,5 +399,7 @@ export function useMatchActions({
     handleCourtChange,
     handleAnnounce,
     handleReopenMatch,
+    handleOutcomeRequest,
+    handleOutcomeConfirm,
   };
 }

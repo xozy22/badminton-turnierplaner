@@ -38,6 +38,18 @@ export interface CourtTaken {
   byTournament: string | null;
 }
 
+/**
+ * A match being closed without a result: retirement, no-show, the pair
+ * that never turned up. The dialog asks which of them applies and, for
+ * everything but "no match", which side is credited with the win
+ * (FEATURE-BACKLOG.md D1).
+ */
+export interface OutcomeTarget {
+  matchId: number;
+  team1: string;
+  team2: string;
+}
+
 export interface RetireTarget {
   player: Player;
   partnerNote: string;
@@ -59,6 +71,7 @@ export function useTournamentDialogs() {
   const [restWarning, setRestWarning] = useState<RestWarning | null>(null);
   const [playerConflict, setPlayerConflict] = useState<PlayerConflict | null>(null);
   const [courtTaken, setCourtTaken] = useState<CourtTaken | null>(null);
+  const [outcomeTarget, setOutcomeTarget] = useState<OutcomeTarget | null>(null);
 
   return {
     showAddPlayer,
@@ -91,6 +104,8 @@ export function useTournamentDialogs() {
     setPlayerConflict,
     courtTaken,
     setCourtTaken,
+    outcomeTarget,
+    setOutcomeTarget,
   };
 }
 

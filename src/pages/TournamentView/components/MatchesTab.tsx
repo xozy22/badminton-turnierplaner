@@ -333,6 +333,7 @@ export default function MatchesTab({
                       onCourtChange={actions.handleCourtChange}
                       onAnnounce={actions.handleAnnounce}
                       onReset={actions.handleReopenMatch}
+                      onOutcome={actions.handleOutcomeRequest}
                       isActive={tournament.status === "active"}
                       theme={theme}
                       allMatches={allMatches}
@@ -357,6 +358,7 @@ export default function MatchesTab({
                       onCourtChange={actions.handleCourtChange}
                       onAnnounce={actions.handleAnnounce}
                       onReset={actions.handleReopenMatch}
+                      onOutcome={actions.handleOutcomeRequest}
                       isActive={tournament.status === "active"}
                       theme={theme}
                       hasOtherMatches={onCourt.length > 0}

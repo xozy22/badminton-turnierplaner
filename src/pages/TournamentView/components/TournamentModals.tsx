@@ -21,6 +21,7 @@ import UndoRoundModal from "./modals/UndoRoundModal";
 import RestWarningModal from "./modals/RestWarningModal";
 import PlayerConflictModal from "./modals/PlayerConflictModal";
 import CourtTakenModal from "./modals/CourtTakenModal";
+import MatchOutcomeModal from "./modals/MatchOutcomeModal";
 import DeleteTournamentModal from "../../../components/tournament/DeleteTournamentModal";
 import {
   deleteTournament,
@@ -34,6 +35,7 @@ import type {
   Player,
   Round,
   Match,
+  MatchOutcome,
   GameSet,
   StandingEntry,
 } from "../../../lib/types";
@@ -59,6 +61,10 @@ interface Props {
   onReopenTournament: () => void | Promise<void>;
   onUnpublish: () => void | Promise<void>;
   onPerformUndo: () => void | Promise<void>;
+  onOutcomeConfirm: (
+    outcome: Exclude<MatchOutcome, null>,
+    winnerTeam: 1 | 2 | null,
+  ) => void | Promise<void>;
   onNavigate: (to: string) => void;
   /** The shared confirm dialog element, rendered alongside. */
   confirmDialog: React.ReactNode;
@@ -85,6 +91,7 @@ export default function TournamentModals(props: Props) {
     onReopenTournament,
     onUnpublish,
     onPerformUndo,
+    onOutcomeConfirm,
     onNavigate,
     confirmDialog,
   } = props;
@@ -225,6 +232,12 @@ export default function TournamentModals(props: Props) {
   <CourtTakenModal
     taken={dialogs.courtTaken}
     onClose={() => dialogs.setCourtTaken(null)}
+  />
+
+  <MatchOutcomeModal
+    target={dialogs.outcomeTarget}
+    onClose={() => dialogs.setOutcomeTarget(null)}
+    onConfirm={onOutcomeConfirm}
   />
 
   <PlayerConflictModal

@@ -460,6 +460,7 @@ export default function TournamentView() {
         onReopenTournament={handleReopenTournament}
         onUnpublish={handleUnpublish}
         onPerformUndo={performUndo}
+        onOutcomeConfirm={matchActions.handleOutcomeConfirm}
         onNavigate={navigate}
       />
 

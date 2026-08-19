@@ -51,7 +51,7 @@ kein Datum am Turnier, keine Uhrzeiten, kein Ansetzen.
 Für den Vereinsabend ist das richtig so — man spielt, bis man fertig ist. Für
 alles, was länger als einen Abend dauert, fehlt es.
 
-### A1 — Spieltag und Uhrzeit am Turnier
+### A1 — Spieltag und Uhrzeit am Turnier ✔ erledigt (2026-08-19)
 **Nutzen:** hoch · **Aufwand:** S
 
 Ein Turnier hat heute nur `created_at`, also wann es *angelegt* wurde. Wann
@@ -60,6 +60,20 @@ sinnvollen Ausdruck und keine Auskunft, wann jemand antreten muss.
 
 Kleinster nützlicher Schritt: ein Spieldatum und eine Startzeit. Alles Weitere
 in diesem Abschnitt baut darauf auf.
+
+**Umgesetzt.** Migration 19 ergänzt `tournaments.play_date` und
+`tournaments.start_time`, beide optional. Bestehende Turniere behalten NULL —
+aus `created_at` ein Spieldatum zu raten wäre für jedes im Voraus geplante
+Turnier falsch. Der Assistent fragt beides ab, der Ausdruck zeigt das Datum
+ausgeschrieben.
+
+**Abweichung vom Vorschlag:** Der Zeitplan kommt als benanntes Options-Objekt
+in `createTournament`/`updateTournament`, nicht als vierzehnter und
+fünfzehnter Stellungsparameter. Und ein fehlender Schlüssel bedeutet dort
+„Spalte nicht anfassen" statt „leeren" — der Assistent speichert im
+Sekundentakt automatisch ohne Zeitplan, und der Einstellungsdialog im
+laufenden Turnier gibt nie einen mit. Das unbedingte Schreiben löschte das
+gerade eingetippte Datum nach etwa einer Sekunde wieder.
 
 ### A2 — Mehrtägige Turniere
 **Nutzen:** mittel · **Aufwand:** M · *BTP: Reiter „Tage"*
@@ -165,7 +179,7 @@ Menschen zusehen.
 
 ## D · Ergebnisse und Spielbetrieb
 
-### D1 — Mehr Ergebnis-Status
+### D1 — Mehr Ergebnis-Status ✔ erledigt (2026-08-19)
 **Nutzen:** hoch · **Aufwand:** S · *BTP: „Retired", „Disqualifiziert", „Kein Spiel", „Walkover"*
 
 BOSS kennt Aufgabe und Walkover. Es fehlen:
@@ -179,6 +193,25 @@ BOSS kennt Aufgabe und Walkover. Es fehlen:
 
 **Dieselbe Sackgasse hat BOSS heute auch.** Ein Spiel ohne Ergebnis blockiert
 den Abschluss, und es gibt keinen Weg, es als „fand nicht statt" abzulegen.
+
+**Umgesetzt.** Migration 20 ergänzt `matches.outcome` mit vier Werten —
+`walkover`, `retired`, `disqualified`, `no_match`. Alle vier setzen weiterhin
+`walkover = 1`, was sie aus jeder Satz- und Punktbilanz heraushält; `outcome`
+sagt nur, welcher Fall vorliegt. Bestehende Walkover-Zeilen bekommen in der
+Migration den Wert, der bisher die einzige Bedeutung des Flags war.
+
+Auf jeder offenen Spielkarte steht jetzt „Nicht gespielt" und öffnet einen
+Dialog mit den vier Gründen; nur `no_match` verzichtet auf die Seitenwahl.
+Abgeschlossene Spiele tragen den Grund als Abzeichen statt des allgemeinen
+„Abgeschlossen", und die Kurzliste zeigt ihn statt eines leeren „0:0 ()".
+Der CSV-Export unterscheidet die vier Fälle ebenfalls.
+
+**Abweichung vom Vorschlag:** Ein `no_match` im K.-o.-Baum war die eigentliche
+Arbeit. `winnersOfRound` ließ ein Spiel ohne Sieger einfach weg — dadurch
+rückte jeder spätere Sieger einen Platz nach vorn und die beiden Hälften des
+Baums spielten gegeneinander. Der leere Platz bleibt jetzt erhalten, und der
+Nachbar rückt mit einem Freilos vor, das sofort als abgeschlossen angelegt
+wird. Sonst wäre die Sackgasse nur eine Runde weiter gewandert.
 
 ### D2 — Eingabe nur der Verliererpunkte
 **Nutzen:** mittel · **Aufwand:** S · *BTP: „Dabei reicht die Angabe der Verliererpunkte aus"*
@@ -278,10 +311,10 @@ Wenn nur drei Punkte umgesetzt werden:
 
 1. **C1 Setzgruppen** und **C2 Vereinstrennung** — kleiner Aufwand,
    unmittelbar fairere Turniere, und die nötigen Daten liegen längst vor.
-2. **D1 Ergebnis-Status** — „Kein Spiel" behebt eine Sackgasse, die BOSS heute
-   genauso hat, wie das Handbuch sie für den BTP beschreibt.
-3. **A1 Spieltag** — eine Zeile im Datenmodell, und der Ausdruck weiß endlich,
-   wann gespielt wurde.
+2. **D1 Ergebnis-Status** ✔ — „Kein Spiel" behebt eine Sackgasse, die BOSS
+   heute genauso hat, wie das Handbuch sie für den BTP beschreibt.
+3. **A1 Spieltag** ✔ — eine Zeile im Datenmodell, und der Ausdruck weiß
+   endlich, wann gespielt wurde.
 
 Danach wird es teurer: **D3 Schiedsrichterzettel** und **E1 Nachrücker** sind
 je ein überschaubarer Tag. **A2–A4 Zeitplanung** und **B1 Konkurrenzen** sind

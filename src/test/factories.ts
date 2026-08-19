@@ -53,6 +53,7 @@ export function makeMatch(overrides: Partial<Match> = {}): Match {
     winner_team: null,
     status: "pending" as MatchStatus,
     walkover: 0,
+    outcome: null,
     started_at: null,
     completed_at: null,
     ...overrides,

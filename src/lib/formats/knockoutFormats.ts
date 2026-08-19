@@ -90,7 +90,8 @@ function knockoutAdvance(
   if (lastMatches.length <= 1) return null; // the final was the last match
 
   const winners = winnersOfRound(ctx, last.id);
-  if (winners.length < 2) return null;
+  // Empty slots do not count towards "is there anyone left to play".
+  if (winners.filter((w) => w !== null).length < 2) return null;
 
   const court = ctx.courtForNewMatch;
   const schedule: RoundSpec[] = [];
@@ -128,12 +129,24 @@ function knockoutAdvance(
 
   const matches: MatchSpec[] = [];
   for (let i = 0; i + 1 < winners.length; i += 2) {
+    const top = winners[i];
+    const bottom = winners[i + 1];
+    // Both slots empty: nobody came out of either match, so there is no
+    // match to play here either. The slot stays empty one round further up.
+    if (!top && !bottom) continue;
+    // One slot empty: the other side advances on a bye, stored as a match
+    // with no opponent -- the same shape a bye has had since v14.
+    const present = top ?? bottom!;
+    const other = top ? bottom : null;
     matches.push({
-      team1_p1: winners[i].p1,
-      team1_p2: winners[i].p2,
-      team2_p1: winners[i + 1].p1,
-      team2_p2: winners[i + 1].p2,
+      team1_p1: present.p1,
+      team1_p2: present.p2,
+      team2_p1: other ? other.p1 : null,
+      team2_p2: other ? other.p2 : null,
       court,
+      // A bye is decided the moment it is created; leaving it pending
+      // would move the dead end one round up instead of removing it.
+      completed: !other,
     });
   }
   schedule.push({ roundNumber, phase, matches });

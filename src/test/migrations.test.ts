@@ -360,3 +360,97 @@ describe("migration 19 — when the tournament is played", () => {
     db.close();
   });
 });
+
+describe("migration 20 — why a match was not played", () => {
+  /** A database with the whole chain applied. */
+  function fresh(): SqliteDb {
+    const db = new DatabaseSync!(":memory:");
+    db.exec("PRAGMA foreign_keys = ON");
+    for (const m of migrations) db.exec(m.sql);
+    return db;
+  }
+
+  /** The chain up to and including `version`, so a pre-20 state can be built. */
+  function upTo(version: number): SqliteDb {
+    const db = new DatabaseSync!(":memory:");
+    db.exec("PRAGMA foreign_keys = ON");
+    for (const m of migrations) {
+      if (m.version > version) break;
+      db.exec(m.sql);
+    }
+    return db;
+  }
+
+  it("adds the outcome column", () => {
+    const db = fresh();
+    const cols = db
+      .prepare("PRAGMA table_info(matches)")
+      .all()
+      .map((c: unknown) => (c as { name: string }).name);
+    expect(cols).toContain("outcome");
+    db.close();
+  });
+
+  it("leaves a played match without a reason", () => {
+    const db = fresh();
+    db.prepare("INSERT INTO players (id, name, gender) VALUES (1, 'A', 'm')").run();
+    db.prepare("INSERT INTO players (id, name, gender) VALUES (2, 'B', 'm')").run();
+    db.prepare("INSERT INTO tournaments (id, name, mode, format) VALUES (1, 'T', 'singles', 'round_robin')").run();
+    db.prepare("INSERT INTO rounds (id, tournament_id, round_number) VALUES (1, 1, 1)").run();
+    db.prepare(
+      "INSERT INTO matches (id, round_id, team1_p1, team2_p1, winner_team, status) VALUES (1, 1, 1, 2, 1, 'completed')",
+    ).run();
+    const [row] = db.prepare("SELECT outcome, walkover FROM matches WHERE id = 1").all() as {
+      outcome: string | null;
+      walkover: number;
+    }[];
+    expect(row.outcome).toBeNull();
+    expect(row.walkover).toBe(0);
+    db.close();
+  });
+
+  it("names the reason for walkovers recorded before the column existed", () => {
+    // Everything already flagged meant the one thing the flag could mean.
+    // Leaving those rows at NULL would make them read as played matches.
+    const db = upTo(19);
+    db.prepare("INSERT INTO players (id, name, gender) VALUES (1, 'A', 'm')").run();
+    db.prepare("INSERT INTO players (id, name, gender) VALUES (2, 'B', 'm')").run();
+    db.prepare("INSERT INTO tournaments (id, name, mode, format) VALUES (1, 'T', 'singles', 'round_robin')").run();
+    db.prepare("INSERT INTO rounds (id, tournament_id, round_number) VALUES (1, 1, 1)").run();
+    db.prepare(
+      "INSERT INTO matches (id, round_id, team1_p1, team2_p1, winner_team, status, walkover) VALUES (1, 1, 1, 2, 2, 'completed', 1)",
+    ).run();
+
+    for (const m of migrations) {
+      if (m.version === 20) db.exec(m.sql);
+    }
+
+    const [row] = db.prepare("SELECT outcome FROM matches WHERE id = 1").all() as {
+      outcome: string | null;
+    }[];
+    expect(row.outcome).toBe("walkover");
+    db.close();
+  });
+
+  it("accepts a completed match with no winner", () => {
+    // The whole point of no_match: nobody won, and the match is still done,
+    // so the tournament can be finished.
+    const db = fresh();
+    db.prepare("INSERT INTO players (id, name, gender) VALUES (1, 'A', 'm')").run();
+    db.prepare("INSERT INTO players (id, name, gender) VALUES (2, 'B', 'm')").run();
+    db.prepare("INSERT INTO tournaments (id, name, mode, format) VALUES (1, 'T', 'singles', 'round_robin')").run();
+    db.prepare("INSERT INTO rounds (id, tournament_id, round_number) VALUES (1, 1, 1)").run();
+    db.prepare(
+      "INSERT INTO matches (id, round_id, team1_p1, team2_p1, winner_team, status, walkover, outcome) VALUES (1, 1, 1, 2, NULL, 'completed', 1, 'no_match')",
+    ).run();
+    const [row] = db.prepare("SELECT winner_team, status, outcome FROM matches WHERE id = 1").all() as {
+      winner_team: number | null;
+      status: string;
+      outcome: string;
+    }[];
+    expect(row.winner_team).toBeNull();
+    expect(row.status).toBe("completed");
+    expect(row.outcome).toBe("no_match");
+    db.close();
+  });
+});

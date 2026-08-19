@@ -89,13 +89,23 @@ export function matchesToCsv(input: ExportInput): string {
     const round = roundById.get(m.round_id);
     const matchSets = (setsByMatch.get(m.id) ?? []).sort((a, b) => a.set_number - b.set_number);
     const isBye = m.team2_p1 === null;
+    // "kampflos" covered every unplayed match, which lost the difference
+    // between a no-show and a match neither side turned up for.
+    const OUTCOME_LABEL: Record<string, string> = {
+      walkover: "kampflos",
+      retired: "Aufgabe",
+      disqualified: "Disqualifikation",
+      no_match: "kein Spiel",
+    };
     const result = isBye
       ? "Freilos"
-      : m.walkover === 1
-        ? "kampflos"
-        : m.status === "completed"
-          ? "gespielt"
-          : "offen";
+      : m.outcome
+        ? OUTCOME_LABEL[m.outcome]
+        : m.walkover === 1
+          ? "kampflos"
+          : m.status === "completed"
+            ? "gespielt"
+            : "offen";
 
     rows.push([
       tournament.name,

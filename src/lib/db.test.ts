@@ -47,6 +47,7 @@ import {
   upsertSet,
   updateMatchResult,
   setMatchWalkover,
+  setMatchOutcome,
   reopenMatch,
   updateMatchCourt,
   clearMatchCourt,
@@ -542,6 +543,52 @@ for (const backend of BACKENDS) {
       expect(stored.winner_team).toBe(1);
       expect(stored.court).toBeNull();
       expect(await getAllSetsByTournament(tournamentId)).toHaveLength(0);
+    });
+
+    it("names the reason a match was not played", async () => {
+      const { tournamentId, match } = await oneMatch();
+      await setMatchOutcome(match.id, "retired", 2);
+
+      const [stored] = await getAllMatchesByTournament(tournamentId);
+      expect(stored.outcome).toBe("retired");
+      expect(stored.walkover).toBe(1);
+      expect(stored.winner_team).toBe(2);
+    });
+
+    it("closes a match nobody played, with nobody winning", async () => {
+      // Neither side turned up. Before this the match stayed pending and
+      // the tournament could never be finished (FEATURE-BACKLOG.md D1).
+      const { tournamentId, match } = await oneMatch();
+      await setMatchOutcome(match.id, "no_match", null);
+
+      const [stored] = await getAllMatchesByTournament(tournamentId);
+      expect(stored.status).toBe("completed");
+      expect(stored.winner_team).toBeNull();
+      expect(stored.outcome).toBe("no_match");
+      expect(stored.court).toBeNull();
+    });
+
+    it("refuses a winner for a match nobody played", async () => {
+      const { match } = await oneMatch();
+      await expect(setMatchOutcome(match.id, "no_match", 1)).rejects.toThrow();
+    });
+
+    it("refuses a walkover without a winner", async () => {
+      const { match } = await oneMatch();
+      await expect(
+        setMatchOutcome(match.id, "walkover", null),
+      ).rejects.toThrow();
+    });
+
+    it("clears the reason together with the flag when the result is reset", async () => {
+      const { tournamentId, match } = await oneMatch();
+      await setMatchOutcome(match.id, "disqualified", 1);
+
+      await updateMatchResult(match.id, null);
+
+      const [stored] = await getAllMatchesByTournament(tournamentId);
+      expect(stored.walkover).toBe(0);
+      expect(stored.outcome).toBeNull();
     });
 
     it("clears the walkover flag when the result is reset", async () => {
