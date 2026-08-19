@@ -962,7 +962,7 @@ Voreinstellung bleibt „voller Name" — eine stille Änderung würde die Anzei
 
 `open` für macOS und `xdg-open` für Linux sind ergänzt. Eine Plattform ohne Zweig meldet das jetzt, statt `Ok(())` zurückzugeben — vorher tat der Knopf dort nichts und behauptete Erfolg.
 
-**Eine Feinheit:** Unter Windows wird der ursprüngliche Pfad übergeben, nicht der kanonische. `canonicalize` liefert dort das `\?\`-Präfix, mit dem `explorer.exe` nichts anfängt. Ein nicht auflösbarer Kandidat fällt aus der Prüfung heraus, statt sie scheitern zu lassen.
+**Eine Feinheit:** Unter Windows wird der ursprüngliche Pfad übergeben, nicht der kanonische. `canonicalize` liefert dort das `\\?\`-Präfix, mit dem `explorer.exe` nichts anfängt. Ein nicht auflösbarer Kandidat fällt aus der Prüfung heraus, statt sie scheitern zu lassen.
 
 **Fertig wenn:** ~~Der Knopf öffnet den tatsächlich verwendeten Datenbankordner auf allen unterstützten Plattformen — oder meldet verständlich, warum nicht~~ — erfüllt. Die macOS- und Linux-Zweige sind hier nicht ausführbar; sie sind übersetzt, aber nicht auf dem Zielsystem erprobt.
 
