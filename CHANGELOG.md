@@ -24,6 +24,29 @@ Alle nennenswerten Änderungen an BOSS, neueste zuerst. Das Format folgt
 Ein Durchgang durch `REVIEW-BACKLOG.md`, 75 Punkte in sechs Phasen. Die
 Kurzfassung dessen, was sich für Nutzer ändert:
 
+### Meldungen, Auslosung und Ausdruck
+
+Sechs weitere Punkte aus dem BTP-Vergleich.
+
+- **Die Auslosung wird gezeigt, bevor sie gilt.** Übernehmen, neu auslosen
+  oder verwerfen — bis zum Übernehmen ist nichts gespeichert. Gilt auch für
+  Folgerunden; beim Schweizer System und bei zufälligen Doppeln wird jede
+  Runde neu gelost. „Neu auslosen" erscheint nur, wo ein zweiter Versuch
+  überhaupt etwas anderes ergeben kann. *(C4)*
+- **Schiedsrichterzettel**, acht je Blatt, mit Paarung, Feld und leeren
+  Kästchen für die Sätze — auch ganz leer zum Selbstausfüllen. *(D3)*
+- **Warteliste.** Wer nicht mehr hineinpasst, reiht sich ein; sagt jemand ab,
+  rückt der Erste nach. Die Reihenfolge steht nicht mehr in irgendeinem Kopf.
+  *(E1)*
+- **Abmeldungen bleiben erhalten.** Bisher wurden sie gelöscht und damit auch
+  aus der Abrechnung. „Abmelden" behält den Eintrag, „entfernen" löscht
+  weiterhin — eine Fehleingabe ist keine Absage. *(E2)*
+- **Startgeld wahlweise bei der Meldung fällig** statt beim Antreten. Ändert,
+  wer in der Abrechnung auftaucht: Abgemeldete zahlen dann trotzdem. *(E3)*
+- **Weitere Posten** neben dem Startgeld — Nachmeldung, Bälle, Hallenbeitrag,
+  je Spieler oder für das ganze Turnier. Der Startgeld-Export führt sie mit
+  auf und nennt jetzt auch den Meldestatus. *(E4)*
+
 ### Aktualisierung
 
 - **Die Release-Notes sagen jetzt etwas.** Bisher stand im Aktualisierungs­
