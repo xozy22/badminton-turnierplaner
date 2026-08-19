@@ -3,17 +3,10 @@ import { formatLabel } from "../../lib/i18n/labels";
 import Icon, { type IconName } from "../../components/ui/Icon";
 import { useConfirm } from "../../components/ui/ConfirmDialog";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import PrintDialog from "../../components/print/PrintDialog";
 import OverflowMenu from "../../components/ui/OverflowMenu";
 import NextStepBar from "../../components/tournament/NextStepBar";
 import { LoadingState, NotFoundState } from "../../components/ui/States";
 import { useTheme } from "../../lib/ThemeContext";
-import TemplateExportModal from "../../components/tournament/TemplateExportModal";
-import DeleteTournamentModal from "../../components/tournament/DeleteTournamentModal";
-import RetirePlayerModal from "../../components/tournament/RetirePlayerModal";
-import RemovePlayerModal from "../../components/tournament/RemovePlayerModal";
-import AttendanceCheckModal from "../../components/tournament/AttendanceCheckModal";
-import UnpublishModal from "../../components/tournament/UnpublishModal";
 import RanglisteTab from "../../components/tournament/RanglisteTab";
 import GruppenTab from "../../components/tournament/GruppenTab";
 import GroupProgressBar from "../../components/tournament/GroupProgressBar";
@@ -39,15 +32,12 @@ import {
   updateMatchCourt,
   clearMatchCourt,
   reopenMatch,
-  updateTournament,
   updateTournamentStatus,
-  deleteTournament,
   addPlayerToTournament,
   removePlayerFromTournament,
   retirePlayerFromTournament,
   unretirePlayerFromTournament,
   isTauri,
-  updateTournamentKoScoring,
   createSchedule,
   setMatchWalkover,
   setKingOfCourtQueue,
@@ -70,12 +60,6 @@ import { useToast } from "../../lib/ToastContext";
 import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import MatchCard from "./components/MatchCard";
 import CompletedMatchesSection from "./components/CompletedMatchesSection";
-import StartKoModal from "./components/modals/StartKoModal";
-import EditTournamentModal from "./components/modals/EditTournamentModal";
-import RestWarningModal from "./components/modals/RestWarningModal";
-import PlayerConflictModal from "./components/modals/PlayerConflictModal";
-import ReopenConfirmModal from "./components/modals/ReopenConfirmModal";
-import UndoRoundModal from "./components/modals/UndoRoundModal";
 import { getEffectiveScoring } from "./lib/effectiveScoring";
 import { getUndoTarget } from "./lib/undoTarget";
 import { engineFor } from "../../lib/formats";
@@ -89,7 +73,9 @@ import {
   exportFileName,
 } from "../../lib/resultExport";
 import { useSessionContext } from "../../lib/sessionContext";
+import TournamentModals from "./components/TournamentModals";
 import { useLiveControls } from "./lib/useLiveControls";
+import { useTournamentDialogs } from "./lib/useTournamentDialogs";
 import {
   useTournamentData,
 } from "./lib/useTournamentData";
@@ -143,6 +129,25 @@ export default function TournamentView() {
     loadAll,
     refreshScores,
   } = useTournamentData(tournamentId);
+
+  // Which dialog is open (REVIEW-BACKLOG.md D1).
+  const dialogs = useTournamentDialogs();
+  const {
+    showAddPlayer,
+    setShowAddPlayer,
+    setShowPrint,
+    setShowDeleteConfirm,
+    setShowTemplateExport,
+    setShowAttendance,
+    setShowStartKoModal,
+    setShowReopenConfirm,
+    setShowUnpublishConfirm,
+    setShowUndoRound,
+    setRetireTarget,
+    setRemoveTarget,
+    setRestWarning,
+    setPlayerConflict,
+  } = dialogs;
   useDocumentTitle(tournament?.name ?? t.nav_tournaments);
   const navTeams = useMemo(() => {
     if (navTeamsFromState && navTeamsFromState.length > 0) return navTeamsFromState;
@@ -151,30 +156,12 @@ export default function TournamentView() {
     }
     return undefined;
   }, [navTeamsFromState, tournament?.team_config]);
-  const [showAddPlayer, setShowAddPlayer] = useState(false);
-  const [showPrint, setShowPrint] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [collapsedClubs, setCollapsedClubs] = useState<Set<string>>(new Set());
-  const [showTemplateExport, setShowTemplateExport] = useState(false);
-  const [showAttendance, setShowAttendance] = useState(false);
   const [viewTab, setViewTab] = useState<"spiele" | "gruppen" | "bracket" | "rangliste" | "verwaltung">("spiele");
-  const [retireTarget, setRetireTarget] = useState<{ player: Player; partnerNote: string } | null>(null);
-  const [removeTarget, setRemoveTarget] = useState<Player | null>(null);
   const [recentlyCompleted, setRecentlyCompleted] = useState<Set<number>>(new Set());
   const [editingMatchIds, setEditingMatchIds] = useState<Set<number>>(new Set());
-  const [showStartKoModal, setShowStartKoModal] = useState(false);
-  const [restWarning, setRestWarning] = useState<{
-    matchId: number;
-    court: number;
-    players: { id: number; name: string; minutesLeft: number }[];
-  } | null>(null);
   // Hard player-overlap block: opens when the user tries to assign a match
   // whose players are still on another court. No bypass — only "close".
-  const [playerConflict, setPlayerConflict] = useState<{
-    matchId: number;
-    players: { id: number; name: string; court: number }[];
-  } | null>(null);
   const recentlyCompletedRef = React.useRef(recentlyCompleted)
   recentlyCompletedRef.current = recentlyCompleted;
   const activeRoundRef = React.useRef(activeRound);
@@ -741,14 +728,12 @@ export default function TournamentView() {
     loadAll();
   };
 
-  const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   const handleReopenTournament = async () => {
     await updateTournamentStatus(tournamentId, "active");
     setShowReopenConfirm(false);
     loadAll();
   };
 
-  const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
   const [confirmDialog, askConfirm] = useConfirm();
 
   // Live publishing: opt-in, pause, push now, stop (REVIEW-BACKLOG.md D1).
@@ -764,7 +749,6 @@ export default function TournamentView() {
     handleUnpublish,
   } = useLiveControls({ tournamentId, askConfirm });
 
-  const [showUndoRound, setShowUndoRound] = useState(false);
 
   /**
    * Memoized "what does the next undo step delete?" computation. Returns
@@ -1494,149 +1478,28 @@ export default function TournamentView() {
         </div>
       </div>
 
-      {/* Print Dialog */}
-      {showPrint && (
-        <PrintDialog
-          tournament={tournament}
-          players={players}
-          rounds={rounds}
-          matchesByRound={matchesByRound}
-          setsByMatch={setsByMatch}
-          standings={standings}
-          activeRoundId={activeRound}
-          onClose={() => setShowPrint(false)}
-        />
-      )}
-
-      {/* Edit Tournament Modal */}
-      {showEditModal && tournament && (
-        <EditTournamentModal
-          tournament={tournament}
-          theme={theme}
-          onClose={() => setShowEditModal(false)}
-          onSave={async (data) => {
-            await updateTournament(
-              tournament.id,
-              data.name,
-              data.mode,
-              data.format,
-              data.setsToWin,
-              data.pointsPerSet,
-              data.courts,
-              data.numGroups,
-              data.qualifyPerGroup,
-              data.entryFeeSingle,
-              data.entryFeeDouble,
-              data.cap
-            );
-            setShowEditModal(false);
-            loadAll();
-          }}
-        />
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && tournament && (
-        <DeleteTournamentModal
-          tournament={tournament}
-          onClose={() => setShowDeleteConfirm(false)}
-          onConfirm={async () => {
-            await deleteTournament(tournament.id);
-            navigate("/");
-          }}
-        />
-      )}
-
-      {/* Template Export Modal */}
-      {showTemplateExport && tournament && (
-        <TemplateExportModal
-          tournament={tournament}
-          players={players}
-          theme={theme}
-          onClose={() => setShowTemplateExport(false)}
-        />
-      )}
-
-      {/* Attendance Check Modal */}
-      {showAttendance && (
-        <AttendanceCheckModal
-          players={players}
-          theme={theme}
-          onConfirm={handleAttendanceConfirm}
-          onClose={() => setShowAttendance(false)}
-        />
-      )}
-
-      {/* Retire/Injured Modal */}
-      {retireTarget && (
-        <RetirePlayerModal
-          retireTarget={retireTarget}
-          onClose={() => setRetireTarget(null)}
-          onConfirm={handlePlayerRetire}
-        />
-      )}
-
-      {/* Remove-Player Confirm Modal (draft status only) */}
-      {removeTarget && (
-        <RemovePlayerModal
-          target={removeTarget}
-          onClose={() => setRemoveTarget(null)}
-          onConfirm={confirmRemovePlayer}
-        />
-      )}
-
-      {confirmDialog}
-
-      <RestWarningModal
-        warning={restWarning}
-        onCancel={() => setRestWarning(null)}
-        onConfirm={async () => {
-          const w = restWarning;
-          if (!w) return;
-          setRestWarning(null);
-          await handleCourtChange(w.matchId, w.court, true);
-        }}
-      />
-
-      <PlayerConflictModal
-        conflict={playerConflict}
-        onClose={() => setPlayerConflict(null)}
-      />
-
-      {/* Start KO Modal */}
-      {showStartKoModal && tournament && (
-        <StartKoModal
-          tournament={tournament}
-          theme={theme}
-          onClose={() => setShowStartKoModal(false)}
-          onConfirm={async (koPointsPerSet, koSetsToWin, koCap) => {
-            await updateTournamentKoScoring(tournament.id, koPointsPerSet, koSetsToWin, koCap);
-            await loadAll();
-            setShowStartKoModal(false);
-            await advanceFormat();
-          }}
-        />
-      )}
-
-      <ReopenConfirmModal
-        open={showReopenConfirm}
-        onCancel={() => setShowReopenConfirm(false)}
-        onConfirm={handleReopenTournament}
-      />
-
-      <UnpublishModal
-        open={showUnpublishConfirm}
-        tournamentName={tournament.name}
-        onClose={() => setShowUnpublishConfirm(false)}
-        onConfirm={handleUnpublish}
-      />
-
-
-      <UndoRoundModal
-        open={showUndoRound}
-        target={undoTarget}
-        onCancel={() => setShowUndoRound(false)}
-        onConfirm={performUndo}
+      <TournamentModals
+        dialogs={dialogs}
+        tournament={tournament}
+        players={players}
+        rounds={rounds}
+        matchesByRound={matchesByRound}
+        setsByMatch={setsByMatch}
+        standings={standings}
+        activeRound={activeRound}
+        theme={theme}
+        undoTarget={undoTarget}
+        confirmDialog={confirmDialog}
+        onLoadAll={loadAll}
+        onAdvanceFormat={advanceFormat}
+        onCourtChange={handleCourtChange}
+        onRemovePlayerConfirm={confirmRemovePlayer}
+        onPlayerRetire={handlePlayerRetire}
+        onAttendanceConfirm={handleAttendanceConfirm}
+        onReopenTournament={handleReopenTournament}
+        onUnpublish={handleUnpublish}
+        onPerformUndo={performUndo}
+        onNavigate={navigate}
       />
 
       {/* Round Tabs - above everything */}
