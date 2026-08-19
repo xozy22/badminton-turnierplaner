@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { useT } from "./I18nContext";
+import { describeBackendError } from "./backendError";
 import Icon, { type IconName } from "../components/ui/Icon";
 
 export type ToastKind = "success" | "error" | "info";
@@ -32,6 +34,7 @@ const ToastContext = createContext<ToastContextValue>({
 let nextId = 1;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { t } = useT();
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const dismissToast = useCallback((id: number) => {
@@ -57,9 +60,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (message: string, durationMs = 3000) => showToast(message, "success", durationMs),
     [showToast]
   );
+  /**
+   * Errors from the Rust commands arrive as `BOSS:<code>|<detail>`; the
+   * code is translated on the way through. Anything else passes unchanged.
+   *
+   * Done here rather than at each call site because every one of them ends
+   * up in this function anyway, and because the next one added will get it
+   * without anyone remembering to (REVIEW-BACKLOG.md H4).
+   */
   const showError = useCallback(
-    (message: string, durationMs = 5000) => showToast(message, "error", durationMs),
-    [showToast]
+    (message: string, durationMs = 5000) =>
+      showToast(describeBackendError(t, message), "error", durationMs),
+    [showToast, t]
   );
   const showInfo = useCallback(
     (message: string, durationMs = 3000) => showToast(message, "info", durationMs),

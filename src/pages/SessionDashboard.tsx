@@ -25,7 +25,7 @@ import { useSessionContext } from "../lib/sessionContext";
 import type { Session, Sportstaette, Player } from "../lib/types";
 import { parseHallConfig, hallConfigTotalCourts, getCourtHallLabel, playerDisplayName } from "../lib/types";
 import { useTheme } from "../lib/ThemeContext";
-import { useT } from "../lib/I18nContext";
+import { useT, useLocale } from "../lib/I18nContext";
 import { useToast } from "../lib/ToastContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { CourtTimer } from "../components/courts/CourtTimer";
@@ -33,6 +33,7 @@ import { CourtTimer } from "../components/courts/CourtTimer";
 export default function SessionDashboard() {
   const { theme } = useTheme();
   const { t } = useT();
+  const locale = useLocale();
   const { showError } = useToast();
   const navigate = useNavigate();
   const params = useParams<{ id: string }>();
@@ -241,7 +242,7 @@ export default function SessionDashboard() {
         </div>
         <div className="text-right">
           <div className="font-mono text-3xl font-extrabold tabular-nums">
-            {new Date(now).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            {new Date(now).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
           </div>
           <div className="text-xs text-white/70 mt-0.5">
             {shouldPause

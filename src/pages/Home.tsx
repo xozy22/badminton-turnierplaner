@@ -3,7 +3,7 @@ import Icon from "../components/ui/Icon";
 import { Link, useNavigate } from "react-router-dom";
 import { getTournaments, getPlayers, createTournament, getSportstaetten } from "../lib/db";
 import type { Tournament, Player } from "../lib/types";
-import { STATUS_LABELS, MODE_LABELS, FORMAT_LABELS } from "../lib/types";
+import { formatLabel, modeLabel, statusLabel } from "../lib/i18n/labels";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
 import { useToast } from "../lib/ToastContext";
@@ -79,12 +79,12 @@ export default function Home() {
                       {tr.name}
                     </div>
                     <div className={`text-sm ${theme.textSecondary} mt-0.5`}>
-                      {MODE_LABELS[tr.mode]} &middot;{" "}
-                      {FORMAT_LABELS[tr.format]}
+                      {modeLabel(t, tr.mode)} &middot;{" "}
+                      {formatLabel(t, tr.format)}
                     </div>
                   </div>
                   <span className={`text-xs font-medium ${theme.activeBadgeBg} ${theme.activeBadgeText} px-3 py-1 rounded-full`}>
-                    {STATUS_LABELS[tr.status]}
+                    {statusLabel(t, tr.status)}
                   </span>
                 </div>
               </Link>

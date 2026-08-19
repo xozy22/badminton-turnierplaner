@@ -1,7 +1,7 @@
 import { useTimer } from "../../hooks/useTimer";
 import Icon from "../../components/ui/Icon";
 import { useTheme } from "../../lib/ThemeContext";
-import { useT } from "../../lib/I18nContext";
+import { useT, useLocale } from "../../lib/I18nContext";
 import { loadSettings } from "../../lib/appSettings";
 
 function getThresholds(): { warningMin: number; dangerMin: number } {
@@ -19,6 +19,7 @@ interface Props {
 export function CourtTimer({ assignedAt, completed }: Props) {
   const { theme } = useTheme();
   const { t } = useT();
+  const locale = useLocale();
   const { display, totalSeconds } = useTimer(completed ? null : assignedAt);
 
   if (!assignedAt) return null;
@@ -41,7 +42,7 @@ export function CourtTimer({ assignedAt, completed }: Props) {
   return (
     <span
       className={`font-mono text-xs font-bold px-2 py-0.5 rounded-sm ${colorClass}`}
-      title={`${t.court_timer_started.replace("{time}", new Date(assignedAt).toLocaleTimeString("de-DE"))}${
+      title={`${t.court_timer_started.replace("{time}", new Date(assignedAt).toLocaleTimeString(locale))}${
         !completed && elapsedMin >= thresholds.warningMin
           ? ` (${elapsedMin >= thresholds.dangerMin ? t.court_timer_critical : t.court_timer_warning})`
           : ""

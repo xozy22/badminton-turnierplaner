@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { formatMoney } from "../../lib/datetime";
 import Icon from "../../components/ui/Icon";
 import type { ThemeColors } from "../../lib/theme";
 import type {
@@ -13,7 +14,7 @@ import {
   updatePlayerPayment,
 } from "../../lib/db";
 import { playerDisplayName } from "../../lib/types";
-import { useT } from "../../lib/I18nContext";
+import { useT, useLocale } from "../../lib/I18nContext";
 import SeedBadge from "../players/SeedBadge";
 
 interface VerwaltungTabProps {
@@ -54,6 +55,7 @@ export default function VerwaltungTab({
   playerName,
 }: VerwaltungTabProps) {
   const { t } = useT();
+  const locale = useLocale();
   const [verwaltungSearch, setVerwaltungSearch] = useState("");
   const [verwaltungFilter, setVerwaltungFilter] = useState<"all" | "paid" | "unpaid">("all");
 
@@ -306,7 +308,7 @@ export default function VerwaltungTab({
                                         ? "bg-green-500/10 text-green-600"
                                         : "bg-orange-500/10 text-orange-600"
                                     }`}>
-                                      {pd.payment_status === "paid" ? `${fee} EUR` : t.management_open}
+                                      {pd.payment_status === "paid" ? formatMoney(Number(fee), locale) : t.management_open}
                                     </span>
                                   );
                                 })()}
@@ -349,7 +351,7 @@ export default function VerwaltungTab({
                                   <button
                                     key={m}
                                     onClick={async () => {
-                                      const today = new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+                                      const today = new Date().toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" });
                                       await updatePlayerPayment(tournament.id, pd.player.id, "paid", m, today);
                                       const updated = await getTournamentPlayersDetailed(tournament.id);
                                       setPaymentData(updated);

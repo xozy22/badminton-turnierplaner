@@ -11,6 +11,7 @@
 // and multi-hall layout all stay in sync without re-implementing logic.
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { formatLabel, modeLabel } from "../lib/i18n/labels";
 import Icon from "../components/ui/Icon";
 import { onDataChanged } from "../lib/changeEvents";
 import { usePolling } from "../lib/usePolling";
@@ -34,8 +35,6 @@ import type {
   HallConfig,
 } from "../lib/types";
 import {
-  MODE_LABELS,
-  FORMAT_LABELS,
   playerDisplayName,
   parseHallConfig,
   getCourtHallLabel,
@@ -51,7 +50,7 @@ import {
   getMatchConflicts,
   type ConflictPlayer,
 } from "../lib/courtConflicts";
-import { useT } from "../lib/I18nContext";
+import { useT, useLocale } from "../lib/I18nContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import RestIndicator from "../components/players/RestIndicator";
 import { getCustomLogo } from "./settings/LogoSettings";
@@ -94,6 +93,7 @@ const COURT_BG = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://ww
 
 export default function TvMode() {
   const { t } = useT();
+  const locale = useLocale();
   // The accent no longer depends on the theme id — the tokens carry it.
   const tv = TV_ACCENT;
   const { id } = useParams<{ id: string }>();
@@ -755,7 +755,7 @@ export default function TvMode() {
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight">{tournament.name}</h1>
             <div className={`${tv.primary} text-sm font-medium`}>
-              {MODE_LABELS[tournament.mode]} &middot; {FORMAT_LABELS[tournament.format]}
+              {modeLabel(t, tournament.mode)} &middot; {formatLabel(t, tournament.format)}
               {phaseLabel && (
                 <span className="ml-2 px-2 py-0.5 rounded-sm bg-black/30 text-white text-xs font-bold uppercase tracking-wider">
                   {phaseLabel}
@@ -766,7 +766,7 @@ export default function TvMode() {
         </div>
         <div className="text-right">
           <div className={`text-3xl font-mono font-bold ${tv.primary}`}>
-            {new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+            {new Date().toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
           </div>
           <div className="text-white/60 text-sm">
             {t.tv_players_round.replace("{players}", String(players.length)).replace("{round}", String(rounds.length))}

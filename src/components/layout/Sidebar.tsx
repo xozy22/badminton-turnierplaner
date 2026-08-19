@@ -131,7 +131,7 @@ export default function Sidebar() {
         {!collapsed && (
           <div className={`text-2xs ${theme.sidebarText} text-center pt-1 opacity-50 leading-relaxed`}>
             <div>v{__APP_VERSION__}</div>
-            <div className="mt-0.5">Idee und Umsetzung</div>
+            <div className="mt-0.5">{t.credits_by}</div>
             <div>Felix Blasshofer &amp; Dennis Kobiolka</div>
           </div>
         )}

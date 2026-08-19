@@ -7,6 +7,7 @@ import {
   formatTime,
   formatDateTime,
   nowIso,
+  formatMoney,
 } from "./datetime";
 
 describe("parseDbDate", () => {
@@ -105,5 +106,29 @@ describe("nowIso", () => {
   it("round-trips through the parser", () => {
     const written = nowIso();
     expect(parseDbDate(written)?.toISOString()).toBe(written);
+  });
+});
+
+describe("formatMoney", () => {
+  it("writes German notation with a comma and the symbol behind", () => {
+    // The old code printed "7.5 EUR": a dropped second decimal and the
+    // wrong separator for the language the app was set to.
+    const out = formatMoney(7.5, "de-DE");
+    expect(out).toContain("7,50");
+    expect(out).toContain("€");
+  });
+
+  it("writes English notation with a point and the symbol in front", () => {
+    const out = formatMoney(7.5, "en-GB");
+    expect(out).toContain("7.50");
+    expect(out).toContain("€");
+  });
+
+  it("keeps whole amounts to two decimals", () => {
+    expect(formatMoney(10, "de-DE")).toContain("10,00");
+  });
+
+  it("handles zero, which is a legitimate entry fee", () => {
+    expect(formatMoney(0, "de-DE")).toContain("0,00");
   });
 });

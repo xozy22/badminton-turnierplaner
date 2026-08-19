@@ -86,16 +86,16 @@ fn backup_dir(app_data_dir: &PathBuf) -> PathBuf {
 fn create_safety_backup(app_data_dir: &PathBuf, reason: &str) -> Result<PathBuf, String> {
     let db_path = resolve_db_path(app_data_dir);
     if !db_path.exists() {
-        return Err("Datenbank nicht gefunden".to_string());
+        return Err(err("db_missing", ""));
     }
 
     let dir = backup_dir(app_data_dir);
     fs::create_dir_all(&dir)
-        .map_err(|e| format!("Backup-Ordner anlegen fehlgeschlagen: {}", e))?;
+        .map_err(|e| err("backup_dir_failed", e))?;
 
     let target = dir.join(format!("auto-{}-{}.db", reason, timestamp_for_filename()));
     fs::copy(&db_path, &target)
-        .map_err(|e| format!("Sicherheitskopie fehlgeschlagen: {}", e))?;
+        .map_err(|e| err("safety_copy_failed", e))?;
 
     prune_safety_backups(&dir);
     Ok(target)
@@ -148,7 +148,7 @@ fn read_schema_version(path: &PathBuf) -> Result<i64, String> {
     tauri::async_runtime::block_on(async move {
         let pool = match sqlx::SqlitePool::connect(&url).await {
             Ok(p) => p,
-            Err(e) => return Err(format!("Datenbank nicht lesbar: {}", e)),
+            Err(e) => return Err(err("db_unreadable", e)),
         };
         let result = sqlx::query("SELECT MAX(version) AS v FROM _sqlx_migrations")
             .fetch_one(&pool)
@@ -195,7 +195,7 @@ fn remove_sidecar_files(db_path: &PathBuf) {
 
 /// Kopiert eine Datenbank inklusive Seitendateien an ein neues Ziel.
 fn copy_db_with_sidecars(from: &PathBuf, to: &PathBuf) -> Result<(), String> {
-    fs::copy(from, to).map_err(|e| format!("Kopieren fehlgeschlagen: {}", e))?;
+    fs::copy(from, to).map_err(|e| err("copy_failed", e))?;
     for ext in &["-wal", "-shm"] {
         let src = PathBuf::from(format!("{}{}", from.to_string_lossy(), ext));
         let dst = PathBuf::from(format!("{}{}", to.to_string_lossy(), ext));
@@ -210,10 +210,10 @@ fn copy_db_with_sidecars(from: &PathBuf, to: &PathBuf) -> Result<(), String> {
 /// ausgeführt wird (siehe PENDING_ACTION_FILENAME).
 fn queue_pending_action(app_data_dir: &PathBuf, action: serde_json::Value) -> Result<(), String> {
     fs::create_dir_all(app_data_dir)
-        .map_err(|e| format!("Verzeichnis anlegen fehlgeschlagen: {}", e))?;
+        .map_err(|e| err("mkdir_failed", e))?;
     let path = app_data_dir.join(PENDING_ACTION_FILENAME);
     fs::write(&path, serde_json::to_string_pretty(&action).unwrap())
-        .map_err(|e| format!("Vorgemerkte Aktion speichern fehlgeschlagen: {}", e))
+        .map_err(|e| err("queue_failed", e))
 }
 
 /// Führt vorgemerkte Dateioperationen aus. Wird vor der SQL-Plugin-Init
@@ -322,6 +322,24 @@ fn handle_pending_actions(app_data_dir: &PathBuf) {
     }
 }
 
+/// Baut eine Fehlermeldung, die das Frontend uebersetzen kann.
+///
+/// Format: `BOSS:<code>|<detail>`. Der Code wird drueben nachgeschlagen,
+/// das Detail (ein Pfad, eine Meldung des Betriebssystems) bleibt so
+/// stehen, wie es ist -- das gehoert nicht uebersetzt.
+///
+/// Ist der Code drueben unbekannt, zeigt das Frontend das Detail an. Ein
+/// neuer Fehler verschwindet dadurch nicht, er ist nur unuebersetzt
+/// (REVIEW-BACKLOG.md H4).
+fn err(code: &str, detail: impl std::fmt::Display) -> String {
+    let detail = detail.to_string();
+    if detail.is_empty() {
+        format!("BOSS:{}", code)
+    } else {
+        format!("BOSS:{}|{}", code, detail)
+    }
+}
+
 /// Gibt den vollen Pfad zur aktuellen Datenbank zurueck
 fn resolve_db_path(app_data_dir: &PathBuf) -> PathBuf {
     if let Some(custom_dir) = get_custom_db_dir(app_data_dir) {
@@ -340,7 +358,7 @@ fn build_connection_string(app_data_dir: &PathBuf) -> String {
 #[tauri::command]
 fn get_db_path(app_handle: tauri::AppHandle) -> Result<String, String> {
     let app_data_dir = app_handle.path().app_data_dir()
-        .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
+        .map_err(|e| err("app_dir", e))?;
     let db_path = resolve_db_path(&app_data_dir);
     Ok(db_path.to_string_lossy().to_string())
 }
@@ -350,7 +368,7 @@ fn get_db_path(app_handle: tauri::AppHandle) -> Result<String, String> {
 #[tauri::command]
 fn get_backup_info(app_handle: tauri::AppHandle) -> Result<serde_json::Value, String> {
     let app_data_dir = app_handle.path().app_data_dir()
-        .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
+        .map_err(|e| err("app_dir", e))?;
     let dir = backup_dir(&app_data_dir);
 
     let count = fs::read_dir(&dir)
@@ -377,10 +395,10 @@ fn get_backup_info(app_handle: tauri::AppHandle) -> Result<serde_json::Value, St
 #[tauri::command]
 fn get_db_dir(app_handle: tauri::AppHandle) -> Result<String, String> {
     let app_data_dir = app_handle.path().app_data_dir()
-        .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
+        .map_err(|e| err("app_dir", e))?;
     let db_path = resolve_db_path(&app_data_dir);
     let dir = db_path.parent()
-        .ok_or("Kann Verzeichnis nicht ermitteln")?;
+        .ok_or_else(|| err("dir_unknown", ""))?;
     Ok(dir.to_string_lossy().to_string())
 }
 
@@ -391,11 +409,11 @@ fn get_db_dir(app_handle: tauri::AppHandle) -> Result<String, String> {
 #[tauri::command]
 fn change_db_dir(app_handle: tauri::AppHandle, new_dir: String) -> Result<(), String> {
     let app_data_dir = app_handle.path().app_data_dir()
-        .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
+        .map_err(|e| err("app_dir", e))?;
 
     let target_dir = PathBuf::from(&new_dir);
     if !target_dir.is_dir() {
-        return Err(format!("Zielverzeichnis existiert nicht: {}", new_dir));
+        return Err(err("target_dir_missing", &new_dir));
     }
 
     queue_pending_action(
@@ -412,7 +430,7 @@ fn change_db_dir(app_handle: tauri::AppHandle, new_dir: String) -> Result<(), St
 #[tauri::command]
 fn reset_db_dir(app_handle: tauri::AppHandle) -> Result<(), String> {
     let app_data_dir = app_handle.path().app_data_dir()
-        .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
+        .map_err(|e| err("app_dir", e))?;
 
     queue_pending_action(&app_data_dir, serde_json::json!({ "action": "reset_dir" }))?;
 
@@ -447,7 +465,7 @@ async fn execute_transaction(
     use tauri_plugin_sql::{DbInstances, DbPool};
 
     let app_data_dir = app_handle.path().app_data_dir()
-        .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
+        .map_err(|e| err("app_dir", e))?;
     let conn_string = build_connection_string(&app_data_dir);
 
     let instances = app_handle.state::<DbInstances>();
@@ -457,10 +475,10 @@ async fn execute_transaction(
     // abweichend geschriebener Pfad die Transaktion nicht scheitern lässt.
     let pool: &Pool<Sqlite> = match map.get(&conn_string).or_else(|| map.values().next()) {
         Some(DbPool::Sqlite(p)) => p,
-        _ => return Err("Keine Datenbankverbindung gefunden".to_string()),
+        _ => return Err(err("no_connection", "")),
     };
 
-    let mut tx = pool.begin().await.map_err(|e| format!("BEGIN fehlgeschlagen: {}", e))?;
+    let mut tx = pool.begin().await.map_err(|e| err("begin_failed", e))?;
 
     let mut ids: Vec<i64> = Vec::with_capacity(statements.len());
     for (idx, statement) in statements.iter().enumerate() {
@@ -484,7 +502,7 @@ async fn execute_transaction(
                         .get("__lastInsertId")
                         .and_then(|v| v.as_u64())
                         .ok_or_else(|| {
-                            format!("Statement {}: unbekannter Objekt-Parameter", idx)
+                            err("bad_param", idx)
                         })? as usize;
                     let id = ids.get(reference).copied().ok_or_else(|| {
                         format!(
@@ -506,26 +524,26 @@ async fn execute_transaction(
         let result = query
             .execute(&mut *tx)
             .await
-            .map_err(|e| format!("Statement {} fehlgeschlagen: {}", idx, e))?;
+            .map_err(|e| err("statement_failed", format!("{}: {}", idx, e)))?;
         ids.push(result.last_insert_rowid());
     }
 
-    tx.commit().await.map_err(|e| format!("COMMIT fehlgeschlagen: {}", e))?;
+    tx.commit().await.map_err(|e| err("commit_failed", e))?;
     Ok(ids)
 }
 
 #[tauri::command]
 fn backup_db(app_handle: tauri::AppHandle, target_path: String) -> Result<(), String> {
     let app_data_dir = app_handle.path().app_data_dir()
-        .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
+        .map_err(|e| err("app_dir", e))?;
     let db_path = resolve_db_path(&app_data_dir);
 
     if !db_path.exists() {
-        return Err("Datenbank nicht gefunden".to_string());
+        return Err(err("db_missing", ""));
     }
 
     fs::copy(&db_path, &target_path)
-        .map_err(|e| format!("Backup fehlgeschlagen: {}", e))?;
+        .map_err(|e| err("backup_failed", e))?;
 
     Ok(())
 }
@@ -536,11 +554,11 @@ fn backup_db(app_handle: tauri::AppHandle, target_path: String) -> Result<(), St
 #[tauri::command]
 fn restore_db(app_handle: tauri::AppHandle, source_path: String) -> Result<(), String> {
     let app_data_dir = app_handle.path().app_data_dir()
-        .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
+        .map_err(|e| err("app_dir", e))?;
 
     let source = PathBuf::from(&source_path);
     if !source.exists() {
-        return Err("Backup-Datei nicht gefunden".to_string());
+        return Err(err("backup_missing", ""));
     }
 
     // Pruefen ob es eine gueltige SQLite-Datei ist (nur Header lesen, nicht ganze Datei).
@@ -550,12 +568,12 @@ fn restore_db(app_handle: tauri::AppHandle, source_path: String) -> Result<(), S
     {
         use std::io::Read;
         let mut file = std::fs::File::open(&source)
-            .map_err(|e| format!("Datei oeffnen fehlgeschlagen: {}", e))?;
+            .map_err(|e| err("file_open_failed", e))?;
         file.read_exact(&mut header)
-            .map_err(|e| format!("Datei lesen fehlgeschlagen: {}", e))?;
+            .map_err(|e| err("file_read_failed", e))?;
     }
     if &header[0..16] != b"SQLite format 3\0" {
-        return Err("Die ausgewaehlte Datei ist keine gueltige SQLite-Datenbank".to_string());
+        return Err(err("backup_not_sqlite", ""));
     }
 
     // Schemaversion pruefen, bevor irgendetwas ersetzt wird.
@@ -568,9 +586,9 @@ fn restore_db(app_handle: tauri::AppHandle, source_path: String) -> Result<(), S
     // Migrationen laufen beim naechsten Start nach.
     let backup_version = read_schema_version(&source)?;
     if backup_version > CURRENT_SCHEMA_VERSION {
-        return Err(format!(
-            "Dieses Backup stammt aus einer neueren Programmversion (Datenstand {}, diese Version kennt {}).              Bitte zuerst die App aktualisieren.",
-            backup_version, CURRENT_SCHEMA_VERSION
+        return Err(err(
+            "backup_too_new",
+            format!("{} > {}", backup_version, CURRENT_SCHEMA_VERSION),
         ));
     }
 
@@ -594,7 +612,7 @@ fn restore_db(app_handle: tauri::AppHandle, source_path: String) -> Result<(), S
 #[tauri::command]
 fn wipe_database_and_restart(app_handle: tauri::AppHandle) -> Result<(), String> {
     let app_data_dir = app_handle.path().app_data_dir()
-        .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
+        .map_err(|e| err("app_dir", e))?;
     // Auch hier zuerst eine Sicherheitskopie: "alles loeschen" ist die
     // Aktion, bei der ein Fehlgriff am teuersten ist. Schlaegt sie fehl,
     // wird nicht geloescht.
@@ -612,13 +630,13 @@ fn wipe_database_and_restart(app_handle: tauri::AppHandle) -> Result<(), String>
 fn open_folder(app_handle: tauri::AppHandle, path: String) -> Result<(), String> {
     let p = PathBuf::from(&path);
     if !p.exists() || !p.is_dir() {
-        return Err(format!("Pfad existiert nicht oder ist kein Verzeichnis: {}", path));
+        return Err(err("path_missing", &path));
     }
 
     let app_data_dir = app_handle.path().app_data_dir()
-        .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
+        .map_err(|e| err("app_dir", e))?;
     let canonical_path = p.canonicalize()
-        .map_err(|e| format!("Pfad konnte nicht aufgeloest werden: {}", e))?;
+        .map_err(|e| err("path_unresolved", e))?;
 
     // Zwei erlaubte Orte, nicht einer: das App-Datenverzeichnis und der
     // tatsaechlich genutzte Datenbankordner. Vorher galt nur der erste --
@@ -637,7 +655,7 @@ fn open_folder(app_handle: tauri::AppHandle, path: String) -> Result<(), String>
         .any(|d| canonical_path.starts_with(&d));
 
     if !allowed {
-        return Err("Zugriff verweigert: Pfad liegt ausserhalb des App- und Datenbankverzeichnisses".to_string());
+        return Err(err("path_denied", ""));
     }
 
     // Der Ordner wird ueber den kanonischen Pfad geoeffnet: unter Windows
@@ -653,7 +671,7 @@ fn open_folder(app_handle: tauri::AppHandle, path: String) -> Result<(), String>
     // Eine Plattform ohne Zweig meldet das, statt Erfolg vorzutaeuschen.
     #[cfg(not(any(target_os = "windows", target_os = "macos", unix)))]
     {
-        return Err("Ordner oeffnen wird auf dieser Plattform nicht unterstuetzt".to_string());
+        return Err(err("open_unsupported", ""));
     }
 
     #[cfg(any(target_os = "windows", target_os = "macos", unix))]
@@ -662,7 +680,7 @@ fn open_folder(app_handle: tauri::AppHandle, path: String) -> Result<(), String>
         std::process::Command::new(program)
             .arg(&arg)
             .spawn()
-            .map_err(|e| format!("Ordner oeffnen fehlgeschlagen ({}): {}", program, e))?;
+            .map_err(|e| err("open_failed", format!("{}: {}", program, e)))?;
         Ok(())
     }
 }

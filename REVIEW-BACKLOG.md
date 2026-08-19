@@ -897,25 +897,36 @@ Der Toast-Bereich ist eine `aria-live`-Region, die **dauerhaft im Baum bleibt** 
 
 ---
 
-### [ ] H4 — Deutsche Texte im Code statt in der Übersetzung
-**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/types.ts:120,220,227,234`, `src/lib/db.ts:392`, `src/lib/scoring.ts:88,222`, `src-tauri/src/lib.rs` (alle Fehlermeldungen)
+### [x] H4 — Deutsche Texte im Code statt in der Übersetzung — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/i18n/labels.ts` (neu), `src/lib/backendError.ts` (neu), `src/lib/types.ts`, `src-tauri/src/lib.rs`, `src/lib/ToastContext.tsx`, drei Seiten
 
-**Problem:** `MODE_LABELS`, `FORMAT_LABELS`, `STATUS_LABELS`, `PAYMENT_METHOD_LABELS` sind fest deutsch; Validierungsfehler aus `scoring.ts` („Punkte duerfen nicht negativ sein") ebenfalls; die Rust-Kommandos geben deutsche Fehlertexte zurück, die im UI unübersetzt erscheinen. Bei englischer Spracheinstellung mischen sich beide Sprachen.
+**Die Label-Konstanten:** `MODE_LABELS`, `FORMAT_LABELS`, `STATUS_LABELS` und `PAYMENT_METHOD_LABELS` standen als fester deutscher Text in `types.ts` — parallel zu Übersetzungsschlüsseln, die dasselbe sagten. Welche eine Ansicht zufällig griff, entschied, ob sie unter englischer Einstellung deutsch blieb: Startseite, Ausdruck und TV-Modus sagten „Jeder gegen Jeden", der Rest der Oberfläche „Round robin". Die Konstanten sind weg; die Zuordnung liegt in `labels.ts`, damit ein neues Format an einer Stelle nachgetragen wird.
 
-**Fix:** Label-Konstanten entweder entfernen (i18n-Schlüssel existieren bereits parallel!) oder als Schlüsselreferenzen umbauen; Validierungsfehler als Fehlercodes zurückgeben und im UI übersetzen; Rust-Fehler als Codes statt Klartext liefern.
+Nebenbei stand dort `"Ueberweisung"` — ein H1-Verstoß, den die Umlautprüfung nicht sah, weil sie nur `de.ts` liest.
 
-**Fertig wenn:** Bei englischer Spracheinstellung erscheint kein deutscher Text mehr — auch nicht in Fehlermeldungen.
+**Die Rust-Fehlermeldungen** waren der größere Teil: 30 deutsche Sätze, die alle über `showError(\`${err}\`)` unverändert im UI landeten. Sie liefern jetzt `BOSS:<code>|<detail>`. Übersetzt wird der Code; das Detail — ein Pfad, eine SQLite-Meldung, ein Fehler des Betriebssystems — bleibt wörtlich stehen, denn genau das ist der Teil, den man zum Handeln braucht.
+
+**Zwei Entscheidungen dabei:**
+
+- **Übersetzt wird in `showError`, nicht an den Aufrufstellen.** Es waren sieben Dateien; wichtiger ist, dass die achte, die noch kommt, es geschenkt bekommt. `I18nProvider` liegt außerhalb von `ToastProvider`, also sind die Texte dort verfügbar.
+- **Ein unbekannter Code verschwindet nicht.** Kennt das Frontend ihn nicht, zeigt es das Detail; gibt es keins, den Rohtext. Ein neuer Fehler ist dann unübersetzt — aber sichtbar, statt zu einem leeren Dialog zu werden. Acht Tests decken das ab, einschließlich eines Details, das selbst das Trennzeichen enthält.
+
+**`scoring.ts` war bereits erledigt** — die Prüfungen geben seit H1 Schlüssel zurück, keine Sätze. Der Backlog-Text war an der Stelle veraltet.
+
+**Fertig wenn:** ~~Bei englischer Spracheinstellung erscheint kein deutscher Text mehr — auch nicht in Fehlermeldungen~~ — erfüllt, in der laufenden App auf Englisch durchgesehen. Dabei fiel noch „Idee und Umsetzung" in der Seitenleiste auf, ebenfalls fest verdrahtet.
 
 ---
 
-### [ ] H5 — Datums- und Zahlenformate teilweise fest auf `de-DE`
-**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `src/components/courts/CourtTimer.tsx:53`, `src/pages/SessionDashboard.tsx:242`, `src/pages/TournamentCreate.tsx:56`
+### [x] H5 — Datums- und Zahlenformate teilweise fest auf `de-DE` — **erledigt**
+**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `src/lib/I18nContext.tsx`, `src/lib/datetime.ts`, fünf Komponenten
 
-**Problem:** `toLocaleTimeString("de-DE")` und manuell zusammengebaute Datumsformate (`DD.MM.YYYY`) ignorieren die gewählte Sprache; Startgeldbeträge werden ohne `Intl.NumberFormat` formatiert.
+**Umgesetzt:** Die Formathelfer nahmen längst ein Locale entgegen — es reichte nur niemand eins durch, und fünf Stellen riefen `toLocaleTimeString("de-DE")` direkt auf. Ein neuer Hook `useLocale()` leitet es aus der Spracheinstellung ab.
 
-**Fix:** Aktive Sprache aus dem I18n-Kontext an `Intl.DateTimeFormat`/`Intl.NumberFormat` durchreichen; zentrale Formatierungshelfer (zusammen mit C3).
+**`en-GB`, nicht `en-US`:** Ein Turnier läuft auf einer 24-Stunden-Uhr, und „14:03" steht auf jedem Bildschirm dieser App. `en-US` würde daraus „2:03 PM" machen — und damit TV-Anzeige und Ausdruck in Widerspruch zu den Feldtimern setzen, die ihre Zeiten selbst rechnen.
 
-**Fertig wenn:** Sprachumschaltung ändert auch Datums-, Zeit- und Währungsdarstellung.
+**Startgeld:** stand als `${amount} EUR` da, also „7.5 EUR" — falsches Trennzeichen für die eingestellte Sprache und die zweite Nachkommastelle verschluckt. `formatMoney` über `Intl.NumberFormat` macht daraus „7,50 €" bzw. „€7.50".
+
+**Fertig wenn:** ~~Sprachumschaltung ändert auch Datums-, Zeit- und Währungsdarstellung~~ — erfüllt.
 
 ---
 

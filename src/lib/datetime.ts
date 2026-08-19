@@ -88,3 +88,17 @@ export function formatDateTime(
 export function nowIso(): string {
   return new Date().toISOString();
 }
+
+/**
+ * Money, in euros, in the reader's notation.
+ *
+ * The entry fee was printed as `${amount} EUR` — "7.5 EUR" where German
+ * writes "7,50 €" and English "€7.50". Intl also handles the second
+ * decimal, which a bare number drops (REVIEW-BACKLOG.md H5).
+ */
+export function formatMoney(amount: number, locale?: string): string {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "EUR",
+  }).format(amount);
+}

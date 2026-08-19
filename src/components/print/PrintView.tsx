@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import Icon, { type IconName } from "../ui/Icon";
-import { useT } from "../../lib/I18nContext";
+import { useT, useLocale } from "../../lib/I18nContext";
 import type {
   Tournament,
   Player,
@@ -9,7 +9,8 @@ import type {
   GameSet,
   StandingEntry,
 } from "../../lib/types";
-import { MODE_LABELS, FORMAT_LABELS, playerDisplayName } from "../../lib/types";
+import { playerDisplayName } from "../../lib/types";
+import { formatLabel, modeLabel } from "../../lib/i18n/labels";
 import { isSetComplete, getScoringDescription, calculateStandings, calculateTeamStandings } from "../../lib/scoring";
 import { calculateHighlights } from "../../lib/highlights";
 import type { PrintColors } from "../../lib/theme";
@@ -47,6 +48,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
   ) => {
     const c: PrintColors = PRINT_COLORS[themeId];
     const { t } = useT();
+    const locale = useLocale();
 
     const playerName = (id: number | null): string => {
       if (!id) return "-";
@@ -60,7 +62,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
       return p2 ? `${playerName(p1)} / ${playerName(p2)}` : playerName(p1);
     };
 
-    const now = new Date().toLocaleDateString("de-DE", {
+    const now = new Date().toLocaleDateString(locale, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -76,8 +78,8 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
               <span aria-hidden="true">🏸</span> {tournament.name}
             </h1>
             <div style={{ fontSize: 11, color: "#666", marginTop: 4 }}>
-              {MODE_LABELS[tournament.mode]} &middot;{" "}
-              {FORMAT_LABELS[tournament.format]} &middot; Best of{" "}
+              {modeLabel(t, tournament.mode)} &middot;{" "}
+              {formatLabel(t, tournament.format)} &middot; Best of{" "}
               {tournament.sets_to_win * 2 - 1} &middot;{" "}
               {getScoringDescription(tournament.points_per_set, tournament.cap, { ext: t.scoring_description_ext, hard: t.scoring_description_hard })}
               {tournament.format === "group_ko" && tournament.ko_points_per_set != null && (

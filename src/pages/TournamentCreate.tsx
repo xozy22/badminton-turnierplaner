@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import { formatMoney } from "../lib/datetime";
 import Icon from "../components/ui/Icon";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -26,7 +27,7 @@ import { validateTournamentSetup, canStart } from "../lib/tournamentValidation";
 import type { ValidationIssue } from "../lib/tournamentValidation";
 import { SCORING_MODES, getScoringModeId, type ScoringModeId } from "../lib/scoring";
 import { useTheme } from "../lib/ThemeContext";
-import { useT } from "../lib/I18nContext";
+import { useT, useLocale } from "../lib/I18nContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { useAsyncAction } from "../lib/useAsyncAction";
 import TeamPairingStep from "../components/tournament/TeamPairingStep";
@@ -45,6 +46,7 @@ type GenderFilter = "all" | "m" | "f";
 export default function TournamentCreate() {
   const { theme } = useTheme();
   const { t } = useT();
+  const locale = useLocale();
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
   const isEditMode = !!editId;
@@ -1500,7 +1502,7 @@ export default function TournamentCreate() {
                   const isFixed = mode !== "singles" && fixedFmts.includes(format);
                   const amount = mode === "singles" ? entryFeeSingle : entryFeeDouble;
                   const label = isFixed ? t.tournament_entry_fee_per_team : t.tournament_entry_fee_per_person;
-                  return `${amount} EUR (${label.replace(" (EUR)", "")})`;
+                  return `${formatMoney(Number(amount), locale)} (${label.replace(" (EUR)", "")})`;
                 })() : "—"}</div>
                 <div><span className={`font-medium ${theme.textPrimary}`}><Icon name="clock" /> {t.tournament_min_rest_label}:</span> {useMinRest && Number(minRestMinutes) > 0 ? `${Number(minRestMinutes) || 0} ${t.tournament_min_rest_unit}` : "—"}</div>
               </div>

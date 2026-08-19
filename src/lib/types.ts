@@ -139,11 +139,13 @@ export interface Session {
 export type PaymentMethod = "bar" | "ueberweisung" | "paypal";
 export type PaymentStatus = "unpaid" | "paid";
 
-export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  bar: "Bar",
-  ueberweisung: "Ueberweisung",
-  paypal: "PayPal",
-};
+/*
+ * MODE_LABELS, FORMAT_LABELS, STATUS_LABELS and PAYMENT_METHOD_LABELS used
+ * to live here as fixed German strings, in parallel with translation keys
+ * that said the same thing. Whichever a screen reached for decided whether
+ * it stayed German under an English setting. See lib/i18n/labels.ts
+ * (REVIEW-BACKLOG.md H4).
+ */
 
 export interface TournamentPlayer {
   tournament_id: number;
@@ -254,27 +256,3 @@ export interface TeamStandingEntry {
   pointsLost: number;
 }
 
-export const MODE_LABELS: Record<TournamentMode, string> = {
-  singles: "Einzel",
-  doubles: "Doppel",
-  mixed: "Mixed",
-};
-
-export const FORMAT_LABELS: Record<TournamentFormat, string> = {
-  round_robin: "Jeder gegen Jeden",
-  elimination: "KO-System",
-  random_doubles: "Wechselnde Partner",
-  group_ko: "Gruppenphase + KO",
-  swiss: "Schweizer System",
-  double_elimination: "Doppel-KO",
-  monrad: "Monrad-System",
-  king_of_court: "King of the Court",
-  waterfall: "Waterfall",
-};
-
-export const STATUS_LABELS: Record<TournamentStatus, string> = {
-  draft: "Entwurf",
-  active: "Läuft",
-  completed: "Beendet",
-  archived: "Archiviert",
-};
