@@ -713,6 +713,9 @@ export const de: Translations = {
   settings_backup_hint: "Das Backup speichert eine Kopie der gesamten Datenbank — einschließlich der Spielerdaten und des Live-Geheimnisses. Bewahre die Datei entsprechend auf und gib sie nicht unbedacht weiter. Nach der Wiederherstellung muss die App neu gestartet werden.",
   settings_backup_auto_hint: "Vor dem Wiederherstellen, dem Löschen aller Daten und jeder Datenbank-Aktualisierung legt BOSS automatisch eine Kopie an ({count} vorhanden, die letzten {keep} bleiben erhalten).",
   settings_backup_auto_open: "Ordner öffnen",
+  settings_diagnostics_export: "Diagnosedaten exportieren",
+  settings_diagnostics_hint: "Speichert Version, System, Datenbankort und die letzten Protokollzeilen in eine Textdatei — und legt sie zugleich in die Zwischenablage. Hilfreich, wenn etwas nicht funktioniert hat und du es melden möchtest. Es werden keine Spielerdaten übertragen.",
+  settings_diagnostics_saved: "Diagnosedaten gespeichert und in die Zwischenablage kopiert.",
   credits_by: "Idee und Umsetzung",
   // Fehlermeldungen aus dem Rust-Backend (siehe lib/backendError.ts)
   backend_err_app_dir: "Das Datenverzeichnis der App lässt sich nicht ermitteln.",

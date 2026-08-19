@@ -713,6 +713,9 @@ export const en: Translations = {
   settings_backup_hint: "The backup saves a copy of the entire database — including player data and the live-publishing secret. Keep the file accordingly and do not pass it on lightly. After restoring, the app must be restarted.",
   settings_backup_auto_hint: "Before restoring, wiping all data and every database upgrade, BOSS makes a copy automatically ({count} present, the last {keep} are kept).",
   settings_backup_auto_open: "Open folder",
+  settings_diagnostics_export: "Export diagnostics",
+  settings_diagnostics_hint: "Saves version, system, database location and the last log lines to a text file — and puts them on the clipboard at the same time. Useful when something did not work and you want to report it. No player data is included.",
+  settings_diagnostics_saved: "Diagnostics saved and copied to the clipboard.",
   credits_by: "Conceived and built by",
   // Errors from the Rust backend (see lib/backendError.ts)
   backend_err_app_dir: "The app data directory could not be determined.",

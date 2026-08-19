@@ -734,6 +734,9 @@ export interface Translations {
   settings_backup_hint: string;
   settings_backup_auto_hint: string;
   settings_backup_auto_open: string;
+  settings_diagnostics_export: string;
+  settings_diagnostics_hint: string;
+  settings_diagnostics_saved: string;
   credits_by: string;
   // Errors from the Rust backend
   backend_err_app_dir: string;

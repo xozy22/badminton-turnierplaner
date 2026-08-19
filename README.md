@@ -12,7 +12,8 @@
 <p align="center">
   <a href="https://github.com/xozy22/boss-badminton">GitHub Repository</a> &middot;
   <a href="README_DE.md">🇩🇪 Deutsche Version</a> &middot;
-  <a href="CHANGELOG.md">Changelog</a>
+  <a href="CHANGELOG.md">Changelog</a> &middot;
+  <a href="docs/ARCHITECTURE.md">Architecture</a>
 </p>
 
 ## Screenshots

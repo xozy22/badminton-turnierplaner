@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { engineFor, FORMAT_ENGINES } from "./index";
+import { knockoutSizes } from "./knockoutFormats";
 import type { FormatContext } from "./types";
 import { makePlayers, makeMatch, resetIds } from "../../test/factories";
 import type { Tournament, Round, Match, TournamentFormat, TournamentStatus } from "../types";
@@ -588,5 +589,49 @@ describe("full run", () => {
     // the expected behaviour, not a runaway loop.
     expect(steps).toBe(10);
     expect(ctx.rounds.length).toBe(11);
+  });
+});
+
+describe("knockoutSizes — what qualify_per_group actually means", () => {
+  it("reads a power of two as the whole KO field", () => {
+    // Two groups, KO field of eight → four advance per group. The group
+    // table used to highlight eight rows in each group.
+    expect(knockoutSizes({ num_groups: 2, qualify_per_group: 8 })).toEqual({
+      koSize: 8,
+      perGroup: 4,
+    });
+  });
+
+  it("splits a KO field of eight across four groups", () => {
+    expect(knockoutSizes({ num_groups: 4, qualify_per_group: 8 })).toEqual({
+      koSize: 8,
+      perGroup: 2,
+    });
+  });
+
+  it("reads a small number as the old per-group count", () => {
+    // 2 is not >= 4, so it is a pre-v2.6 tournament: two per group, four
+    // in the KO round.
+    expect(knockoutSizes({ num_groups: 2, qualify_per_group: 2 })).toEqual({
+      koSize: 4,
+      perGroup: 2,
+    });
+  });
+
+  it("reads a non-power-of-two as per-group, however large", () => {
+    // 6 across three groups is 18 — a KO field that size cannot be a
+    // bracket, but the reading has to stay consistent with what the draw
+    // does, not with what would be sensible.
+    expect(knockoutSizes({ num_groups: 3, qualify_per_group: 6 })).toEqual({
+      koSize: 18,
+      perGroup: 6,
+    });
+  });
+
+  it("falls back to defaults on zero", () => {
+    expect(knockoutSizes({ num_groups: 0, qualify_per_group: 0 })).toEqual({
+      koSize: 4,
+      perGroup: 2,
+    });
   });
 });

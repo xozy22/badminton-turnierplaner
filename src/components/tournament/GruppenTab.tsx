@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { knockoutSizes } from "../../lib/formats/knockoutFormats";
 import type { ThemeColors } from "../../lib/theme";
 import type {
   Tournament,
@@ -209,7 +210,9 @@ export default function GruppenTab({
   const renderGroup = (groupNum: number) => {
     const { gMatches, gSets, pIds } = getGroupData(groupNum);
     const gPlayers = players.filter((p) => pIds.has(p.id));
-    const qualifyCount = tournament.qualify_per_group || 2;
+    // Not the raw field: it may hold the whole KO field rather than a
+    // per-group count. See knockoutSizes.
+    const qualifyCount = knockoutSizes(tournament).perGroup;
     const isDoublesGroup = tournament.mode !== "singles";
     // Match list only when drilled into a single group — would clutter the
     // "Alle"-overview with N standings + N match logs.

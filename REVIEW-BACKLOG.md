@@ -1044,47 +1044,57 @@ Voreinstellung bleibt „voller Name" — eine stille Änderung würde die Anzei
 
 ---
 
-### [ ] J3 — Release baut kein Linux-Paket
+### [x] J3 — Release baut kein Linux-Paket — **erledigt**
 **Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `.github/workflows/release.yml`
 
-**Problem:** Die Matrix enthält Windows und zwei macOS-Ziele. Das README wirbt mit „cross-platform desktop application", Linux fehlt.
+**Umgesetzt:** `ubuntu-22.04` in der Matrix, mit den nötigen Systembibliotheken (`libwebkit2gtk-4.1-dev` und die übrigen). **Nicht `ubuntu-latest`:** Das AppImage bindet sich an die glibc der bauenden Maschine, ein Build auf dem neuesten Ubuntu ergäbe also ein Paket, das auf einer älteren, noch unterstützten Distribution nicht startet.
 
-**Fix:** `ubuntu-latest` mit den nötigen Systemabhängigkeiten ergänzen (AppImage/deb) — oder die Aussage im README auf Windows und macOS korrigieren. Passt inhaltlich zu I4 (plattformspezifischer Code nur für Windows).
+Dies und I4 sind zwei Hälften derselben Lücke — ohne I4 hätte ein Linux-Paket einen Knopf mitgebracht, der wortlos nichts tut.
 
-**Fertig wenn:** Entweder erzeugt der Release ein Linux-Artefakt, oder die Dokumentation nennt die unterstützten Plattformen korrekt.
-
----
-
-### [ ] J4 — Versionsnummern an drei Stellen, `package.json` steht auf 0.0.0
-**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `package.json:4`, `src-tauri/tauri.conf.json:4`, `wordpress-plugin/boss-live-results/boss-live-results.php:5,22`
-
-**Problem:** `package.json` = `0.0.0`, `tauri.conf.json` = `2.9.0`, WordPress-Plugin = `1.0.5`. Die App-Version wird im Live-Snapshot mitgesendet — welche Quelle dort landet, ist nicht offensichtlich.
-
-**Fix:** Eine führende Quelle festlegen (`tauri.conf.json`) und die übrigen daraus generieren oder per Release-Skript synchronisieren; Kompatibilitätsmatrix App-Version ↔ Plugin-Version dokumentieren.
-
-**Fertig wenn:** Ein Versionssprung erfordert genau eine Änderung; alle angezeigten Versionen stimmen überein.
+**Fertig wenn:** ~~Entweder erzeugt der Release ein Linux-Artefakt, oder die Dokumentation nennt die unterstützten Plattformen korrekt~~ — erfüllt. Der Lauf selbst konnte hier nicht ausgeführt werden; die Datei ist als YAML geprüft.
 
 ---
 
-### [ ] J5 — Kein Diagnose-/Fehlerprotokoll für den Turnierleiter
-**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src-tauri/src/lib.rs:440` (Logger nur bei `debug_assertions`), `src/lib/ToastContext.tsx`
+### [x] J4 — Versionsnummern an drei Stellen, `package.json` steht auf 0.0.0 — **erledigt**
+**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `scripts/sync-version.mjs` (neu), `package.json`, `.github/workflows/ci.yml`, `wordpress-plugin/…/README.md`
 
-**Problem:** `tauri-plugin-log` ist nur im Debug-Build aktiv. In der ausgelieferten Anwendung landen Fehler ausschließlich in der Browser-Konsole, an die der Nutzer nicht herankommt. Tritt in der Halle ein Fehler auf, gibt es nichts zu melden außer „ging nicht".
+**Umgesetzt:** `tauri.conf.json` ist die führende Quelle — `vite.config.ts` las sie bereits für die angezeigte Version. `sync-version.mjs` zieht `package.json` nach (`pnpm sync:version`) oder meldet die Abweichung (`pnpm check:version`, verbindlich in der CI). Geschrieben wird per Textersetzung statt über `JSON.stringify`, damit die Datei ihre Formatierung behält; ein umformatiertes `package.json` wäre ein unnötig lauter Diff.
 
-**Fix:** Logging auch im Release aktivieren (Datei im App-Datenverzeichnis, Rotation), Frontend-Fehler (`console.error`, Error Boundary aus D6, Live-Push-Fehler) dorthin schreiben, und in den Einstellungen einen Knopf „Diagnosedaten exportieren" anbieten.
+**Das WordPress-Plugin behält seine eigene Nummer.** Es wird getrennt ausgeliefert, in fremde WordPress-Installationen, und seine Version muss „das Plugin hat sich geändert" bedeuten — nicht „die Anwendung hat sich geändert". Worauf sich beide Seiten tatsächlich einigen, ist die **Schema-Version** im Payload; das Plugin weist zurück, was es nicht kennt. Die Kompatibilitätstabelle im Plugin-README nennt jetzt beide Achsen und sagt, was eine ungleiche Paarung bedeutet (nämlich meist: nichts). Auf 1.0.6 angehoben, denn I2 und I3 haben es verändert — die Versionsnummer treibt dort auch den Cache-Bust im Frontend.
 
-**Fertig wenn:** Ein reproduzierter Fehler ist in einer exportierbaren Logdatei nachvollziehbar.
+**Fertig wenn:** ~~Ein Versionssprung erfordert genau eine Änderung; alle angezeigten Versionen stimmen überein~~ — erfüllt.
 
 ---
 
-### [ ] J6 — Keine Entwicklerdokumentation zur Architektur
-**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `CLAUDE.md` oder `docs/ARCHITECTURE.md` (neu)
+### [x] J5 — Kein Diagnose-/Fehlerprotokoll für den Turnierleiter — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src-tauri/src/lib.rs`, `src/pages/Settings.tsx`, i18n
 
-**Problem:** Es gibt keine `CLAUDE.md` und keine Architekturübersicht. Wissen wie „`num_groups` speichert bei Swiss die Rundenzahl", „Monrad läuft unter `phase='swiss'`" oder „`qualify_per_group` enthält seit v2.6 die KO-Größe, nicht die Anzahl pro Gruppe" steckt ausschließlich in Kommentaren mitten im Code — genau solche Altlasten erzeugen die Fehler in diesem Backlog.
+**Umgesetzt:** `tauri-plugin-log` läuft jetzt auch im ausgelieferten Build, mit Rotation bei 2 MB. **Warn-Level statt Info** im Release: eine Datei, die von Routinemeldungen volläuft, verbirgt das Interessante zwischen ihnen.
 
-**Fix:** Kurze Architekturseite: Datenmodell mit Diagramm, Bedeutung der Sonderfelder, Format-Matrix (welches Format nutzt welche Phasen/Spalten), Lebenszyklus eines Turniers, Live-Publishing-Ablauf. Zusätzlich `CLAUDE.md` mit Projektkonventionen für künftige Sitzungen.
+„Diagnosedaten exportieren" in den Einstellungen sammelt Version, Betriebssystem, Datenbankort, Datenstand, Anzahl der Sicherheitskopien und die **letzten 200 Protokollzeilen** — nicht das ganze Protokoll: interessant ist, was kurz vor dem Problem geschah, und zwei Megabyte lassen sich in keine Nachricht kopieren. Der Text geht zugleich in die Zwischenablage, weil solche Meldungen meist in einem Chatfenster landen und nicht als Anhang.
 
-**Fertig wenn:** Ein neuer Mitwirkender versteht Datenmodell und Turnier-Lebenszyklus, ohne `TournamentView/index.tsx` zu lesen.
+**Zwei Entscheidungen:**
+- **Geschrieben wird in Rust, nicht über das fs-Plugin.** Dessen Berechtigungsbereich umfasst Downloads, Desktop und Dokumente — ein USB-Stick, das naheliegende Ziel an einem Hallenrechner ohne Mailprogramm, wäre abgewiesen worden.
+- **Ein misslungener Zwischenablage-Zugriff bricht nicht ab.** Die Datei ist zu dem Zeitpunkt geschrieben; einen Erfolg als Fehler zu melden wäre schlechter als die fehlende Kopie.
+
+Der Text enthält keine Spielerdaten; der Hinweis unter dem Knopf sagt das.
+
+**Fertig wenn:** ~~Ein reproduzierter Fehler ist in einer exportierbaren Logdatei nachvollziehbar~~ — erfüllt.
+
+---
+
+### [x] J6 — Keine Entwicklerdokumentation zur Architektur — **erledigt**
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `docs/ARCHITECTURE.md` (neu), `CLAUDE.md` (neu)
+
+**Umgesetzt:** `docs/ARCHITECTURE.md` (175 Zeilen) behandelt Schichten, Datenmodell, die Felder mit irreführenden Namen, die Phase je Format, den Lebenszyklus eines Turniers, den Weg der Live-Ergebnisse und die Prüfmatrix. `CLAUDE.md` hält die Konventionen fest, die sich beim Durchgang durch dieses Backlog herausgeschält haben.
+
+**Das Schreiben hat zwei Fehler aufgedeckt** — was für eine Architekturseite spricht:
+
+1. **Meine eigene Phasentabelle war falsch.** Ich hatte für Waterfall und King of the Court `phase: "swiss"` angenommen. Beide setzen **gar keine** Phase; ihre Runden stehen mit `NULL` in der Datenbank. An den Engines nachgesehen, statt es stehen zu lassen.
+
+2. **Die Gruppentabelle markierte die falsche Anzahl Qualifikanten.** `qualify_per_group` bedeutet zweierlei: seit v2.6 ist eine Zweierpotenz ab 4 die **Größe des KO-Feldes insgesamt**, alles andere die alte Zahl pro Gruppe. Die Auslosung wusste das (`knockoutSize`), die Anzeige nicht — Gruppen-Tab und Ausdruck nahmen den Rohwert als „pro Gruppe". Bei zwei Gruppen und einem KO-Feld von acht hob die Tabelle **acht** Zeilen je Gruppe hervor, obwohl vier weiterkommen; in einer Gruppe mit fünf Spielern also alle. Die Deutung liegt jetzt in einer exportierten Funktion `knockoutSizes`, die beide Anzeigen benutzen, mit fünf Tests einschließlich der Altdaten-Fälle.
+
+**Fertig wenn:** ~~Ein neuer Mitwirkender versteht Datenmodell und Turnier-Lebenszyklus, ohne `TournamentView/index.tsx` zu lesen~~ — erfüllt.
 
 ---
 

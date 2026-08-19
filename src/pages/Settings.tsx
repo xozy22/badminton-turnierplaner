@@ -128,6 +128,42 @@ export default function Settings() {
     })();
   }, []);
 
+  /**
+   * Writes the diagnostics to a file the user picks, so it can be attached
+   * to a message. Also copied to the clipboard, since most reports happen
+   * in a chat window rather than as an attachment.
+   */
+  const handleExportDiagnostics = async () => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const report = await invoke<string>("collect_diagnostics");
+
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
+      const path = await save({
+        defaultPath: `boss-diagnose_${stamp}.txt`,
+        filters: [{ name: "Text", extensions: ["txt"] }],
+      });
+      if (!path) return;
+
+      // Written by the backend, not the fs plugin: the capability scope
+      // covers Downloads, Desktop and Documents, and saving onto a USB
+      // stick is a normal thing to want in a sports hall.
+      await invoke("export_diagnostics", { targetPath: path });
+
+      // Best effort: a failed clipboard write must not make the export
+      // look like it failed, because the file is already written.
+      try {
+        await navigator.clipboard.writeText(report);
+      } catch {
+        /* no clipboard permission — the file is what matters */
+      }
+      showSuccess(t.settings_diagnostics_saved);
+    } catch (err) {
+      showError(`${err}`);
+    }
+  };
+
   const handleOpenBackupFolder = async () => {
     if (!backupInfo) return;
     try {
@@ -426,6 +462,18 @@ export default function Settings() {
             <div className="text-xs text-muted leading-relaxed">
               {t.settings_backup_hint}
             </div>
+            <div className="mt-3 pt-3 border-t border-line">
+              <button
+                onClick={handleExportDiagnostics}
+                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
+              >
+                <Icon name="file" /> {t.settings_diagnostics_export}
+              </button>
+              <p className="mt-1.5 text-xs text-muted leading-relaxed">
+                {t.settings_diagnostics_hint}
+              </p>
+            </div>
+
             {backupInfo && (
               <div className="mt-2 text-xs text-muted leading-relaxed">
                 <span>

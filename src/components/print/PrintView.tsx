@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import { knockoutSizes } from "../../lib/formats/knockoutFormats";
 import Icon, { type IconName } from "../ui/Icon";
 import { useT, useLocale } from "../../lib/I18nContext";
 import type {
@@ -293,7 +294,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
     const renderGroupStandings = () => {
       if (!isGroupKo || groupRounds.length === 0) return null;
       const numGroups = tournament.num_groups || 2;
-      const qualifyCount = tournament.qualify_per_group || 2;
+      const qualifyCount = knockoutSizes(tournament).perGroup;
 
       return (
         <div style={{ marginBottom: 20 }}>

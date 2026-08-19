@@ -176,14 +176,30 @@ export const eliminationEngine: FormatEngine = {
 
 // ------------------------------------------------------- Group stage + KO
 
-/** How many participants qualify, and how many per group. */
-function knockoutSize(ctx: FormatContext): { koSize: number; perGroup: number } {
-  const numGroups = ctx.tournament.num_groups || 2;
-  const raw = ctx.tournament.qualify_per_group || 2;
-  // Since v2.6 the field holds the total KO size (a power of two); older
-  // tournaments stored "per group".
+/**
+ * How many participants qualify in total, and how many per group.
+ *
+ * `qualify_per_group` means two things depending on its value: since v2.6
+ * a power of two >= 4 is the *total* KO field size, while anything else is
+ * the older per-group count. The name kept the old meaning.
+ *
+ * Exported because the group table and the printed sheet need the same
+ * answer. They used to take the raw number as "per group", so a KO field of
+ * eight across two groups highlighted eight rows per group instead of four
+ * (REVIEW-BACKLOG.md J6).
+ */
+export function knockoutSizes(tournament: {
+  num_groups: number;
+  qualify_per_group: number;
+}): { koSize: number; perGroup: number } {
+  const numGroups = tournament.num_groups || 2;
+  const raw = tournament.qualify_per_group || 2;
   const koSize = raw >= 4 && (raw & (raw - 1)) === 0 ? raw : raw * numGroups;
   return { koSize, perGroup: Math.floor(koSize / numGroups) };
+}
+
+function knockoutSize(ctx: FormatContext): { koSize: number; perGroup: number } {
+  return knockoutSizes(ctx.tournament);
 }
 
 /** Matches and sets of one group. */

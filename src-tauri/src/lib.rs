@@ -363,6 +363,94 @@ fn get_db_path(app_handle: tauri::AppHandle) -> Result<String, String> {
     Ok(db_path.to_string_lossy().to_string())
 }
 
+/// Stellt die Diagnosedaten zusammen, die eine Fehlermeldung braucht.
+///
+/// Version, Betriebssystem, Datenbankort und das Ende des Protokolls --
+/// mehr braucht es nicht, um eine Meldung aus der Halle nachzuvollziehen,
+/// und weniger reicht nicht. Bewusst als Text und nicht als Anhang: der
+/// Turnierleiter soll hineinsehen koennen, bevor er es weitergibt
+/// (REVIEW-BACKLOG.md J5).
+#[tauri::command]
+fn collect_diagnostics(app_handle: tauri::AppHandle) -> Result<String, String> {
+    use std::fmt::Write;
+
+    let app_data_dir = app_handle.path().app_data_dir()
+        .map_err(|e| err("app_dir", e))?;
+
+    let mut out = String::new();
+    let _ = writeln!(out, "BOSS Diagnose");
+    let _ = writeln!(out, "erstellt: {}", timestamp_for_filename());
+    let _ = writeln!(out, "Version: {}", app_handle.package_info().version);
+    let _ = writeln!(out, "System: {} {}", std::env::consts::OS, std::env::consts::ARCH);
+
+    let db_path = resolve_db_path(&app_data_dir);
+    let _ = writeln!(out, "Datenbank: {}", db_path.to_string_lossy());
+    let _ = writeln!(
+        out,
+        "Datenbank vorhanden: {}",
+        if db_path.exists() { "ja" } else { "nein" }
+    );
+    match read_schema_version(&db_path) {
+        Ok(v) => {
+            let _ = writeln!(out, "Datenstand: {} (App kennt {})", v, CURRENT_SCHEMA_VERSION);
+        }
+        Err(e) => {
+            let _ = writeln!(out, "Datenstand: nicht lesbar ({})", e);
+        }
+    }
+
+    let dir = backup_dir(&app_data_dir);
+    let backups = fs::read_dir(&dir)
+        .map(|entries| entries.filter_map(|e| e.ok()).count())
+        .unwrap_or(0);
+    let _ = writeln!(out, "Sicherheitskopien: {} in {}", backups, dir.to_string_lossy());
+
+    // Das Ende des Protokolls, nicht das Ganze: interessant ist, was kurz
+    // vor dem Problem passiert ist, und eine Datei von zwei Megabyte laesst
+    // sich nicht in eine Nachricht kopieren.
+    let _ = writeln!(out, "
+--- Protokoll (letzte 200 Zeilen) ---");
+    match app_handle.path().app_log_dir() {
+        Ok(log_dir) => {
+            let log_file = log_dir.join("boss.log");
+            match fs::read_to_string(&log_file) {
+                Ok(text) => {
+                    let lines: Vec<&str> = text.lines().collect();
+                    let tail = lines.iter().rev().take(200).rev().copied().collect::<Vec<_>>();
+                    if tail.is_empty() {
+                        let _ = writeln!(out, "(Protokoll ist leer -- bislang keine Fehler)");
+                    } else {
+                        for line in tail {
+                            let _ = writeln!(out, "{}", line);
+                        }
+                    }
+                }
+                Err(e) => {
+                    let _ = writeln!(out, "(Protokoll nicht lesbar: {})", e);
+                    let _ = writeln!(out, "erwartet unter: {}", log_file.to_string_lossy());
+                }
+            }
+        }
+        Err(e) => {
+            let _ = writeln!(out, "(Protokollordner unbekannt: {})", e);
+        }
+    }
+
+    Ok(out)
+}
+
+/// Sammelt die Diagnosedaten und schreibt sie an den gewaehlten Ort.
+///
+/// Geschrieben wird hier statt ueber das fs-Plugin, damit derselbe Weg wie
+/// beim Backup gilt: der Speichern-Dialog darf jedes Ziel anbieten, auch
+/// einen USB-Stick. Ueber das Plugin wuerde der Berechtigungsbereich
+/// greifen und genau dieses Ziel abweisen.
+#[tauri::command]
+fn export_diagnostics(app_handle: tauri::AppHandle, target_path: String) -> Result<(), String> {
+    let report = collect_diagnostics(app_handle)?;
+    fs::write(&target_path, report).map_err(|e| err("copy_failed", e))
+}
+
 /// Ordner der automatischen Sicherheitskopien samt Anzahl vorhandener
 /// Dateien -- eine Kopie, die niemand findet, ist keine Sicherung.
 #[tauri::command]
@@ -1261,19 +1349,49 @@ pub fn run() {
                     .build(),
             )?;
 
+            // Logging laeuft auch im ausgelieferten Build.
+            //
+            // Vorher nur unter debug_assertions -- in der fertigen App
+            // landeten Fehler damit ausschliesslich in der Browser-Konsole,
+            // an die ein Turnierleiter nicht herankommt. Tritt in der Halle
+            // etwas auf, gab es nichts zu melden ausser "ging nicht"
+            // (REVIEW-BACKLOG.md J5).
+            //
+            // Im Entwicklungsbetrieb zusaetzlich auf stdout; ausgeliefert
+            // nur in die Datei, mit Rotation bei 2 MB. Warn-Level statt
+            // Info, damit die Datei nicht von Routinemeldungen volllaeuft
+            // und das Interessante dazwischen untergeht.
+            let log_level = if cfg!(debug_assertions) {
+                log::LevelFilter::Info
+            } else {
+                log::LevelFilter::Warn
+            };
+
+            let mut log_builder = tauri_plugin_log::Builder::default()
+                .level(log_level)
+                .max_file_size(2_000_000)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepOne)
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("boss".to_string()),
+                    },
+                ));
+
             if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
+                log_builder = log_builder.target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::Stdout,
+                ));
             }
+
+            app.handle().plugin(log_builder.build())?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             get_db_path,
             get_db_dir,
             get_backup_info,
+            collect_diagnostics,
+            export_diagnostics,
             change_db_dir,
             reset_db_dir,
             open_folder,

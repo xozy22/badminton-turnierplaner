@@ -10,6 +10,28 @@ Multiple tournaments can run in parallel — each one is stored independently an
 
 Privacy by design: BOSS only transmits first name, last name, and club. Birth dates and payment info stay on the local desktop.
 
+## Which versions work together
+
+The plugin and the desktop app have separate version numbers on purpose:
+the plugin ships into someone else's WordPress, so its number has to mean
+"the plugin changed", not "the desktop app changed".
+
+What the two sides actually agree on is the **schema version** in every
+payload. The plugin rejects anything whose schema it does not know, rather
+than storing a snapshot it cannot render.
+
+| Desktop app | Plugin  | Schema | Notes |
+|-------------|---------|--------|-------|
+| 2.7.0+      | 1.0.0+  | 1      | first release of live publishing |
+| 2.7.2+      | 1.0.2+  | 1      | matches segmented per round; older plugins show the current round only |
+| 2.7.4+      | 1.0.4+  | 1      | final snapshot (`final: true`); older plugins ignore the flag and keep showing "Live" |
+| 2.9.0+      | 1.0.6+  | 1      | HTTPS required, size and rate limits, privacy levels |
+
+A newer app with an older plugin keeps working — the extra fields are
+ignored. The other way round is also fine: the plugin renders what it
+receives. Only a change of the **schema** number breaks the pairing, and
+that has not happened yet.
+
 ## Installation
 
 1. Zip the `boss-live-results` folder.

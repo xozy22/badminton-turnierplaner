@@ -63,6 +63,11 @@ jobs:
       - name: Emoji check
         run: pnpm check:emoji
 
+      # The displayed version comes from tauri.conf.json; this keeps
+      # package.json from drifting away from it again.
+      - name: Version check
+        run: pnpm check:version
+
   rust:
     name: Rust (tauri backend)
     runs-on: ubuntu-latest
