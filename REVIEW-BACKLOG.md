@@ -692,6 +692,16 @@ Der TV-Modus hat seine Vier-Themes-Tabelle verloren und nutzt `--accent-bright` 
 
 ---
 
+**Nachtrag — der Punkt war nicht fertig.** Beim Umbau des Druckdialogs fielen weitere **140** Palette-Farben auf, verteilt über 25 Dateien: 87 mal `emerald`, 22 mal `orange`/`amber`, 11 mal `rose`, dazu `blue`, `gray` und `violet`. Erst in der laufenden Anwendung nachgewiesen, bevor ich es behauptet habe: Auf der Statistikseite stand die Siegquote in Grün, obwohl „Saphir" gewählt war.
+
+Die Zuordnung folgt der **Bedeutung**, nicht dem Aussehen: `emerald`/`green` → `success` (gelungen, bezahlt, fertig), `orange`/`amber` → `warning`, `rose`/`red` → `danger`, `blue`/`violet` → `phase` (Strukturmarkierung wie K.-o.-Phase oder Session), `gray` → `muted`/`line`. Die Abstufung entscheidet den Ton: 50/100 wird zur Füllfläche (`-subtle`), 600–800 zum lesbaren Text darauf (`-text`), 500 zur Grundfarbe für Rahmen und gefüllte Bedienelemente.
+
+**Sechzehn `dark:`-Varianten** waren ebenfalls übrig. Die meisten sagten dasselbe zweimal (`border-line-strong dark:border-line-strong`), zwei entschieden aber eine echte Farbe — und `dark:` hängt am Betriebssystem, nicht am gewählten Schema. Wer ein helles Schema bei dunklem System benutzte, bekam die dunkle Hälfte; umgekehrt ebenso. Alle aufgelöst.
+
+**Eine Lücke, die dabei sichtbar wurde:** Gefüllte Erfolgsflächen hatten `text-white` — eine Palette-Farbe ohne definiertes Gegenstück. Es gibt jetzt `--success-fg` analog zu `--danger-fg` und `--warning-fg`, und die Kontrastprüfung deckt drei neue Paare ab: **95 statt 77**, alle bestehen in allen sechs Schemata.
+
+**Bewusst ausgenommen:** `TvMode.tsx` (ein fest dunkles Beamer-Display, das keinem Schema folgt), `PrintView.tsx` und der Urkundengenerator (Papier), `ErrorBoundary.tsx` (muss auch dann lesbar sein, wenn die Token nicht geladen haben).
+
 ### [x] F3 — Aktionsleiste im Turnier-Header überläuft — **erledigt**
 **Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/components/ui/OverflowMenu.tsx` (neu), `src/pages/TournamentView/index.tsx`
 

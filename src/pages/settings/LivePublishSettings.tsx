@@ -259,7 +259,7 @@ export function LivePublishSettings() {
           </div>
           {statuses.length > 0 ? (
             <div className={`text-xs ${theme.textSecondary} mb-2`}>
-              {okCount > 0 && <span className="text-emerald-600"><Icon name="check" /> {okCount} OK</span>}
+              {okCount > 0 && <span className="text-success-text"><Icon name="check" /> {okCount} OK</span>}
               {okCount > 0 && errCount > 0 && <span> / </span>}
               {errCount > 0 && <span className="text-danger-text"><Icon name="x" /> {errCount} Fehler</span>}
             </div>
@@ -271,7 +271,7 @@ export function LivePublishSettings() {
           <ul className="space-y-1 mt-2">
             {statuses.map((s) => (
               <li key={s.tournamentId} className={`text-xs ${theme.textSecondary} font-mono flex items-center gap-2`}>
-                <span className={s.lastError ? "text-danger-text" : "text-emerald-600"}>
+                <span className={s.lastError ? "text-danger-text" : "text-success-text"}>
                   {s.lastError ? "✗" : "✓"}
                 </span>
                 <span className="flex-1">{s.tournamentName}</span>
@@ -387,7 +387,7 @@ export function PushLogPanel() {
                     </td>
                     <td className={`px-2 py-1 text-right font-mono`}>
                       {e.ok ? (
-                        <span className="text-emerald-600"><Icon name="check" /> {e.status ?? ""}</span>
+                        <span className="text-success-text"><Icon name="check" /> {e.status ?? ""}</span>
                       ) : (
                         <span className="text-danger-text" title={e.error}>
                           <Icon name="x" /> {(e.error ?? "").slice(0, 30)}

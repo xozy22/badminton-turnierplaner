@@ -163,7 +163,7 @@ export default function AttendanceCheckModal({
                     <span
                       className={`text-2xs px-1.5 py-0.5 rounded-full font-semibold ${
                         player.gender === "m"
-                          ? "bg-blue-500/20 text-info-text"
+                          ? "bg-phase-subtle text-info-text"
                           : "bg-pink-500/20 text-pink-600"
                       }`}
                     >

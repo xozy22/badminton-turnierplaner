@@ -126,11 +126,11 @@ export default function MatchesTab({
             <>
               {winnersRounds.length > 0 && (
                 <div className="flex gap-2 flex-wrap items-center">
-                  <span className="text-xs font-bold text-emerald-500 uppercase tracking-wide w-8">W</span>
+                  <span className="text-xs font-bold text-success-text uppercase tracking-wide w-8">W</span>
                   {winnersRounds.map((r, idx) => {
                     const colorClass = activeRound === r.id
-                      ? "bg-emerald-600 text-white shadow-sm"
-                      : `${theme.cardBg} text-emerald-600 hover:bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400`;
+                      ? "bg-success text-success-fg shadow-sm"
+                      : `${theme.cardBg} text-success-text hover:bg-success-subtle border border-success hover:border-success`;
                     return (
                       <button
                         key={r.id}
@@ -149,8 +149,8 @@ export default function MatchesTab({
                   <span className="text-xs font-bold text-danger-text uppercase tracking-wide w-8">L</span>
                   {losersRounds.map((r, idx) => {
                     const colorClass = activeRound === r.id
-                      ? "bg-danger text-white shadow-sm"
-                      : `${theme.cardBg} text-danger-text hover:bg-danger/10 border border-rose-500/30 hover:border-rose-400`;
+                      ? "bg-danger text-danger-fg shadow-sm"
+                      : `${theme.cardBg} text-danger-text hover:bg-danger/10 border border-danger hover:border-danger`;
                     return (
                       <button
                         key={r.id}
@@ -203,8 +203,8 @@ export default function MatchesTab({
                 onClick={() => { setActiveRound(derived.thirdPlaceRound!.id); setShowAllGroups(false); }}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                   activeRound === derived.thirdPlaceRound!.id
-                    ? "bg-orange-600 text-white shadow-sm"
-                    : `${theme.cardBg} text-orange-600 hover:bg-orange-500/10 border border-orange-500/30 hover:border-orange-400`
+                    ? "bg-warning text-warning-fg shadow-sm"
+                    : `${theme.cardBg} text-warning-text hover:bg-warning-subtle border border-warning hover:border-warning`
                 }`}
               >
                 {t.bracket_third_place_short}
@@ -272,8 +272,8 @@ export default function MatchesTab({
               const el = document.querySelector(`[data-match-id="${matchId}"]`);
               if (!el) return;
               el.scrollIntoView({ behavior: "smooth", block: "center" });
-              el.classList.add("ring-2", "ring-amber-400");
-              setTimeout(() => el.classList.remove("ring-2", "ring-amber-400"), 2000);
+              el.classList.add("ring-2", "ring-warning");
+              setTimeout(() => el.classList.remove("ring-2", "ring-warning"), 2000);
               setTimeout(() => {
                 const input = el.querySelector('input[type="number"]:not(:disabled)') as HTMLInputElement | null;
                 if (input) input.focus();

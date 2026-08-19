@@ -391,7 +391,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
               onDoubleClick={() => handleDoubleClick(m.id)}
               className={`${theme.cardBg} border rounded-md px-3 py-2 text-xs select-none relative transition-all duration-200 ${
                 isBlocked
-                  ? "border-rose-400 ring-1 ring-rose-300 opacity-70 cursor-not-allowed"
+                  ? "border-danger ring-1 ring-danger opacity-70 cursor-not-allowed"
                   : `${theme.cardBorder} cursor-grab active:cursor-grabbing hover:border-warning hover:shadow-sm`
               } ${courtPickerMatchId === m.id ? "z-40" : ""}`}
               title={blockedTitle}

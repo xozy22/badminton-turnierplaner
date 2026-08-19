@@ -228,15 +228,15 @@ export default function MatchCard({
           <div>
             <span
               className={`font-semibold ${
-                match.winner_team === 1 ? "text-emerald-600" : theme.textPrimary
+                match.winner_team === 1 ? "text-success-text" : theme.textPrimary
               }`}
             >
               {renderTeam(match.team1_p1, match.team1_p2)}
             </span>
-            <span className="text-gray-300 mx-3 font-light">{t.common_vs}</span>
+            <span className="text-muted mx-3 font-light">{t.common_vs}</span>
             <span
               className={`font-semibold ${
-                match.winner_team === 2 ? "text-emerald-600" : theme.textPrimary
+                match.winner_team === 2 ? "text-success-text" : theme.textPrimary
               }`}
             >
               {renderTeam(match.team2_p1, match.team2_p2)}
@@ -357,7 +357,7 @@ export default function MatchCard({
               <div className="text-2xs font-medium text-muted mb-1.5 uppercase tracking-wide">
                 {t.common_set} {setNum}
                 {complete && (
-                  <span className="text-emerald-500 ml-1"><Icon name="check" /></span>
+                  <span className="text-success-text ml-1"><Icon name="check" /></span>
                 )}
               </div>
               <div className="flex gap-1.5 items-center">
@@ -385,7 +385,7 @@ export default function MatchCard({
                     !validation.valid
                       ? "border-danger bg-danger-subtle text-danger-text"
                       : complete && score1 > score2
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                      ? "border-success bg-success-subtle text-success-text"
                       : `${theme.inputBorder} ${theme.focusBorder} focus:ring-2 ${theme.focusRing}`
                   }`}
                 />
@@ -414,7 +414,7 @@ export default function MatchCard({
                     !validation.valid
                       ? "border-danger bg-danger-subtle text-danger-text"
                       : complete && score2 > score1
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                      ? "border-success bg-success-subtle text-success-text"
                       : `${theme.inputBorder} ${theme.focusBorder} focus:ring-2 ${theme.focusRing}`
                   }`}
                 />

@@ -55,7 +55,7 @@ export default function TeamPairingStep({
         {playerDisplayName(p)}
         {!isMixed && (
           <span className={`ml-1.5 text-2xs px-1.5 py-0.5 rounded-full ${
-            p.gender === "m" ? "bg-blue-500/10 text-blue-500" : "bg-pink-500/10 text-pink-500"
+            p.gender === "m" ? "bg-phase-subtle text-phase-text" : "bg-pink-500/10 text-pink-500"
           }`}>
             {p.gender === "m" ? t.common_gender_male_short : t.common_gender_female_short}
           </span>
@@ -112,7 +112,7 @@ export default function TeamPairingStep({
                 </div>
               </div>
               <div>
-                <div className={`text-2xs font-bold uppercase tracking-wide mb-1.5 px-1 ${firstPickGender === "m" ? theme.textMuted + " opacity-40" : "text-blue-500"}`}>
+                <div className={`text-2xs font-bold uppercase tracking-wide mb-1.5 px-1 ${firstPickGender === "m" ? theme.textMuted + " opacity-40" : "text-phase-text"}`}>
                   {t.teams_men.replace("{count}", String(poolMale.length))}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -169,7 +169,7 @@ export default function TeamPairingStep({
         </div>
       )}
       {poolPlayers.length === 0 && manualTeams.length > 0 && (
-        <div className={`text-xs text-green-600 mt-3`}>
+        <div className={`text-xs text-success-text mt-3`}>
           <Icon name="check" /> {t.teams_all_assigned}
         </div>
       )}

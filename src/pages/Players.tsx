@@ -39,13 +39,13 @@ function ClubInput({ value, onChange, onKeyDown, className, placeholder, clubs }
         autoComplete="off"
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-surface-raised border border-line-strong dark:border-line-strong rounded-md shadow-lg max-h-40 overflow-y-auto">
+        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-surface-raised border border-line-strong rounded-md shadow-lg max-h-40 overflow-y-auto">
           {filtered.slice(0, 8).map(c => (
             <button
               key={c}
               type="button"
               onMouseDown={(e) => { e.preventDefault(); onChange(c); setOpen(false); }}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-surface-sunken dark:hover:bg-surface-raised transition-colors"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-surface-sunken transition-colors"
             >
               {c}
             </button>
@@ -416,7 +416,7 @@ export default function Players() {
           <button
             onClick={handleAdd}
             disabled={!canAddPlayer}
-            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none`}
+            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all text-sm font-medium disabled:bg-line-strong disabled:cursor-not-allowed disabled:shadow-none`}
           >
             {t.common_add}
           </button>
@@ -473,7 +473,7 @@ export default function Players() {
               </span>
               <button
                 onClick={handleDeleteSelected}
-                className="bg-danger/10 text-danger-text border border-rose-500/20 px-3 py-1.5 rounded-sm hover:bg-danger/20 transition-all text-xs font-medium"
+                className="bg-danger/10 text-danger-text border border-danger px-3 py-1.5 rounded-sm hover:bg-danger/20 transition-all text-xs font-medium"
               >
                 <Icon name="trash" /> {t.players_delete_selected}
               </button>
@@ -608,7 +608,7 @@ export default function Players() {
                         <span
                           className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                             p.gender === "m"
-                              ? "bg-blue-500/10 text-blue-500"
+                              ? "bg-phase-subtle text-phase-text"
                               : "bg-pink-500/10 text-pink-500"
                           }`}
                         >
@@ -757,7 +757,7 @@ export default function Players() {
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-md hover:bg-danger transition-all text-sm font-medium"
+                className="flex-1 bg-danger text-danger-fg px-4 py-2.5 rounded-md hover:bg-danger transition-all text-sm font-medium"
               >
                 {deleteTarget.ids.length === 1 ? t.common_delete : t.players_delete_confirm_multi.replace("{count}", String(deleteTarget.ids.length))}
               </button>

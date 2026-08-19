@@ -366,8 +366,8 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                   step === s
                     ? `${theme.primaryBg} text-white`
                     : i < ["upload", "mapping", "preview", "done"].indexOf(step)
-                    ? "bg-gray-500/70 text-white"
-                    : `bg-gray-500/20 ${theme.textMuted}`
+                    ? "bg-line-strong text-white"
+                    : `bg-surface-sunken ${theme.textMuted}`
                 }`}
               >
                 {i + 1}
@@ -596,7 +596,7 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                   </span>
                 )}
                 {previewRows.some((r) => r.duplicate) && (
-                  <span className="text-orange-500 ml-1">
+                  <span className="text-warning-text ml-1">
                     ({previewRows.filter((r) => r.duplicate).length} {t.import_duplicate})
                   </span>
                 )}
@@ -627,7 +627,7 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                           !row.valid
                             ? `bg-danger/10 ${theme.textMuted}`
                             : row.duplicate
-                            ? `bg-orange-500/10 ${theme.textMuted}`
+                            ? `bg-warning-subtle ${theme.textMuted}`
                             : row.fuzzyMatch
                             ? `bg-warning/10`
                             : ""
@@ -656,7 +656,7 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                         )}
                         <td className="px-3 py-1.5">
                           {row.duplicate ? (
-                            <span className="text-orange-500 text-xs">
+                            <span className="text-warning-text text-xs">
                               {t.import_duplicate}
                             </span>
                           ) : row.fuzzyMatch ? (
@@ -669,13 +669,13 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                               className={`text-xs font-medium px-2 py-0.5 rounded-full transition-colors ${
                                 row.skipFuzzy
                                   ? "bg-danger/20 text-danger-text"
-                                  : "bg-emerald-500/20 text-emerald-600"
+                                  : "bg-success-subtle text-success-text"
                               }`}
                             >
                               {row.skipFuzzy ? t.import_fuzzy_skip : t.import_fuzzy_keep}
                             </button>
                           ) : row.valid ? (
-                            <span className="text-green-600 text-xs">OK</span>
+                            <span className="text-success-text text-xs">OK</span>
                           ) : (
                             <span className="text-danger-text text-xs">
                               {t.import_no_name}

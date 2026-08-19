@@ -219,7 +219,7 @@ export default function TournamentHeader({
       {tournament.status === "completed" && (
         <button
           onClick={() => dialogs.setShowReopenConfirm(true)}
-          className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:border-emerald-300 hover:text-emerald-600 transition-all text-sm font-medium`}
+          className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:border-success hover:text-success-text transition-all text-sm font-medium`}
         >
           <Icon name="unlock" /> {t.tournament_view_reopen}
         </button>
@@ -276,12 +276,12 @@ export default function TournamentHeader({
               disabled={live.liveBusy}
               className={`${
                 live.livePaused
-                  ? "bg-warning-subtle dark:bg-warning-subtle/30 border-warning dark:border-warning text-warning-text dark:text-warning-text hover:bg-warning-subtle dark:hover:bg-warning-subtle/50"
-                  : "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-success-subtle dark:hover:bg-emerald-900/50"
+                  ? "bg-warning-subtle border-warning text-warning-text hover:bg-warning-subtle/70"
+                  : "bg-success-subtle border-success text-success-text hover:bg-success-subtle/70"
               } border px-4 py-2.5 rounded-md transition-all text-sm font-medium disabled:opacity-50`}
             >
               <Icon name="radio" /> {live.livePaused ? t.tournament_live_publish_paused_label : t.tournament_live_publish_active}
-              <span className={`ml-2 px-1.5 py-0.5 rounded-sm ${live.livePaused ? "bg-warning-subtle dark:bg-warning-subtle border-warning dark:border-warning/50" : "bg-success-subtle dark:bg-success-subtle border-success dark:border-success"} border text-2xs font-mono opacity-90`}>
+              <span className={`ml-2 px-1.5 py-0.5 rounded-sm ${live.livePaused ? "bg-warning-subtle border-warning" : "bg-success-subtle border-success"} border text-2xs font-mono opacity-90`}>
                 ID: {tournamentId}
               </span>
             </button>
@@ -301,7 +301,7 @@ export default function TournamentHeader({
                 disabled={live.liveBusy}
                 title={t.tournament_live_publish_push_now}
                 aria-label={t.tournament_live_publish_push_now}
-                className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} w-8 h-8 flex items-center justify-center rounded-sm hover:border-emerald-300 hover:text-emerald-600 transition-all text-sm disabled:opacity-50`}
+                className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} w-8 h-8 flex items-center justify-center rounded-sm hover:border-success hover:text-success-text transition-all text-sm disabled:opacity-50`}
               >
                 <span aria-hidden="true"><Icon name="refresh" /></span>
               </button>

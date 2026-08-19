@@ -212,7 +212,7 @@ export default function SessionDashboard() {
           color per status: amber for ended (recent winding-down), grey
           for archived (historical). */}
       {session.status === "ended" && (
-        <div className="bg-warning-subtle text-amber-900 border-b border-warning px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
+        <div className="bg-warning-subtle text-warning-text border-b border-warning px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
           ⏹ {t.session_dashboard_ended_banner.replace("{date}", formatTimestamp(session.ended_at))}
         </div>
       )}
@@ -427,7 +427,7 @@ export default function SessionDashboard() {
                     {matchPlayersLabel(m)}
                   </span>
                   {m.winner_team && (
-                    <span className="text-xs font-bold text-emerald-700 shrink-0">
+                    <span className="text-xs font-bold text-success-text shrink-0">
                       <span aria-hidden="true"><Icon name="medal" /></span> Team {m.winner_team}
                     </span>
                   )}

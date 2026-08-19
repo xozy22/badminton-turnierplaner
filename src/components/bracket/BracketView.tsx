@@ -323,7 +323,7 @@ export default function BracketView({
                 width: 150,
               }}
             >
-              <div className="bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-warning rounded-md px-3 py-2.5 text-center">
+              <div className="bg-gradient-to-r from-warning-subtle to-warning-subtle border-2 border-warning rounded-md px-3 py-2.5 text-center">
                 <div className="text-xl mb-0.5"><Icon name="trophy" /></div>
                 <div className="font-bold text-warning-text text-xs leading-tight">
                   {winnerLabel}
@@ -421,7 +421,7 @@ export function BracketMatch({
   const borderColor = isFinal
     ? "border-warning"
     : isCompleted
-    ? "border-emerald-300"
+    ? "border-success"
     : `${theme.cardBorder}`;
 
   return (
@@ -429,7 +429,7 @@ export function BracketMatch({
       <div
         className={`flex items-center justify-between px-2.5 py-1.5 text-2xs border-b ${theme.cardBorder} ${
           match.winner_team === 1
-            ? "bg-emerald-50 font-bold text-emerald-800"
+            ? "bg-success-subtle font-bold text-success-text"
             : match.winner_team === 2
             ? `${theme.textMuted}`
             : `${theme.textPrimary}`
@@ -445,7 +445,7 @@ export function BracketMatch({
       <div
         className={`flex items-center justify-between px-2.5 py-1.5 text-2xs ${
           match.winner_team === 2
-            ? "bg-emerald-50 font-bold text-emerald-800"
+            ? "bg-success-subtle font-bold text-success-text"
             : match.winner_team === 1
             ? `${theme.textMuted}`
             : `${theme.textPrimary}`

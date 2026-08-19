@@ -438,7 +438,7 @@ export default function Sportstaetten() {
           <button
             onClick={handleAdd}
             disabled={!canAddVenue}
-            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all text-sm font-medium shrink-0 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none`}
+            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all text-sm font-medium shrink-0 disabled:bg-line-strong disabled:cursor-not-allowed disabled:shadow-none`}
           >
             {t.common_add}
           </button>
@@ -514,7 +514,7 @@ export default function Sportstaetten() {
                 <tr
                   key={s.id}
                   ref={(el) => { editRowRefs.current.set(s.id, el); }}
-                  className={`border-b ${theme.cardBorder} last:border-0 transition-colors hover:${theme.cardBg} ${editingId === s.id ? "ring-2 ring-emerald-300/40" : ""}`}
+                  className={`border-b ${theme.cardBorder} last:border-0 transition-colors hover:${theme.cardBg} ${editingId === s.id ? "ring-2 ring-success" : ""}`}
                 >
                   <td className={`px-3 py-3 ${theme.textMuted} font-mono text-xs`}>
                     {i + 1}
@@ -661,7 +661,7 @@ export default function Sportstaetten() {
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-md hover:bg-danger transition-all text-sm font-medium"
+                className="flex-1 bg-danger text-danger-fg px-4 py-2.5 rounded-md hover:bg-danger transition-all text-sm font-medium"
               >
                 {t.common_delete}
               </button>
@@ -698,7 +698,7 @@ export default function Sportstaetten() {
                     {deleteBlocked.usage.activeTournaments.map((tt) => (
                       <li key={`t-${tt.id}`} className="flex items-center gap-2">
                         <span className={`text-2xs uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${
-                          tt.status === "active" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-info-subtle text-info-text border-info"
+                          tt.status === "active" ? "bg-success-subtle text-success-text border-success" : "bg-info-subtle text-info-text border-info"
                         }`}>
                           {tt.status}
                         </span>

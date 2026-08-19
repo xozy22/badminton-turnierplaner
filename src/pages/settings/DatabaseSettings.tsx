@@ -297,7 +297,7 @@ export function DatabaseSettings() {
           <button
             onClick={handleChangeDir}
             disabled={changing}
-            className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium disabled:bg-gray-300"
+            className="bg-success text-success-fg px-4 py-2 rounded-md hover:bg-success shadow-sm transition-all text-sm font-medium disabled:bg-line-strong"
           >
             {changing ? t.settings_db_changing : (
               <>
@@ -324,7 +324,7 @@ export function DatabaseSettings() {
         <div className="flex gap-3 mb-2">
           <button
             onClick={handleBackup}
-            className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium"
+            className="bg-success text-success-fg px-4 py-2 rounded-md hover:bg-success shadow-sm transition-all text-sm font-medium"
           >
             <Icon name="save" /> {t.settings_backup_create}
           </button>
@@ -376,7 +376,7 @@ export function DatabaseSettings() {
         {t.settings_danger_zone}
       </h3>
       <div className="space-y-2">
-        <div className={`flex items-center justify-between bg-danger/10 rounded-md p-3 border border-rose-500/20`}>
+        <div className={`flex items-center justify-between bg-danger/10 rounded-md p-3 border border-danger`}>
           <div>
             <div className={`text-sm font-medium ${theme.textPrimary}`}>{t.settings_delete_all_players}</div>
             <div className="text-xs text-muted">{t.settings_delete_all_players_hint}</div>
@@ -384,12 +384,12 @@ export function DatabaseSettings() {
           <button
             onClick={() => void runDestructive("players")}
                 disabled={wiping}
-            className={`${theme.cardBg} border border-rose-500/30 text-danger-text px-3 py-1.5 rounded-sm hover:bg-danger/10 transition-all text-xs font-medium whitespace-nowrap ml-3`}
+            className={`${theme.cardBg} border border-danger text-danger-text px-3 py-1.5 rounded-sm hover:bg-danger/10 transition-all text-xs font-medium whitespace-nowrap ml-3`}
           >
             {t.common_delete}
           </button>
         </div>
-        <div className={`flex items-center justify-between bg-danger/10 rounded-md p-3 border border-rose-500/20`}>
+        <div className={`flex items-center justify-between bg-danger/10 rounded-md p-3 border border-danger`}>
           <div>
             <div className={`text-sm font-medium ${theme.textPrimary}`}>{t.settings_delete_all_tournaments}</div>
             <div className="text-xs text-muted">{t.settings_delete_all_tournaments_hint}</div>
@@ -397,12 +397,12 @@ export function DatabaseSettings() {
           <button
             onClick={() => void runDestructive("tournaments")}
                 disabled={wiping}
-            className={`${theme.cardBg} border border-rose-500/30 text-danger-text px-3 py-1.5 rounded-sm hover:bg-danger/10 transition-all text-xs font-medium whitespace-nowrap ml-3`}
+            className={`${theme.cardBg} border border-danger text-danger-text px-3 py-1.5 rounded-sm hover:bg-danger/10 transition-all text-xs font-medium whitespace-nowrap ml-3`}
           >
             {t.common_delete}
           </button>
         </div>
-        <div className={`flex items-center justify-between bg-danger/20 rounded-md p-3 border border-rose-500/30`}>
+        <div className={`flex items-center justify-between bg-danger/20 rounded-md p-3 border border-danger`}>
           <div>
             <div className={`text-sm font-medium text-danger-text`}>{t.settings_wipe_database}</div>
             <div className="text-xs text-danger-text">{t.settings_wipe_database_hint}</div>
@@ -410,7 +410,7 @@ export function DatabaseSettings() {
           <button
             onClick={() => void runDestructive("wipe")}
                 disabled={wiping}
-            className="bg-danger text-white px-3 py-1.5 rounded-sm hover:bg-danger transition-all text-xs font-medium whitespace-nowrap ml-3"
+            className="bg-danger text-danger-fg px-3 py-1.5 rounded-sm hover:bg-danger transition-all text-xs font-medium whitespace-nowrap ml-3"
           >
             RESET
           </button>

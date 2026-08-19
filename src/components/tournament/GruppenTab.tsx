@@ -264,7 +264,7 @@ export default function GruppenTab({
                     {playerDisplayName(ts.player2)}
                     <SeedBadge rank={seedRankByPlayer?.get(ts.player2.id)} />
                     {i < qualifyCount && (
-                      <span className="ml-1 text-2xs text-emerald-500 font-bold">Q</span>
+                      <span className="ml-1 text-2xs text-success-text font-bold">Q</span>
                     )}
                   </td>
                   <td className={`px-3 py-2 text-center font-bold ${theme.activeBadgeText}`}>{ts.wins}</td>
@@ -324,7 +324,7 @@ export default function GruppenTab({
                   {playerDisplayName(s.player)}
                   <SeedBadge rank={seedRankByPlayer?.get(s.player.id)} />
                   {i < qualifyCount && (
-                    <span className="ml-1 text-2xs text-emerald-500 font-bold">Q</span>
+                    <span className="ml-1 text-2xs text-success-text font-bold">Q</span>
                   )}
                 </td>
                 <td className={`px-3 py-2 text-center font-bold ${theme.activeBadgeText}`}>{s.wins}</td>

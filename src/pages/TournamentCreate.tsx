@@ -650,7 +650,7 @@ export default function TournamentCreate() {
             <Icon name={step.icon} className="mr-1.5" />
             {step.label}
             {step.valid && createStep !== step.key && (
-              <span className="ml-1.5 text-green-500"><Icon name="check" /></span>
+              <span className="ml-1.5 text-success-text"><Icon name="check" /></span>
             )}
             {createStep === step.key ? (
               <span className={`absolute bottom-0 left-0 right-0 h-[3px] ${theme.primaryBg} rounded-t-full`} />
@@ -683,7 +683,7 @@ export default function TournamentCreate() {
                     {nameManuallyEdited && (
                       <button
                         onClick={() => { setName(generateName(mode, format)); setNameManuallyEdited(false); }}
-                        className={`${theme.textMuted} hover:text-emerald-600 px-3 py-2.5 rounded-md border ${theme.inputBorder} ${theme.cardHoverBorder} transition-all text-sm`}
+                        className={`${theme.textMuted} hover:text-success-text px-3 py-2.5 rounded-md border ${theme.inputBorder} ${theme.cardHoverBorder} transition-all text-sm`}
                         title={t.tournament_restore_suggestion}
                       >
                         <Icon name="refresh" />
@@ -1331,7 +1331,7 @@ export default function TournamentCreate() {
                       <span
                         className={`text-2xs font-medium px-2 py-0.5 rounded-full shrink-0 ${
                           p.gender === "m"
-                            ? "bg-info-subtle text-blue-500"
+                            ? "bg-info-subtle text-phase-text"
                             : "bg-pink-50 text-pink-500"
                         }`}
                       >
@@ -1456,7 +1456,7 @@ export default function TournamentCreate() {
                   <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_swiss_rounds}:</span> {plannedRounds}</div>
                 )}
                 <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_rules}</span> {t[`scoring_mode_${scoringMode}` as keyof typeof t] as string} · {setsToWin === 1 ? t.best_of_1 : setsToWin === 2 ? t.best_of_3 : t.best_of_5} · {courts} {courts === 1 ? t.common_field : t.common_fields}</div>
-                <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_players}</span> {t.common_selected.replace("{count}", String(selectedPlayerIds.size))} {selectedPlayerIds.size < minPlayers && <span className="text-orange-500">{t.tournament_min_players.replace("{count}", String(minPlayers))}</span>}</div>
+                <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_players}</span> {t.common_selected.replace("{count}", String(selectedPlayerIds.size))} {selectedPlayerIds.size < minPlayers && <span className="text-warning-text">{t.tournament_min_players.replace("{count}", String(minPlayers))}</span>}</div>
 
                 {/* Format-specific findings: errors block the start button,
                     warnings are informational (REVIEW-BACKLOG.md B13). */}
@@ -1489,7 +1489,7 @@ export default function TournamentCreate() {
                   </div>
                 )}
                 {needsTeamPairing && (
-                  <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_teams}</span> {manualTeams.length} {poolPlayers.length > 1 && <span className="text-orange-500">{t.tournament_teams_open.replace("{count}", String(poolPlayers.length))}</span>}</div>
+                  <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_teams}</span> {manualTeams.length} {poolPlayers.length > 1 && <span className="text-warning-text">{t.tournament_teams_open.replace("{count}", String(poolPlayers.length))}</span>}</div>
                 )}
                 <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_entry_fee}</span> {useEntryFee ? (() => {
                   const fixedFmts: TournamentFormat[] = ["elimination", "group_ko", "double_elimination"];

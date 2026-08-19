@@ -101,7 +101,7 @@ export function UpdateChecker() {
       </div>
 
       {status === "uptodate" && (
-        <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md px-4 py-3 text-sm">
+        <div className="bg-success-subtle text-success-text border border-success rounded-md px-4 py-3 text-sm">
           <Icon name="check" /> {t.settings_up_to_date.replace("{version}", currentVersion)}
         </div>
       )}
@@ -121,7 +121,7 @@ export function UpdateChecker() {
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex-1 h-2 bg-line-strong rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                    className="h-full bg-success rounded-full transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -134,7 +134,7 @@ export function UpdateChecker() {
           ) : (
             <button
               onClick={installUpdate}
-              className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium"
+              className="bg-success text-success-fg px-4 py-2 rounded-md hover:bg-success shadow-sm transition-all text-sm font-medium"
             >
               <span aria-hidden="true"><Icon name="download" /></span> {t.settings_install_update}
             </button>

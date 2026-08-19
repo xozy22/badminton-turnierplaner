@@ -47,13 +47,13 @@ export default function BronzeMatchPanel({
 
   return (
     <div
-      className={`${theme.cardBg} rounded-lg shadow-sm border-2 border-orange-300 p-5 mb-5`}
+      className={`${theme.cardBg} rounded-lg shadow-sm border-2 border-warning p-5 mb-5`}
       role="region"
       aria-label={t.bracket_third_place}
     >
       <div className="flex items-center gap-2 mb-3">
         <Icon name="medal" size={20} className="text-danger-text" />
-        <h3 className={`text-sm font-bold uppercase tracking-wide text-orange-700`}>
+        <h3 className={`text-sm font-bold uppercase tracking-wide text-warning-text`}>
           {t.bracket_third_place}
         </h3>
       </div>

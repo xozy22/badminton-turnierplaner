@@ -73,7 +73,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="mt-4 flex gap-2">
             <button
               onClick={this.handleReload}
-              className="bg-danger text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-danger transition-colors"
+              className="bg-danger text-danger-fg px-4 py-2 rounded-md text-sm font-medium hover:bg-danger transition-colors"
             >
               {this.props.reloadLabel ?? "Neu laden"}
             </button>

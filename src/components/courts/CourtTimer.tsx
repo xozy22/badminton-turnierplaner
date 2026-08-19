@@ -32,7 +32,7 @@ export function CourtTimer({ assignedAt, completed }: Props) {
   if (completed) {
     colorClass = "bg-surface-sunken text-muted";
   } else if (elapsedMin >= thresholds.dangerMin) {
-    colorClass = "bg-danger text-white animate-pulse";
+    colorClass = "bg-danger text-danger-fg animate-pulse";
   } else if (elapsedMin >= thresholds.warningMin) {
     colorClass = "bg-yellow-400 text-yellow-900 animate-pulse";
   } else {

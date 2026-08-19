@@ -107,14 +107,14 @@ export default function SeedingStep({
                     className="w-4 h-4 accent-emerald-600 cursor-pointer shrink-0"
                     title={t.seeding_is_seeded}
                   />
-                  <span className="text-gray-300 text-xs cursor-grab" draggable={false}>⠿</span>
+                  <span className="text-muted text-xs cursor-grab" draggable={false}>⠿</span>
                   <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                     idx === 0
                       ? "bg-warning-subtle text-warning-text"
                       : idx === 1
                       ? "bg-line-strong text-secondary"
                       : idx === 2
-                      ? "bg-orange-100 text-orange-700"
+                      ? "bg-warning-subtle text-warning-text"
                       : "bg-surface-sunken text-muted"
                   }`}>
                     {idx + 1}
@@ -125,7 +125,7 @@ export default function SeedingStep({
                   <span
                     className={`text-2xs font-medium px-2 py-0.5 rounded-full ${
                       p.gender === "m"
-                        ? "bg-info-subtle text-blue-500"
+                        ? "bg-info-subtle text-phase-text"
                         : "bg-pink-50 text-pink-500"
                     }`}
                   >
@@ -136,7 +136,7 @@ export default function SeedingStep({
                       draggable={false}
                       onClick={() => onMoveSeed(idx, -1)}
                       disabled={idx === 0}
-                      className="text-muted hover:text-emerald-600 disabled:opacity-20 disabled:cursor-default text-xs leading-none"
+                      className="text-muted hover:text-success-text disabled:opacity-20 disabled:cursor-default text-xs leading-none"
                       title={t.seeding_move_up}
                     >
                       <Icon name="chevronDown" className="rotate-180" />
@@ -145,7 +145,7 @@ export default function SeedingStep({
                       draggable={false}
                       onClick={() => onMoveSeed(idx, 1)}
                       disabled={idx === seededList.length - 1}
-                      className="text-muted hover:text-emerald-600 disabled:opacity-20 disabled:cursor-default text-xs leading-none"
+                      className="text-muted hover:text-success-text disabled:opacity-20 disabled:cursor-default text-xs leading-none"
                       title={t.seeding_move_down}
                     >
                       <Icon name="chevronDown" />
@@ -191,7 +191,7 @@ export default function SeedingStep({
                   <span
                     className={`text-2xs font-medium px-2 py-0.5 rounded-full ${
                       p.gender === "m"
-                        ? "bg-info-subtle text-blue-500"
+                        ? "bg-info-subtle text-phase-text"
                         : "bg-pink-50 text-pink-500"
                     }`}
                   >

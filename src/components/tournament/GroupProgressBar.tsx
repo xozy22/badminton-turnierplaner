@@ -41,7 +41,7 @@ export default function GroupProgressBar({ progress }: Props) {
   const renderRoundPill = (rp: GroupRoundProgress) => {
     let pillClass: string;
     if (rp.isComplete) {
-      pillClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+      pillClass = "bg-success-subtle text-success-text border-success";
     } else if (rp.isPartial) {
       pillClass = "bg-warning-subtle text-warning-text border-warning";
     } else {
@@ -85,7 +85,7 @@ export default function GroupProgressBar({ progress }: Props) {
                       <Icon name="alert" />
                     </span>
                   )}
-                  {done && <span className="ml-1 text-emerald-600"><Icon name="check" /></span>}
+                  {done && <span className="ml-1 text-success-text"><Icon name="check" /></span>}
                 </span>
                 <span className={`text-2xs font-mono ${theme.textMuted}`}>
                   {p.completed}/{p.total}
@@ -95,9 +95,9 @@ export default function GroupProgressBar({ progress }: Props) {
                 <div
                   className={`h-full transition-all ${
                     done
-                      ? "bg-emerald-500"
+                      ? "bg-success"
                       : behind
-                      ? "bg-rose-400"
+                      ? "bg-danger"
                       : "bg-phase"
                   }`}
                   role="progressbar"

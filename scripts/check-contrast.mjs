@@ -91,6 +91,12 @@ const PAIRS = [
   { fg: "warning-text", bg: "surface", min: 4.5, what: "warning text" },
   { fg: "info-text", bg: "surface", min: 4.5, what: "info text" },
   { fg: "success-text", bg: "surface", min: 4.5, what: "success text" },
+  // Filled success and warning controls: the round buttons in the double
+  // elimination bracket use them, and they carried white text on a palette
+  // colour until F2 was finished.
+  { fg: "success-fg", bg: "success", min: 4.5, what: "success button label" },
+  { fg: "warning-fg", bg: "warning", min: 4.5, what: "warning button label" },
+  { fg: "success-text", bg: "success-subtle", min: 4.5, what: "success text on its fill" },
   { fg: "accent", bg: "surface", min: 3, what: "accent on surface (borders, icons)" },
 ];
 

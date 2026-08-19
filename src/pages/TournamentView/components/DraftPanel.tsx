@@ -70,7 +70,7 @@ export default function DraftPanel({ tournament, players, rounds }: Props) {
           </div>
         </div>
         {players.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-line-strong dark:border-line-strong">
+          <div className="mt-4 pt-3 border-t border-line-strong">
             <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.management_participants.replace("{count}", String(players.length))}</span>
             <div className="flex flex-wrap gap-1.5 mt-2">
               {players.map(p => (

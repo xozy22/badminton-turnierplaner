@@ -186,13 +186,13 @@ export default function FormatInfoModal({
         {/* Pros and Cons */}
         <div className="grid grid-cols-2 gap-3 mb-5">
           <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-md p-4`}>
-            <h4 className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-2">
+            <h4 className="text-xs font-semibold text-success-text uppercase tracking-wide mb-2">
               {t.format_info_pros}
             </h4>
             <ul className="space-y-1">
               {prosItems.map((item, i) => (
                 <li key={i} className={`text-sm ${theme.textSecondary} flex items-start gap-1.5`}>
-                  <span className="text-emerald-500 mt-0.5 shrink-0">+</span>
+                  <span className="text-success-text mt-0.5 shrink-0">+</span>
                   <span>{item}</span>
                 </li>
               ))}

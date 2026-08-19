@@ -451,7 +451,7 @@ export default function Tournaments() {
         {tr.status === "archived" && (
           <button
             onClick={() => handleUnarchive(tr.id)}
-            className="text-muted hover:text-emerald-600 text-sm transition-colors"
+            className="text-muted hover:text-success-text text-sm transition-colors"
             title={t.tournaments_unarchive}
           >
             <Icon name="undo" /> {t.tournaments_unarchive}

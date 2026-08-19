@@ -196,7 +196,7 @@ export default function SessionDetail() {
 
   const tournamentStatusBadge = (s: Tournament["status"]): string => {
     switch (s) {
-      case "active": return "bg-emerald-100 text-emerald-700 border-emerald-200";
+      case "active": return "bg-success-subtle text-success-text border-success";
       case "draft": return "bg-info-subtle text-info-text border-info";
       case "completed": return "bg-surface-sunken text-secondary border-line-strong";
       case "archived": return "bg-surface-sunken text-muted border-line-strong";
@@ -293,7 +293,7 @@ export default function SessionDetail() {
             <>
               <button
                 onClick={() => handleStatusChange("active")}
-                className="border border-emerald-200 text-emerald-700 hover:bg-emerald-50 px-4 py-2 rounded-md text-sm font-medium transition-all"
+                className="border border-success text-success-text hover:bg-success-subtle px-4 py-2 rounded-md text-sm font-medium transition-all"
               >
                 {t.sessions_reactivate}
               </button>
@@ -470,7 +470,7 @@ export default function SessionDetail() {
                 {t.sessions_end_loading_stats}
               </p>
             ) : endStats.activeTournaments.length === 0 ? (
-              <div className="border border-emerald-200 bg-emerald-50 rounded-md px-3 py-2 mb-4 text-xs text-emerald-700">
+              <div className="border border-success bg-success-subtle rounded-md px-3 py-2 mb-4 text-xs text-success-text">
                 <Icon name="check" /> {t.sessions_end_stats_none}
               </div>
             ) : (
@@ -498,7 +498,7 @@ export default function SessionDetail() {
               </button>
               <button
                 onClick={confirmEnd}
-                className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-md text-sm font-semibold transition-all"
+                className="bg-warning hover:bg-warning text-warning-fg px-4 py-2 rounded-md text-sm font-semibold transition-all"
               >
                 {t.sessions_end}
               </button>

@@ -97,7 +97,7 @@ export default function VerwaltungTab({
               <span className={`ml-2 font-normal text-xs ${theme.textSecondary}`}>
                 <Icon name="coins" /> {t.management_paid_count.replace("{paid}", String(paidCount)).replace("{total}", String(totalCount))}
                 &nbsp;&middot;&nbsp;
-                <span className="text-emerald-500">{t.management_paid_amount.replace("{amount}", String(paidAmount))}</span>
+                <span className="text-success-text">{t.management_paid_amount.replace("{amount}", String(paidAmount))}</span>
                 {openAmount > 0 && (
                   <>
                     &nbsp;&middot;&nbsp;
@@ -132,7 +132,7 @@ export default function VerwaltungTab({
                   className="w-full flex items-center justify-between px-3 py-2 rounded-sm text-sm hover:bg-surface-sunken transition-colors text-left"
                 >
                   <span className={theme.textPrimary}>{playerDisplayName(ap)}</span>
-                  <span className={`text-2xs font-medium px-1.5 py-0.5 rounded-full ${ap.gender === "m" ? "bg-info-subtle text-blue-500" : "bg-pink-50 text-pink-500"}`}>
+                  <span className={`text-2xs font-medium px-1.5 py-0.5 rounded-full ${ap.gender === "m" ? "bg-info-subtle text-phase-text" : "bg-pink-50 text-pink-500"}`}>
                     {ap.gender === "m" ? t.common_gender_male_short : t.common_gender_female_short}
                   </span>
                 </button>
@@ -288,7 +288,7 @@ export default function VerwaltungTab({
                             {isRetired && <span className="ml-1.5 text-2xs text-danger-text no-underline inline-block"><Icon name="medical" size={12} /></span>}
                           </td>
                           <td className="px-2 py-2 text-center">
-                            <span className={`text-2xs font-medium px-1.5 py-0.5 rounded-full ${pd.player.gender === "m" ? "bg-info-subtle text-blue-500" : "bg-pink-50 text-pink-500"}`}>
+                            <span className={`text-2xs font-medium px-1.5 py-0.5 rounded-full ${pd.player.gender === "m" ? "bg-info-subtle text-phase-text" : "bg-pink-50 text-pink-500"}`}>
                               {pd.player.gender === "m" ? t.common_gender_male_short : t.common_gender_female_short}
                             </span>
                           </td>
@@ -299,14 +299,14 @@ export default function VerwaltungTab({
                                 {(() => {
                                   const partnerPaidBy = pd.payment_status !== "paid" ? getPartnerPaidInfo(pd.player.id) : null;
                                   return partnerPaidBy ? (
-                                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-info-text" title={partnerPaidBy}>
+                                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-phase-subtle text-info-text" title={partnerPaidBy}>
                                       <Icon name="check" /> {partnerPaidBy}
                                     </span>
                                   ) : (
                                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                                       pd.payment_status === "paid"
-                                        ? "bg-green-500/10 text-green-600"
-                                        : "bg-orange-500/10 text-orange-600"
+                                        ? "bg-success-subtle text-success-text"
+                                        : "bg-warning-subtle text-warning-text"
                                     }`}>
                                       {pd.payment_status === "paid" ? formatMoney(Number(fee), locale) : t.management_open}
                                     </span>
@@ -342,7 +342,7 @@ export default function VerwaltungTab({
                                     const updated = await getTournamentPlayersDetailed(tournament.id);
                                     setPaymentData(updated);
                                   }}
-                                  className={`text-xs ${theme.textMuted} hover:text-orange-600 transition-colors`}
+                                  className={`text-xs ${theme.textMuted} hover:text-warning-text transition-colors`}
                                 >
                                   {"\u21A9"}
                                 </button>
@@ -356,7 +356,7 @@ export default function VerwaltungTab({
                                       const updated = await getTournamentPlayersDetailed(tournament.id);
                                       setPaymentData(updated);
                                     }}
-                                    className={`text-xs px-2 py-1 rounded-sm border ${theme.cardBorder} ${theme.textSecondary} hover:border-green-400 hover:text-green-600 transition-all`}
+                                    className={`text-xs px-2 py-1 rounded-sm border ${theme.cardBorder} ${theme.textSecondary} hover:border-success hover:text-success-text transition-all`}
                                   >
                                     {m === "bar" ? t.payment_cash : m === "ueberweisung" ? t.payment_transfer : t.payment_paypal}
                                   </button>
@@ -397,7 +397,7 @@ export default function VerwaltungTab({
                                 <button
                                   onClick={() => onUnretire(pd.player.id)}
                                   title={t.retire_undo}
-                                  className="text-xs text-emerald-500 hover:text-emerald-700 ml-1"
+                                  className="text-xs text-success-text hover:text-success-text ml-1"
                                 >
                                   <Icon name="check" />
                                 </button>

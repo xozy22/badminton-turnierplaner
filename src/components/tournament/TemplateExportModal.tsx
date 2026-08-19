@@ -229,7 +229,7 @@ export default function TemplateExportModal({
             <div className="text-2xs font-bold uppercase tracking-wide text-phase-text mb-0.5">
               <Icon name="building" /> {t.template_export_venue_label}
             </div>
-            <div className="text-sm font-medium text-violet-900 truncate">
+            <div className="text-sm font-medium text-phase-text truncate">
               {exportVenue.name}
             </div>
             <div className="text-xs text-phase-text/80">

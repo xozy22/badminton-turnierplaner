@@ -77,6 +77,7 @@
   --info-subtle: #eff6ff;
   --info-text: #1e40af;       /* 8.01:1 on white */
   --success: #047857;
+  --success-fg: #ffffff;      /* 6.36:1 on --success */
   --success-subtle: #ecfdf5;
   --success-text: #065f46;
   --warning-fg: #ffffff;      /* 5.02:1 on --warning; amber-600 was 3.19:1 */
@@ -205,6 +206,7 @@
   --info-subtle: #101f45;
   --info-text: #a8c4ff;
   --success: #047857;
+  --success-fg: #ffffff;
   --success-subtle: #06251b;
   --success-text: #86efac;
 
@@ -394,6 +396,7 @@
   --color-info-subtle: var(--info-subtle);
   --color-info-text: var(--info-text);
   --color-success: var(--success);
+  --color-success-fg: var(--success-fg);
   --color-success-subtle: var(--success-subtle);
   --color-success-text: var(--success-text);
   --color-warning-fg: var(--warning-fg);
