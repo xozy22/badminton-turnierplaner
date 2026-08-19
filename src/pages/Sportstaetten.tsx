@@ -40,7 +40,7 @@ function HallEditor({
               const next = halls.map((h, i) => i === idx ? { ...h, name: e.target.value } : h);
               onChange(next);
             }}
-            className={`${compact ? "flex-1 min-w-0" : "flex-1"} ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+            className={`${compact ? "flex-1 min-w-0" : "flex-1"} ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
             placeholder={t.venues_name_placeholder}
           />
           <input
@@ -52,7 +52,7 @@ function HallEditor({
               const next = halls.map((h, i) => i === idx ? { ...h, courts: Number(e.target.value) || 1 } : h);
               onChange(next);
             }}
-            className={`w-16 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-2 py-1.5 text-sm text-center ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+            className={`w-16 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-2 py-1.5 text-sm text-center ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
           />
           <span className={`text-xs ${theme.textMuted} shrink-0`}>{t.common_fields}</span>
           {halls.length > 1 && (
@@ -292,11 +292,11 @@ export default function Sportstaetten() {
               URL.revokeObjectURL(url);
             }}
             disabled={sportstaetten.length === 0}
-            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed`}
+            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             <Icon name="upload" /> {t.common_export}
           </button>
-          <label className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium cursor-pointer`}>
+          <label className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium cursor-pointer`}>
             <Icon name="download" /> {t.common_import}
             <input
               type="file"
@@ -332,7 +332,7 @@ export default function Sportstaetten() {
       {/* Active Sessions panel — links to live dashboards for any session
           tied to one of these venues, plus the "Start session" shortcut. */}
       {activeSessions.length > 0 && (
-        <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 mb-6`}>
+        <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5 mb-6`}>
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h2 className={`font-semibold ${theme.textPrimary}`}>
               <Icon name="link" /> {t.sportstaetten_active_sessions}
@@ -350,7 +350,7 @@ export default function Sportstaetten() {
               return (
                 <div
                   key={sess.id}
-                  className={`flex items-center justify-between gap-2 px-3 py-2 border ${theme.inputBorder} rounded-xl ${theme.cardHoverBorder} transition-all`}
+                  className={`flex items-center justify-between gap-2 px-3 py-2 border ${theme.inputBorder} rounded-md ${theme.cardHoverBorder} transition-all`}
                 >
                   <div className="flex-1 min-w-0">
                     <div className={`font-medium ${theme.textPrimary} truncate text-sm`}>
@@ -363,7 +363,7 @@ export default function Sportstaetten() {
                   <Link
                     to={`/sessions/${sess.id}/live`}
                     aria-label={t.session_pill_open_dashboard}
-                    className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all`}
+                    className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1 rounded-sm text-xs font-semibold whitespace-nowrap transition-all`}
                   >
                     <Icon name="monitor" />
                   </Link>
@@ -375,7 +375,7 @@ export default function Sportstaetten() {
       )}
 
       {/* Add Sportstaette */}
-      <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 mb-6`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5 mb-6`}>
         <h2 className={`font-semibold ${theme.textPrimary} mb-3`}>{t.venues_new}</h2>
         <div className="flex gap-3 items-end flex-wrap">
           <div className="flex-1 min-w-[180px]">
@@ -389,7 +389,7 @@ export default function Sportstaetten() {
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
               required
               maxLength={120}
-              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               placeholder={t.venues_name_placeholder}
             />
           </div>
@@ -402,7 +402,7 @@ export default function Sportstaetten() {
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               placeholder={t.venues_address_placeholder}
             />
           </div>
@@ -418,7 +418,7 @@ export default function Sportstaetten() {
               value={zip}
               onChange={(e) => setZip(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              className={`w-24 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-24 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               placeholder={t.venues_zip}
             />
           </div>
@@ -431,14 +431,14 @@ export default function Sportstaetten() {
               value={city}
               onChange={(e) => setCity(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               placeholder={t.venues_city_placeholder}
             />
           </div>
           <button
             onClick={handleAdd}
             disabled={!canAddVenue}
-            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all text-sm font-medium shrink-0 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none`}
+            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all text-sm font-medium shrink-0 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none`}
           >
             {t.common_add}
           </button>
@@ -453,7 +453,7 @@ export default function Sportstaetten() {
       </div>
 
       {/* Filter + Table */}
-      <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} overflow-hidden`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
         <div className={`px-5 py-3 border-b ${theme.cardBorder} flex items-center gap-3 flex-wrap`}>
           {/* Search */}
           <div className="relative flex-1 min-w-[180px]">
@@ -462,7 +462,7 @@ export default function Sportstaetten() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t.venues_search_placeholder}
-              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
             />
             <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}><Icon name="search" /></span>
             {search && (
@@ -526,7 +526,7 @@ export default function Sportstaetten() {
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
+                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
                         autoFocus
                       />
                     ) : (
@@ -539,7 +539,7 @@ export default function Sportstaetten() {
                         type="text"
                         value={editAddress}
                         onChange={(e) => setEditAddress(e.target.value)}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full`}
+                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-1.5 text-sm w-full`}
                         placeholder={t.venues_address_placeholder}
                       />
                     ) : (
@@ -552,7 +552,7 @@ export default function Sportstaetten() {
                         type="text"
                         value={editZip}
                         onChange={(e) => setEditZip(e.target.value)}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-2 py-1.5 text-sm w-20`}
+                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-2 py-1.5 text-sm w-20`}
                         placeholder={t.venues_zip}
                       />
                     ) : (
@@ -565,7 +565,7 @@ export default function Sportstaetten() {
                         type="text"
                         value={editCity}
                         onChange={(e) => setEditCity(e.target.value)}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full`}
+                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-1.5 text-sm w-full`}
                         placeholder={t.venues_city_placeholder}
                       />
                     ) : (
@@ -633,7 +633,7 @@ export default function Sportstaetten() {
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
+          <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-md p-6 border ${theme.cardBorder}`}>
             <div className="text-center mb-5">
               <div className="text-4xl mb-3"><Icon name="alert" /></div>
               <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
@@ -655,13 +655,13 @@ export default function Sportstaetten() {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className={`flex-1 ${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium`}
+                className={`flex-1 ${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
               >
                 {t.common_cancel}
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger transition-all text-sm font-medium"
+                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-md hover:bg-danger transition-all text-sm font-medium"
               >
                 {t.common_delete}
               </button>
@@ -674,7 +674,7 @@ export default function Sportstaetten() {
           or active session. Show what's blocking + a Close-only action. */}
       {deleteBlocked && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-lg p-6 border ${theme.cardBorder}`}>
+          <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-lg p-6 border ${theme.cardBorder}`}>
             <div className="text-center mb-4">
               <div className="text-4xl mb-3"><Icon name="lock" /></div>
               <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
@@ -697,7 +697,7 @@ export default function Sportstaetten() {
                   <ul className={`space-y-1 text-sm ${theme.textPrimary} pl-1`}>
                     {deleteBlocked.usage.activeTournaments.map((tt) => (
                       <li key={`t-${tt.id}`} className="flex items-center gap-2">
-                        <span className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${
+                        <span className={`text-2xs uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${
                           tt.status === "active" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-info-subtle text-info-text border-info"
                         }`}>
                           {tt.status}
@@ -729,7 +729,7 @@ export default function Sportstaetten() {
             <div className="flex justify-end mt-5">
               <button
                 onClick={() => setDeleteBlocked(null)}
-                className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-5 py-2 rounded-xl text-sm font-semibold transition-all`}
+                className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-5 py-2 rounded-md text-sm font-semibold transition-all`}
               >
                 {t.common_close}
               </button>

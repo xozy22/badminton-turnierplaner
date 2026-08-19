@@ -166,7 +166,7 @@ export default function BracketView({
   const finalPos = matchPositions.get(`col${totalColumns - 1}-0`);
 
   return (
-    <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 pt-8 mb-5 overflow-x-auto`}>
+    <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5 pt-8 mb-5 overflow-x-auto`}>
       <div className="relative" style={{ width: totalWidth, height: totalHeight + 20 }}>
         {/* SVG connector lines */}
         <svg
@@ -288,13 +288,13 @@ export default function BracketView({
                   className="absolute"
                   style={{ left: pos.x, top: pos.y + 16, width: MATCH_WIDTH }}
                 >
-                  <div className={`border-2 border-dashed ${theme.cardBorder} rounded-lg overflow-hidden ${theme.cardBg} opacity-30`}>
-                    <div className={`px-2.5 py-1.5 text-[11px] border-b border-dashed ${theme.cardBorder} truncate ${
+                  <div className={`border-2 border-dashed ${theme.cardBorder} rounded-sm overflow-hidden ${theme.cardBg} opacity-30`}>
+                    <div className={`px-2.5 py-1.5 text-2xs border-b border-dashed ${theme.cardBorder} truncate ${
                       slot1.confirmed ? `${theme.textPrimary} font-semibold ${theme.cardBg}` : `${theme.textMuted} italic`
                     }`}>
                       {slot1.label}
                     </div>
-                    <div className={`px-2.5 py-1.5 text-[11px] truncate ${
+                    <div className={`px-2.5 py-1.5 text-2xs truncate ${
                       slot2.confirmed ? `${theme.textPrimary} font-semibold ${theme.cardBg}` : `${theme.textMuted} italic`
                     }`}>
                       {slot2.label}
@@ -323,7 +323,7 @@ export default function BracketView({
                 width: 150,
               }}
             >
-              <div className="bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-warning rounded-xl px-3 py-2.5 text-center">
+              <div className="bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-warning rounded-md px-3 py-2.5 text-center">
                 <div className="text-xl mb-0.5"><Icon name="trophy" /></div>
                 <div className="font-bold text-warning-text text-xs leading-tight">
                   {winnerLabel}
@@ -425,9 +425,9 @@ export function BracketMatch({
     : `${theme.cardBorder}`;
 
   return (
-    <div className={`border-2 ${borderColor} rounded-lg overflow-hidden ${theme.cardBg} shadow-sm`}>
+    <div className={`border-2 ${borderColor} rounded-sm overflow-hidden ${theme.cardBg} shadow-sm`}>
       <div
-        className={`flex items-center justify-between px-2.5 py-1.5 text-[11px] border-b ${theme.cardBorder} ${
+        className={`flex items-center justify-between px-2.5 py-1.5 text-2xs border-b ${theme.cardBorder} ${
           match.winner_team === 1
             ? "bg-emerald-50 font-bold text-emerald-800"
             : match.winner_team === 2
@@ -443,7 +443,7 @@ export function BracketMatch({
         )}
       </div>
       <div
-        className={`flex items-center justify-between px-2.5 py-1.5 text-[11px] ${
+        className={`flex items-center justify-between px-2.5 py-1.5 text-2xs ${
           match.winner_team === 2
             ? "bg-emerald-50 font-bold text-emerald-800"
             : match.winner_team === 1

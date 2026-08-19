@@ -79,7 +79,7 @@ export default function NextStepBar(info: NextStepInfo) {
 
   return (
     <div
-      className={`mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border px-4 py-2.5 text-sm ${tones[tone]}`}
+      className={`mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border px-4 py-2.5 text-sm ${tones[tone]}`}
       // Polite: the sentence changes as the tournament progresses, and a
       // screen reader should hear it without being interrupted mid-task.
       aria-live="polite"

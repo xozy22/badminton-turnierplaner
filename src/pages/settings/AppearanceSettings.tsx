@@ -34,7 +34,7 @@ export function ThemeSelector() {
               <button
                 key={id}
                 onClick={() => setThemeId(id)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all duration-200 ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-md border-2 text-left transition-all duration-200 ${
                   isActive
                     ? "shadow-lg"
                     : `${theme.inputBorder} hover:opacity-80 hover:shadow-sm`
@@ -43,7 +43,7 @@ export function ThemeSelector() {
               >
                 {/* Color swatch */}
                 <div
-                  className="w-10 h-10 rounded-xl shrink-0 shadow-inner flex items-center justify-center"
+                  className="w-10 h-10 rounded-md shrink-0 shadow-inner flex items-center justify-center"
                   style={{ background: isDarkTheme ? `linear-gradient(135deg, #111827, #1f2937)` : `linear-gradient(135deg, ${preview}, ${preview}dd)` }}
                 >
                   {isDarkTheme && <span className="text-lg"><Icon name="moon" /></span>}
@@ -52,7 +52,7 @@ export function ThemeSelector() {
                   <div className={`text-sm font-semibold ${theme.textPrimary}`}>
                     {label}
                   </div>
-                  <div className={`text-[10px] ${theme.textMuted} uppercase tracking-wide mt-0.5`}>
+                  <div className={`text-2xs ${theme.textMuted} uppercase tracking-wide mt-0.5`}>
                     {id === "green" ? t.theme_emerald : id === "blue" ? t.theme_sapphire : id === "orange" ? t.theme_amber : t.theme_night}
                   </div>
                 </div>
@@ -91,9 +91,9 @@ export function LanguageSelector() {
             <button
               key={id}
               onClick={() => setLang(id)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border-2 ${
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 border-2 ${
                 isActive
-                  ? `${theme.roundActiveBg} ${theme.roundActiveText} border-transparent shadow-md`
+                  ? `${theme.roundActiveBg} ${theme.roundActiveText} border-transparent shadow-sm`
                   : `${theme.cardBg} ${theme.textSecondary} ${theme.inputBorder} hover:opacity-80`
               }`}
             >
@@ -123,9 +123,9 @@ export function FontFamilySelector() {
               <button
                 key={id}
                 onClick={() => setFontFamily(id)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border-2 ${
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 border-2 ${
                   isActive
-                    ? `${theme.roundActiveBg} ${theme.roundActiveText} border-transparent shadow-md`
+                    ? `${theme.roundActiveBg} ${theme.roundActiveText} border-transparent shadow-sm`
                     : `${theme.cardBg} ${theme.textSecondary} ${theme.inputBorder} hover:opacity-80`
                 }`}
                 style={{ fontFamily: family }}
@@ -157,9 +157,9 @@ export function FontSizeSelector() {
               <button
                 key={id}
                 onClick={() => setFontSize(id)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border-2 ${
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 border-2 ${
                   isActive
-                    ? `${theme.roundActiveBg} ${theme.roundActiveText} border-transparent shadow-md`
+                    ? `${theme.roundActiveBg} ${theme.roundActiveText} border-transparent shadow-sm`
                     : `${theme.cardBg} ${theme.textSecondary} ${theme.inputBorder} hover:opacity-80`
                 }`}
               >

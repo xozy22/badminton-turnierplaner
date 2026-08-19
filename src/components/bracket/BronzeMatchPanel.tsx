@@ -47,7 +47,7 @@ export default function BronzeMatchPanel({
 
   return (
     <div
-      className={`${theme.cardBg} rounded-2xl shadow-sm border-2 border-orange-300 p-5 mb-5`}
+      className={`${theme.cardBg} rounded-lg shadow-sm border-2 border-orange-300 p-5 mb-5`}
       role="region"
       aria-label={t.bracket_third_place}
     >

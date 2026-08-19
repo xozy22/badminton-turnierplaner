@@ -207,7 +207,7 @@ function LogoCropper({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`${theme.cardBg} rounded-2xl shadow-2xl border ${theme.cardBorder} p-6 max-w-lg w-full`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-lg border ${theme.cardBorder} p-6 max-w-lg w-full`}>
         <h3 className={`text-lg font-bold ${theme.textPrimary} mb-1`}>{t.settings_logo_crop_title}</h3>
         <p className={`text-xs ${theme.textMuted} mb-4`}>
           {t.settings_logo_crop_hint}
@@ -219,7 +219,7 @@ function LogoCropper({
             ref={canvasRef}
             width={displaySize.w || 400}
             height={displaySize.h || 400}
-            className="rounded-lg cursor-crosshair select-none"
+            className="rounded-sm cursor-crosshair select-none"
             style={{ maxWidth: "100%" }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
@@ -231,13 +231,13 @@ function LogoCropper({
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
-            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl hover:opacity-80 transition-all text-sm font-medium`}
+            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
           >
             {t.common_cancel}
           </button>
           <button
             onClick={handleSave}
-            className={`${theme.primaryBg} text-white px-4 py-2 rounded-xl ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium`}
+            className={`${theme.primaryBg} text-white px-4 py-2 rounded-md ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium`}
           >
             {t.settings_logo_crop_save}
           </button>
@@ -308,7 +308,7 @@ export function LogoUploader() {
       <div className="flex items-center gap-4">
         {/* Preview */}
         <div
-          className={`w-16 h-16 rounded-xl border-2 border-dashed ${theme.inputBorder} flex items-center justify-center overflow-hidden shrink-0 ${
+          className={`w-16 h-16 rounded-md border-2 border-dashed ${theme.inputBorder} flex items-center justify-center overflow-hidden shrink-0 ${
             logo ? "border-solid" : ""
           }`}
         >
@@ -323,20 +323,20 @@ export function LogoUploader() {
           <div className="flex gap-2 mb-1.5">
             <button
               onClick={() => fileRef.current?.click()}
-              className={`${theme.primaryBg} text-white px-3 py-1.5 rounded-lg ${theme.primaryHoverBg} transition-all text-xs font-medium`}
+              className={`${theme.primaryBg} text-white px-3 py-1.5 rounded-sm ${theme.primaryHoverBg} transition-all text-xs font-medium`}
             >
               {logo ? t.settings_logo_change : t.settings_logo_upload}
             </button>
             {logo && (
               <button
                 onClick={handleRemove}
-                className="text-danger-text hover:text-danger-text px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                className="text-danger-text hover:text-danger-text px-3 py-1.5 rounded-sm text-xs font-medium transition-colors"
               >
                 {t.settings_logo_remove}
               </button>
             )}
           </div>
-          <div className={`text-[10px] ${theme.textMuted}`}>
+          <div className={`text-2xs ${theme.textMuted}`}>
             {t.settings_logo_hint}
           </div>
           <input

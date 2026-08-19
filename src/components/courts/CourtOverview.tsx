@@ -271,7 +271,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
           e.preventDefault();
           setContextMenu({ x: e.clientX, y: e.clientY, match });
         }}
-        className={`rounded-2xl border-2 border-dashed p-4 transition-all duration-200 min-h-[100px] relative overflow-hidden ${
+        className={`rounded-lg border-2 border-dashed p-4 transition-all duration-200 min-h-[100px] relative overflow-hidden ${
           isFree
             ? `${theme.cardBorder} ${theme.cardBg} opacity-70 hover:opacity-100`
             : `${theme.courtBorder} ${theme.cardBg} shadow-sm cursor-pointer`
@@ -286,7 +286,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
         title={match ? t.court_double_click_jump : undefined}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold text-warning-text bg-warning-subtle px-2 py-0.5 rounded-md">
+          <span className="text-xs font-bold text-warning-text bg-warning-subtle px-2 py-0.5 rounded-sm">
             {getCourtLabel(courtNum)}
           </span>
           {match && (
@@ -299,7 +299,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
             <div className={`font-semibold ${theme.textPrimary} truncate`}>
               {renderTeam(match.team1_p1, match.team1_p2, match)}
             </div>
-            <div className={`${theme.textMuted} text-[10px] my-0.5`}>{t.common_vs}</div>
+            <div className={`${theme.textMuted} text-2xs my-0.5`}>{t.common_vs}</div>
             <div className={`font-semibold ${theme.textPrimary} truncate`}>
               {renderTeam(match.team2_p1, match.team2_p2, match)}
             </div>
@@ -381,10 +381,10 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
               draggable={!isBlocked}
               onDragStart={(e) => handleDragStart(e, m.id)}
               onDoubleClick={() => handleDoubleClick(m.id)}
-              className={`${theme.cardBg} border rounded-xl px-3 py-2 text-xs select-none relative transition-all duration-200 ${
+              className={`${theme.cardBg} border rounded-md px-3 py-2 text-xs select-none relative transition-all duration-200 ${
                 isBlocked
                   ? "border-rose-400 ring-1 ring-rose-300 opacity-70 cursor-not-allowed"
-                  : `${theme.cardBorder} cursor-grab active:cursor-grabbing hover:border-warning hover:shadow-md`
+                  : `${theme.cardBorder} cursor-grab active:cursor-grabbing hover:border-warning hover:shadow-sm`
               } ${courtPickerMatchId === m.id ? "z-40" : ""}`}
               title={blockedTitle}
             >
@@ -399,7 +399,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
                 {renderTeam(m.team2_p1, m.team2_p2, m)}
               </span>
               {isBlocked && (
-                <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-danger-text">
+                <div className="mt-1 flex items-center gap-1 text-2xs font-medium text-danger-text">
                   <Icon name="ban" />
                   <span>{t.match_blocked_short}</span>
                 </div>
@@ -421,7 +421,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
                   aria-label={t.court_assign_to_match
                     .replace("{team1}", teamLabel(m.team1_p1, m.team1_p2))
                     .replace("{team2}", teamLabel(m.team2_p1, m.team2_p2))}
-                  className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-lg border border-line-strong px-2 py-1 text-[10px] font-medium text-secondary transition-all hover:border-accent hover:text-accent"
+                  className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-sm border border-line-strong px-2 py-1 text-2xs font-medium text-secondary transition-all hover:border-accent hover:text-accent"
                 >
                   <Icon name="plus" />
                   {t.court_assign}
@@ -443,15 +443,15 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
                     // walks the courts rather than the rest of the page.
                     el?.querySelector<HTMLButtonElement>("button")?.focus();
                   }}
-                  className={`absolute top-full left-0 mt-1 ${theme.cardBg} border ${theme.cardBorder} rounded-xl shadow-xl z-50 overflow-hidden`}
+                  className={`absolute top-full left-0 mt-1 ${theme.cardBg} border ${theme.cardBorder} rounded-md shadow-lg z-50 overflow-hidden`}
                 >
-                  <div className={`px-3 py-1.5 text-[10px] font-bold ${theme.textMuted} uppercase tracking-wide border-b ${theme.cardBorder}`}>
+                  <div className={`px-3 py-1.5 text-2xs font-bold ${theme.textMuted} uppercase tracking-wide border-b ${theme.cardBorder}`}>
                     {t.court_choose_court}
                   </div>
                   {freeCourtsByHall ? (
                     freeCourtsByHall.map((group) => (
                       <div key={group.hallName}>
-                        <div className={`px-3 py-1 text-[10px] font-semibold ${theme.textMuted} ${theme.cardBg}`}>
+                        <div className={`px-3 py-1 text-2xs font-semibold ${theme.textMuted} ${theme.cardBg}`}>
                           {group.hallName}
                         </div>
                         {group.courts.map((c) => {
@@ -481,7 +481,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
                   )}
                   <button
                     onClick={(e) => { e.stopPropagation(); setCourtPickerMatchId(null); }}
-                    className={`w-full px-4 py-1.5 text-left text-[10px] ${theme.textMuted} border-t ${theme.cardBorder} hover:opacity-80`}
+                    className={`w-full px-4 py-1.5 text-left text-2xs ${theme.textMuted} border-t ${theme.cardBorder} hover:opacity-80`}
                   >
                     {t.common_cancel}
                   </button>
@@ -500,14 +500,14 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
                 just structured. */}
             {unassigned.length > 0 && (
               <div className="mt-3">
-                <div className="text-[11px] font-medium text-muted uppercase tracking-wide mb-1.5">
+                <div className="text-2xs font-medium text-muted uppercase tracking-wide mb-1.5">
                   {t.court_waiting.replace("{count}", String(unassigned.length))}
                 </div>
                 {unassignedGroups && unassignedGroups.length > 0 ? (
                   <div className="space-y-2">
                     {unassignedGroups.map(({ group, matches: groupMatches }) => (
                       <div key={group}>
-                        <div className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide mb-1 text-phase-text`}>
+                        <div className={`flex items-center gap-2 text-2xs font-bold uppercase tracking-wide mb-1 text-phase-text`}>
                           <span>{t.group_progress_label.replace("{n}", String(group))}</span>
                           <span className={`font-mono font-normal ${theme.textMuted}`}>
                             {t.court_waiting_count.replace("{count}", String(groupMatches.length))}
@@ -533,7 +533,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
               if (pending.length === 0) return null;
               return (
                 <div key={round.id} className="mt-3">
-                  <div className={`text-[11px] font-medium uppercase tracking-wide mb-1.5 ${theme.textMuted}`}>
+                  <div className={`text-2xs font-medium uppercase tracking-wide mb-1.5 ${theme.textMuted}`}>
                     {t.court_next_round_separator.replace("{n}", String(round.round_number))}
                   </div>
                   <div className="flex gap-2 flex-wrap">

@@ -380,7 +380,7 @@ export default function Tournaments() {
   const renderTournamentCard = (tr: Tournament, isArchived: boolean) => (
     <div
       key={tr.id}
-      className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 flex justify-between items-center hover:shadow-md transition-all duration-200 ${
+      className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5 flex justify-between items-center hover:shadow-sm transition-all duration-200 ${
         isArchived ? "opacity-70 hover:opacity-100" : theme.cardHoverBorder
       }`}
     >
@@ -405,7 +405,7 @@ export default function Tournaments() {
                 : "";
             return (
               <span
-                className={`text-[10px] font-bold uppercase tracking-wide border px-2 py-0.5 rounded-full ${styled}`}
+                className={`text-2xs font-bold uppercase tracking-wide border px-2 py-0.5 rounded-full ${styled}`}
                 title={s.name + suffix}
               >
                 <Icon name="link" /> {s.name}{suffix}
@@ -471,7 +471,7 @@ export default function Tournaments() {
           {archivedTournaments.length > 0 && (
             <button
               onClick={() => setShowArchive(!showArchive)}
-              className={`border px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`border px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                 showArchive
                   ? "bg-phase-subtle border-phase text-phase-text"
                   : `${theme.cardBg} ${theme.cardBorder} ${theme.textSecondary} hover:border-phase`
@@ -489,14 +489,14 @@ export default function Tournaments() {
           />
           <button
             onClick={handleImportTemplate}
-            className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium`}
+            className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium`}
           >
             <Icon name="clipboard" /> {t.tournaments_import}
           </button>
           <button
             onClick={handleNewTournament}
             disabled={creating}
-            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all text-sm font-medium disabled:opacity-50`}
+            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all text-sm font-medium disabled:opacity-50`}
           >
             <Icon name="trophy" /> {t.tournaments_new}
           </button>
@@ -505,7 +505,7 @@ export default function Tournaments() {
 
       {/* Active Tournaments */}
       {activeTournaments.length === 0 && !showArchive ? (
-        <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-12 text-center`}>
+        <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-12 text-center`}>
           <div className="text-4xl mb-3" aria-hidden="true">🏸</div>
           <div className="text-muted">{t.tournaments_none_yet}</div>
         </div>
@@ -530,7 +530,7 @@ export default function Tournaments() {
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-sm p-6 border ${theme.cardBorder} text-center`}>
+          <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-sm p-6 border ${theme.cardBorder} text-center`}>
             <div className="text-4xl mb-3"><Icon name="alert" /></div>
             <h3 className={`text-lg font-bold ${theme.textPrimary} mb-2`}>
               {t.tournaments_delete_title}
@@ -542,13 +542,13 @@ export default function Tournaments() {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className={`flex-1 ${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium`}
+                className={`flex-1 ${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
               >
                 {t.common_cancel}
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger transition-all text-sm font-medium"
+                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-md hover:bg-danger transition-all text-sm font-medium"
               >
                 {t.common_delete_permanently}
               </button>

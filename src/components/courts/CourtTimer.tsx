@@ -40,7 +40,7 @@ export function CourtTimer({ assignedAt, completed }: Props) {
 
   return (
     <span
-      className={`font-mono text-xs font-bold px-2 py-0.5 rounded-md ${colorClass}`}
+      className={`font-mono text-xs font-bold px-2 py-0.5 rounded-sm ${colorClass}`}
       title={`${t.court_timer_started.replace("{time}", new Date(assignedAt).toLocaleTimeString("de-DE"))}${
         !completed && elapsedMin >= thresholds.warningMin
           ? ` (${elapsedMin >= thresholds.dangerMin ? t.court_timer_critical : t.court_timer_warning})`

@@ -36,28 +36,28 @@ export default function StartKoModal({
   const [setsToWin, setSetsToWin] = useState<number>(tournament.sets_to_win);
   const scoringPreset = SCORING_MODES.find((m) => m.id === scoringMode)!;
 
-  const inputClass = `w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`;
+  const inputClass = `w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`;
   const labelClass = `block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`;
 
   const groupScoringLabel = `${t[`scoring_mode_${getScoringModeId(tournament.points_per_set, tournament.cap)}` as keyof typeof t] as string} · ${tournament.sets_to_win === 1 ? t.best_of_1 : tournament.sets_to_win === 2 ? t.best_of_3 : t.best_of_5}`;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-md p-6 border ${theme.cardBorder}`}>
         <div className="flex justify-between items-center mb-5">
           <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
             <Icon name="trophy" /> {t.ko_modal_title}
           </h3>
           <button
             onClick={onClose} aria-label={t.common_close}
-            className={`${theme.textMuted} text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg transition-colors`}
+            className={`${theme.textMuted} text-xl leading-none w-8 h-8 flex items-center justify-center rounded-sm transition-colors`}
           >
             <Icon name="x" />
           </button>
         </div>
 
         {/* Group phase scoring info */}
-        <div className={`rounded-xl p-3 mb-4 border ${theme.cardBorder} ${theme.cardBg} bg-opacity-50`}>
+        <div className={`rounded-md p-3 mb-4 border ${theme.cardBorder} ${theme.cardBg} bg-opacity-50`}>
           <div className={`text-xs font-medium ${theme.textMuted} uppercase tracking-wide mb-1`}>
             {t.ko_modal_group_phase_scoring}
           </div>
@@ -117,7 +117,7 @@ export default function StartKoModal({
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium`}
+            className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
           >
             {t.common_cancel}
           </button>
@@ -127,7 +127,7 @@ export default function StartKoModal({
               useDifferent ? setsToWin : null,
               useDifferent ? scoringPreset.cap : null,
             )}
-            className="flex-1 bg-phase text-white px-4 py-2.5 rounded-xl hover:bg-phase shadow-sm transition-all text-sm font-medium"
+            className="flex-1 bg-phase text-white px-4 py-2.5 rounded-md hover:bg-phase shadow-sm transition-all text-sm font-medium"
           >
             <Icon name="trophy" /> {t.ko_modal_start_button}
           </button>

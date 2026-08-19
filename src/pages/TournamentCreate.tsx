@@ -667,7 +667,7 @@ export default function TournamentCreate() {
         {/* Step: Settings */}
         {createStep === "settings" && (
           <>
-            <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5`}>
+            <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5`}>
               <div className="space-y-4">
                 <div>
                   <label className={`block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`}>
@@ -679,13 +679,13 @@ export default function TournamentCreate() {
                       value={name}
                       onChange={(e) => { setName(e.target.value); setNameManuallyEdited(true); }}
                       maxLength={200}
-                      className={`flex-1 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`flex-1 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                       placeholder={t.tournament_name_placeholder}
                     />
                     {nameManuallyEdited && (
                       <button
                         onClick={() => { setName(generateName(mode, format)); setNameManuallyEdited(false); }}
-                        className={`${theme.textMuted} hover:text-emerald-600 px-3 py-2.5 rounded-xl border ${theme.inputBorder} ${theme.cardHoverBorder} transition-all text-sm`}
+                        className={`${theme.textMuted} hover:text-emerald-600 px-3 py-2.5 rounded-md border ${theme.inputBorder} ${theme.cardHoverBorder} transition-all text-sm`}
                         title={t.tournament_restore_suggestion}
                       >
                         <Icon name="refresh" />
@@ -710,7 +710,7 @@ export default function TournamentCreate() {
                           setName(generateName(newMode, newFormat));
                         }
                       }}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
                       {Object.entries({ singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed }).map(([k, v]) => (
                         <option key={k} value={k}>
@@ -725,7 +725,7 @@ export default function TournamentCreate() {
                       <button
                         type="button"
                         onClick={() => setShowFormatInfo(true)}
-                        className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] leading-none ${theme.inputBg} border ${theme.inputBorder} ${theme.textMuted} hover:${theme.textSecondary} transition-colors`}
+                        className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-2xs leading-none ${theme.inputBg} border ${theme.inputBorder} ${theme.textMuted} hover:${theme.textSecondary} transition-colors`}
                         title={t.format_info_title}
                       >
                         i
@@ -740,7 +740,7 @@ export default function TournamentCreate() {
                         if (newFormat === "swiss" || newFormat === "monrad" || newFormat === "waterfall") setPlannedRounds(recommendedSwissRounds(selectedPlayerIds.size));
                         if (!nameManuallyEdited) setName(generateName(mode, newFormat));
                       }}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
                       {VALID_FORMATS[mode].map((f) => {
                         const fmtLabels: Record<string, string> = { round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall };
@@ -773,7 +773,7 @@ export default function TournamentCreate() {
                     <select
                       value={scoringMode}
                       onChange={(e) => setScoringMode(e.target.value as ScoringModeId)}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
                       {SCORING_MODES.map((m) => (
                         <option key={m.id} value={m.id}>{t[`scoring_mode_${m.id}` as keyof typeof t] as string}</option>
@@ -787,7 +787,7 @@ export default function TournamentCreate() {
                     <select
                       value={setsToWin}
                       onChange={(e) => setSetsToWin(Number(e.target.value))}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
                       <option value={1}>{t.best_of_1}</option>
                       <option value={2}>{t.best_of_3}</option>
@@ -821,7 +821,7 @@ export default function TournamentCreate() {
                         }
                       }}
                       required
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${selectedVenueId === "" ? "border-danger" : theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${selectedVenueId === "" ? "border-danger" : theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
                       <option value="">{t.tournament_venue_pick_placeholder}</option>
                       {sportstaetten.map((s) => (
@@ -836,7 +836,7 @@ export default function TournamentCreate() {
                       </p>
                     )}
                     {sportstaetten.length === 0 && (
-                      <div className={`mt-2 ${theme.cardBg} border border-warning rounded-xl px-3 py-2 text-xs ${theme.textSecondary}`}>
+                      <div className={`mt-2 ${theme.cardBg} border border-warning rounded-md px-3 py-2 text-xs ${theme.textSecondary}`}>
                         <p className="font-medium text-warning-text mb-1">
                           <Icon name="alert" /> {t.tournament_venue_no_venues_title}
                         </p>
@@ -844,7 +844,7 @@ export default function TournamentCreate() {
                         <button
                           type="button"
                           onClick={() => navigate("/sportstaetten")}
-                          className={`mt-2 ${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-lg text-xs font-semibold transition-all`}
+                          className={`mt-2 ${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-sm text-xs font-semibold transition-all`}
                         >
                           {t.tournament_venue_create_first} <Icon name="arrowRight" />
                         </button>
@@ -861,7 +861,7 @@ export default function TournamentCreate() {
                       <select
                         value={selectedSessionId}
                         onChange={(e) => setSelectedSessionId(e.target.value ? Number(e.target.value) : "")}
-                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                       >
                         <option value="">{t.tournament_create_session_none}</option>
                         {sessions
@@ -889,7 +889,7 @@ export default function TournamentCreate() {
                       {t.tournament_halls_courts}
                     </label>
                     {hallConfig.length > 0 && (
-                      <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-xl px-3 py-2 space-y-1`}>
+                      <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-md px-3 py-2 space-y-1`}>
                         {/* Checkbox is only meaningful when the venue has 2+
                             halls — picking a subset of the available halls
                             for this tournament. With a single hall the
@@ -971,7 +971,7 @@ export default function TournamentCreate() {
                       <select
                         value={numGroups}
                         onChange={(e) => setNumGroups(Number(e.target.value))}
-                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                       >
                         {[2, 3, 4, 5, 6, 7, 8].map((n) => (
                           <option key={n} value={n}>
@@ -994,7 +994,7 @@ export default function TournamentCreate() {
                             <select
                               value={koSize}
                               onChange={(e) => setQualifyPerGroup(Number(e.target.value))}
-                              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                             >
                               {possibleSizes.map((n) => (
                                 <option key={n} value={n}>
@@ -1023,7 +1023,7 @@ export default function TournamentCreate() {
                     <select
                       value={plannedRounds || recommendedSwissRounds(selectedPlayerIds.size)}
                       onChange={(e) => setPlannedRounds(Number(e.target.value))}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
                       {[3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                         <option key={n} value={n}>{n}</option>
@@ -1040,7 +1040,7 @@ export default function TournamentCreate() {
             {/* Seeding Toggle - for elimination and double_elimination */}
             {(format === "elimination" || format === "double_elimination" ||
               (format === "group_ko" && mode === "singles")) && (
-              <div className={`flex items-center gap-3 p-3 rounded-xl border ${theme.cardBorder} ${useSeeding ? theme.selectedBg : ''}`}>
+              <div className={`flex items-center gap-3 p-3 rounded-md border ${theme.cardBorder} ${useSeeding ? theme.selectedBg : ''}`}>
                 <input
                   type="checkbox"
                   checked={useSeeding}
@@ -1066,7 +1066,7 @@ export default function TournamentCreate() {
 
             {/* Third-place playoff toggle - any KO format */}
             {(format === "elimination" || format === "group_ko" || format === "double_elimination") && (
-              <div className={`flex items-center gap-3 p-3 rounded-xl border ${theme.cardBorder} ${enableThirdPlace ? theme.selectedBg : ''}`}>
+              <div className={`flex items-center gap-3 p-3 rounded-md border ${theme.cardBorder} ${enableThirdPlace ? theme.selectedBg : ''}`}>
                 <input
                   type="checkbox"
                   checked={enableThirdPlace}
@@ -1081,7 +1081,7 @@ export default function TournamentCreate() {
             )}
 
             {/* Minimum Rest Time Toggle + Field */}
-            <div className={`flex items-start gap-3 p-3 rounded-xl border ${theme.cardBorder} ${useMinRest ? theme.selectedBg : ''}`}>
+            <div className={`flex items-start gap-3 p-3 rounded-md border ${theme.cardBorder} ${useMinRest ? theme.selectedBg : ''}`}>
               <input
                 type="checkbox"
                 checked={useMinRest}
@@ -1100,7 +1100,7 @@ export default function TournamentCreate() {
                       type="number"
                       value={minRestMinutes}
                       onChange={(e) => setMinRestMinutes(e.target.value)}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                       min={0}
                       max={120}
                       step="1"
@@ -1111,7 +1111,7 @@ export default function TournamentCreate() {
             </div>
 
             {/* Entry Fee Toggle + Fields */}
-            <div className={`flex items-start gap-3 p-3 rounded-xl border ${theme.cardBorder} ${useEntryFee ? theme.selectedBg : ''}`}>
+            <div className={`flex items-start gap-3 p-3 rounded-md border ${theme.cardBorder} ${useEntryFee ? theme.selectedBg : ''}`}>
               <input
                 type="checkbox"
                 checked={useEntryFee}
@@ -1143,7 +1143,7 @@ export default function TournamentCreate() {
                         type="number"
                         value={mode === "singles" ? entryFeeSingle : entryFeeDouble}
                         onChange={(e) => mode === "singles" ? setEntryFeeSingle(e.target.value) : setEntryFeeDouble(e.target.value)}
-                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                         min={0}
                         max={10000}
                         step="0.5"
@@ -1160,7 +1160,7 @@ export default function TournamentCreate() {
                 onClick={() => setCreateStep(nextStep)}
                 disabled={selectedVenueId === ""}
                 title={selectedVenueId === "" ? t.tournament_venue_required : undefined}
-                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-lg ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all font-medium text-sm mt-2 disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {(() => {
                   const next = steps.find((s) => s.key === nextStep);
@@ -1180,7 +1180,7 @@ export default function TournamentCreate() {
         {/* Step: Players */}
         {createStep === "players" && (
           <>
-            <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5`}>
+            <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5`}>
               {/* Header */}
               <div className="flex justify-between items-center mb-3">
                 <h2 className={`font-semibold ${theme.textPrimary}`}>
@@ -1192,7 +1192,7 @@ export default function TournamentCreate() {
                 <div className="flex gap-2 items-center">
                   <button
                     onClick={() => setShowExcelImport(true)}
-                    className={`${theme.primaryBg} text-white text-xs px-3 py-1.5 rounded-lg ${theme.primaryHoverBg} transition-colors font-medium`}
+                    className={`${theme.primaryBg} text-white text-xs px-3 py-1.5 rounded-sm ${theme.primaryHoverBg} transition-colors font-medium`}
                   >
                     <Icon name="download" /> {t.common_import}
                   </button>
@@ -1220,7 +1220,7 @@ export default function TournamentCreate() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder={t.players_search_placeholder}
-                    className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl pl-9 pr-4 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                    className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md pl-9 pr-4 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                   />
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm">
                     <Icon name="search" />
@@ -1234,7 +1234,7 @@ export default function TournamentCreate() {
                     </button>
                   )}
                 </div>
-                <div className={`flex rounded-xl border ${theme.inputBorder} overflow-hidden text-sm`}>
+                <div className={`flex rounded-md border ${theme.inputBorder} overflow-hidden text-sm`}>
                   {([
                     { value: "all", label: t.common_all },
                     { value: "m", label: t.players_filter_men },
@@ -1257,7 +1257,7 @@ export default function TournamentCreate() {
                   <select
                     value={clubFilter}
                     onChange={(e) => setClubFilter(e.target.value)}
-                    className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-3 py-2 text-sm ${theme.focusBorder} outline-none`}
+                    className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-3 py-2 text-sm ${theme.focusBorder} outline-none`}
                   >
                     <option value="all">{t.common_all}</option>
                     {availableClubs.map(c => (
@@ -1292,7 +1292,7 @@ export default function TournamentCreate() {
                       }`}
                     >
                       {playerDisplayName(p)}
-                      <span className="text-[10px] opacity-60"><Icon name="x" /></span>
+                      <span className="text-2xs opacity-60"><Icon name="x" /></span>
                     </span>
                   ))}
                 </div>
@@ -1308,7 +1308,7 @@ export default function TournamentCreate() {
                   {t.tournament_no_filter_results}
                 </p>
               ) : (
-                <div className={`max-h-72 overflow-y-auto rounded-xl border ${theme.cardBorder}`}>
+                <div className={`max-h-72 overflow-y-auto rounded-md border ${theme.cardBorder}`}>
                   {filteredPlayers.map((p, i) => (
                     <div
                       key={p.id}
@@ -1330,10 +1330,10 @@ export default function TournamentCreate() {
                       />
                       <span className={`font-medium ${theme.textPrimary} flex-1`}>{playerDisplayName(p)}</span>
                       {p.club && (
-                        <span className={`text-[10px] ${theme.textMuted} truncate max-w-[120px]`}>{p.club}</span>
+                        <span className={`text-2xs ${theme.textMuted} truncate max-w-[120px]`}>{p.club}</span>
                       )}
                       <span
-                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
+                        className={`text-2xs font-medium px-2 py-0.5 rounded-full shrink-0 ${
                           p.gender === "m"
                             ? "bg-info-subtle text-blue-500"
                             : "bg-pink-50 text-pink-500"
@@ -1350,7 +1350,7 @@ export default function TournamentCreate() {
             {nextStep && (
               <button
                 onClick={() => setCreateStep(nextStep)}
-                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-2`}
+                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-lg ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all font-medium text-sm mt-2`}
               >
                 {(() => {
                   const next = steps.find((s) => s.key === nextStep);
@@ -1386,7 +1386,7 @@ export default function TournamentCreate() {
             {nextStep && (
               <button
                 onClick={() => setCreateStep(nextStep)}
-                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-4`}
+                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-lg ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all font-medium text-sm mt-4`}
               >
                 {(() => {
                   const next = steps.find((s) => s.key === nextStep);
@@ -1430,7 +1430,7 @@ export default function TournamentCreate() {
             {nextStep && (
               <button
                 onClick={() => setCreateStep(nextStep)}
-                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-4`}
+                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-lg ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all font-medium text-sm mt-4`}
               >
                 {(() => {
                   const next = steps.find((s) => s.key === nextStep);
@@ -1451,7 +1451,7 @@ export default function TournamentCreate() {
         {createStep === "create" && (
           <>
             {/* Summary */}
-            <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5`}>
+            <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5`}>
               <h2 className={`font-semibold ${theme.textPrimary} mb-3`}>{t.tournament_summary}</h2>
               <div className={`text-sm ${theme.textSecondary} space-y-1.5`}>
                 <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_name}</span> {name || "—"}</div>
@@ -1465,7 +1465,7 @@ export default function TournamentCreate() {
                 {/* Format-specific findings: errors block the start button,
                     warnings are informational (REVIEW-BACKLOG.md B13). */}
                 {validationErrors.length > 0 && (
-                  <div className="mt-3 rounded-xl border border-danger bg-danger-subtle px-4 py-3">
+                  <div className="mt-3 rounded-md border border-danger bg-danger-subtle px-4 py-3">
                     <div className="text-xs font-semibold uppercase tracking-wide text-danger-text">
                       {t.validation_errors_title}
                     </div>
@@ -1479,7 +1479,7 @@ export default function TournamentCreate() {
                   </div>
                 )}
                 {validationWarnings.length > 0 && (
-                  <div className="mt-3 rounded-xl border border-warning bg-warning-subtle px-4 py-3">
+                  <div className="mt-3 rounded-md border border-warning bg-warning-subtle px-4 py-3">
                     <div className="text-xs font-semibold uppercase tracking-wide text-warning-text">
                       {t.validation_warnings_title}
                     </div>
@@ -1511,7 +1511,7 @@ export default function TournamentCreate() {
               onClick={handleCreate}
               disabled={creating || selectedVenueId === "" || selectedPlayerIds.size < minPlayers || !canStart(validationIssues) || (needsTeamPairing && poolPlayers.length >= 2)}
               title={selectedVenueId === "" ? t.tournament_venue_required : undefined}
-              className={`w-full ${theme.primaryBg} text-white px-5 py-3.5 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-lg transition-all disabled:bg-line-strong disabled:text-muted disabled:cursor-not-allowed disabled:shadow-none font-semibold text-base`}
+              className={`w-full ${theme.primaryBg} text-white px-5 py-3.5 rounded-lg ${theme.primaryHoverBg} shadow-sm hover:shadow-lg transition-all disabled:bg-line-strong disabled:text-muted disabled:cursor-not-allowed disabled:shadow-none font-semibold text-base`}
             >
               {creating
                 ? <><Icon name="hourglass" /> {t.common_saving}</>

@@ -1410,7 +1410,7 @@ export default function TournamentView() {
           : sessionMeta.status === "archived" ? ` ${t.session_pill_archived_suffix}`
             : "";
         return (
-        <div className={`mb-3 ${theme.cardBg} border ${theme.cardBorder} rounded-2xl px-4 py-2 flex items-center justify-between flex-wrap gap-2 shadow-sm`}>
+        <div className={`mb-3 ${theme.cardBg} border ${theme.cardBorder} rounded-lg px-4 py-2 flex items-center justify-between flex-wrap gap-2 shadow-sm`}>
           <div className="flex items-center gap-3 flex-wrap">
             <span className={`text-xs font-bold uppercase tracking-wide border px-2 py-0.5 rounded-full ${pillClass}`}>
               <Icon name="link" /> {t.session_pill_label}{statusSuffix}
@@ -1423,7 +1423,7 @@ export default function TournamentView() {
             </span>
             {sessionSiblings.length > 0 && (
               <div className="flex items-center gap-1 flex-wrap ml-2">
-                <span className={`text-[10px] uppercase tracking-wide ${theme.textMuted} mr-1`}>
+                <span className={`text-2xs uppercase tracking-wide ${theme.textMuted} mr-1`}>
                   {t.session_switcher_label}:
                 </span>
                 {sessionSiblings.map((sib) => (
@@ -1441,7 +1441,7 @@ export default function TournamentView() {
           </div>
           <button
             onClick={() => navigate(`/sessions/${tournament.session_id}/live`)}
-            className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} text-xs font-semibold px-3 py-1.5 rounded-lg transition-all`}
+            className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} text-xs font-semibold px-3 py-1.5 rounded-sm transition-all`}
           >
             <Icon name="monitor" /> {t.session_pill_open_dashboard} →
           </button>
@@ -1523,7 +1523,7 @@ export default function TournamentView() {
                 onClick={() => setShowAttendance(true)}
                 disabled={tournament.current_phase !== "ready"}
                 title={tournament.current_phase !== "ready" ? t.tournament_view_not_started_hint : t.tournament_view_start}
-                className={`${theme.primaryBg} ${theme.primaryText} px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none`}
+                className={`${theme.primaryBg} ${theme.primaryText} px-5 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none`}
               >
                 <Icon name="play" /> {t.tournament_view_start}
               </button>
@@ -1536,7 +1536,7 @@ export default function TournamentView() {
           {canStartKo && (
             <button
               onClick={() => setShowStartKoModal(true)}
-              className="bg-phase text-white px-5 py-2.5 rounded-xl hover:bg-phase shadow-sm hover:shadow-md transition-all text-sm font-medium"
+              className="bg-phase text-white px-5 py-2.5 rounded-md hover:bg-phase shadow-sm hover:shadow-sm transition-all text-sm font-medium"
             >
               <Icon name="trophy" /> {t.tournament_view_start_ko}
             </button>
@@ -1544,7 +1544,7 @@ export default function TournamentView() {
           {canAdvanceOther && (
             <button
               onClick={advanceFormat}
-              className={`${advanceButtonStyle} text-white px-5 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all text-sm font-medium`}
+              className={`${advanceButtonStyle} text-white px-5 py-2.5 rounded-md shadow-sm hover:shadow-sm transition-all text-sm font-medium`}
             >
               {advanceButtonLabel}
             </button>
@@ -1553,7 +1553,7 @@ export default function TournamentView() {
             <button
               onClick={() => setShowUndoRound(true)}
               disabled={!undoTarget}
-              className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-warning hover:text-warning-text transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:border-warning hover:text-warning-text transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               <Icon name="undo" /> {t.tournament_view_undo_round}
             </button>
@@ -1563,7 +1563,7 @@ export default function TournamentView() {
               onClick={handleCompleteTournament}
               disabled={hasOpenMatches}
               title={hasOpenMatches ? t.tournament_view_has_open_matches : t.tournament_view_end}
-              className={`px-4 py-2.5 rounded-xl transition-all text-sm font-medium ${
+              className={`px-4 py-2.5 rounded-md transition-all text-sm font-medium ${
                 hasOpenMatches
                   ? `${theme.cardBg} border ${theme.cardBorder} ${theme.textMuted} cursor-not-allowed opacity-50`
                   : `${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} hover:border-danger hover:text-danger-text`
@@ -1575,7 +1575,7 @@ export default function TournamentView() {
           {tournament.status === "completed" && (
             <button
               onClick={() => setShowReopenConfirm(true)}
-              className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-emerald-300 hover:text-emerald-600 transition-all text-sm font-medium`}
+              className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:border-emerald-300 hover:text-emerald-600 transition-all text-sm font-medium`}
             >
               <Icon name="unlock" /> {t.tournament_view_reopen}
             </button>
@@ -1583,7 +1583,7 @@ export default function TournamentView() {
           {tournament.status === "completed" && (
             <button
               onClick={handleArchive}
-              className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:border-phase hover:text-phase-text transition-all text-sm font-medium`}
+              className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:border-phase hover:text-phase-text transition-all text-sm font-medium`}
             >
               <Icon name="archive" /> {t.tournament_view_archive}
             </button>
@@ -1634,10 +1634,10 @@ export default function TournamentView() {
                     livePaused
                       ? "bg-warning-subtle dark:bg-warning-subtle/30 border-warning dark:border-warning text-warning-text dark:text-warning-text hover:bg-warning-subtle dark:hover:bg-warning-subtle/50"
                       : "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-success-subtle dark:hover:bg-emerald-900/50"
-                  } border px-4 py-2.5 rounded-xl transition-all text-sm font-medium disabled:opacity-50`}
+                  } border px-4 py-2.5 rounded-md transition-all text-sm font-medium disabled:opacity-50`}
                 >
                   <Icon name="radio" /> {livePaused ? t.tournament_live_publish_paused_label : t.tournament_live_publish_active}
-                  <span className={`ml-2 px-1.5 py-0.5 rounded-md ${livePaused ? "bg-warning-subtle dark:bg-warning-subtle border-warning dark:border-warning/50" : "bg-success-subtle dark:bg-success-subtle border-success dark:border-success"} border text-[11px] font-mono opacity-90`}>
+                  <span className={`ml-2 px-1.5 py-0.5 rounded-sm ${livePaused ? "bg-warning-subtle dark:bg-warning-subtle border-warning dark:border-warning/50" : "bg-success-subtle dark:bg-success-subtle border-success dark:border-success"} border text-2xs font-mono opacity-90`}>
                     ID: {tournamentId}
                   </span>
                 </button>
@@ -1647,7 +1647,7 @@ export default function TournamentView() {
                   disabled={liveBusy}
                   title={livePaused ? t.tournament_live_publish_resume : t.tournament_live_publish_pause}
                   aria-label={livePaused ? t.tournament_live_publish_resume : t.tournament_live_publish_pause}
-                  className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} w-8 h-8 flex items-center justify-center rounded-lg hover:border-warning hover:text-warning-text transition-all text-sm disabled:opacity-50`}
+                  className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} w-8 h-8 flex items-center justify-center rounded-sm hover:border-warning hover:text-warning-text transition-all text-sm disabled:opacity-50`}
                 >
                   {livePaused ? "▶️" : "⏸️"}
                 </button>
@@ -1657,13 +1657,13 @@ export default function TournamentView() {
                     disabled={liveBusy}
                     title={t.tournament_live_publish_push_now}
                     aria-label={t.tournament_live_publish_push_now}
-                    className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} w-8 h-8 flex items-center justify-center rounded-lg hover:border-emerald-300 hover:text-emerald-600 transition-all text-sm disabled:opacity-50`}
+                    className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} w-8 h-8 flex items-center justify-center rounded-sm hover:border-emerald-300 hover:text-emerald-600 transition-all text-sm disabled:opacity-50`}
                   >
                     <span aria-hidden="true"><Icon name="refresh" /></span>
                   </button>
                 )}
                 {/* Status — small, muted, follows the buttons */}
-                <span className={`text-[10px] ${theme.textMuted} self-center ml-1.5 whitespace-nowrap`}>
+                <span className={`text-2xs ${theme.textMuted} self-center ml-1.5 whitespace-nowrap`}>
                   {statusText}
                 </span>
               </div>
@@ -1878,7 +1878,7 @@ export default function TournamentView() {
 
       {/* Round Tabs - above everything */}
       {rounds.length === 0 && tournament.status === "draft" && (
-        <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-8 mb-6`}>
+        <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-8 mb-6`}>
           <div className="text-center mb-6">
             <div className="text-4xl mb-3" aria-hidden="true">🏸</div>
             <div className={`text-lg font-semibold ${theme.textPrimary}`}>
@@ -1890,7 +1890,7 @@ export default function TournamentView() {
           </div>
 
           {/* Tournament Summary */}
-          <div className={`${theme.inputBg} rounded-xl p-5 border ${theme.inputBorder}`}>
+          <div className={`${theme.inputBg} rounded-md p-5 border ${theme.inputBorder}`}>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <span className={`${theme.textMuted} text-xs uppercase tracking-wide`}>{t.tournament_mode}</span>
@@ -2015,13 +2015,13 @@ export default function TournamentView() {
                   <span className="text-xs font-bold text-phase-text uppercase tracking-wide w-8">KO</span>
                   {koRounds.map((r) => {
                     const colorClass = activeRound === r.id
-                      ? "bg-phase text-white shadow-md"
+                      ? "bg-phase text-white shadow-sm"
                       : `${theme.cardBg} text-phase-text hover:bg-phase/10 border border-phase/30 hover:border-phase`;
                     return (
                       <button
                         key={r.id}
                         onClick={() => { setActiveRound(r.id); setShowAllGroups(false); }}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${colorClass}`}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${colorClass}`}
                       >
                         R{koRounds.indexOf(r) + 1}
                         {allRoundMatchesCompleted(r.id) && <span className="ml-1.5"><Icon name="check" /></span>}
@@ -2038,13 +2038,13 @@ export default function TournamentView() {
                       <span className="text-xs font-bold text-emerald-500 uppercase tracking-wide w-8">W</span>
                       {winnersRounds.map((r, idx) => {
                         const colorClass = activeRound === r.id
-                          ? "bg-emerald-600 text-white shadow-md"
+                          ? "bg-emerald-600 text-white shadow-sm"
                           : `${theme.cardBg} text-emerald-600 hover:bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400`;
                         return (
                           <button
                             key={r.id}
                             onClick={() => { setActiveRound(r.id); setShowAllGroups(false); }}
-                            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${colorClass}`}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${colorClass}`}
                           >
                             R{idx + 1}
                             {allRoundMatchesCompleted(r.id) && <span className="ml-1.5"><Icon name="check" /></span>}
@@ -2058,13 +2058,13 @@ export default function TournamentView() {
                       <span className="text-xs font-bold text-danger-text uppercase tracking-wide w-8">L</span>
                       {losersRounds.map((r, idx) => {
                         const colorClass = activeRound === r.id
-                          ? "bg-danger text-white shadow-md"
+                          ? "bg-danger text-white shadow-sm"
                           : `${theme.cardBg} text-danger-text hover:bg-danger/10 border border-rose-500/30 hover:border-rose-400`;
                         return (
                           <button
                             key={r.id}
                             onClick={() => { setActiveRound(r.id); setShowAllGroups(false); }}
-                            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${colorClass}`}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${colorClass}`}
                           >
                             R{idx + 1}
                             {allRoundMatchesCompleted(r.id) && <span className="ml-1.5"><Icon name="check" /></span>}
@@ -2084,14 +2084,14 @@ export default function TournamentView() {
               {rounds.filter((r) => r.phase !== "third_place").map((r) => {
                 const label = t.tournament_view_round_label.replace("{n}", String(r.round_number));
                 const colorClass = activeRound === r.id
-                  ? `${theme.roundActiveBg} ${theme.roundActiveText} shadow-md`
+                  ? `${theme.roundActiveBg} ${theme.roundActiveText} shadow-sm`
                   : `${theme.cardBg} ${theme.textSecondary} hover:opacity-80 border ${theme.cardBorder} ${theme.cardHoverBorder}`;
 
                 return (
                   <button
                     key={r.id}
                     onClick={() => { setActiveRound(r.id); setShowAllGroups(false); }}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${colorClass}`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${colorClass}`}
                   >
                       {label}
                       {allRoundMatchesCompleted(r.id) && (
@@ -2108,9 +2108,9 @@ export default function TournamentView() {
                   <span className="text-xs font-bold text-orange-500 uppercase tracking-wide w-8" aria-hidden="true">🥉</span>
                   <button
                     onClick={() => { setActiveRound(thirdPlaceRound.id); setShowAllGroups(false); }}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                       activeRound === thirdPlaceRound.id
-                        ? "bg-orange-600 text-white shadow-md"
+                        ? "bg-orange-600 text-white shadow-sm"
                         : `${theme.cardBg} text-orange-600 hover:bg-orange-500/10 border border-orange-500/30 hover:border-orange-400`
                     }`}
                   >

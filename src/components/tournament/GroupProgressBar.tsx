@@ -50,7 +50,7 @@ export default function GroupProgressBar({ progress }: Props) {
     return (
       <span
         key={rp.roundId}
-        className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold border select-none ${pillClass}`}
+        className={`px-1.5 py-0.5 rounded-sm text-2xs font-bold border select-none ${pillClass}`}
       >
         {rp.label}
         {rp.isComplete && <span className="ml-0.5"><Icon name="check" /></span>}
@@ -59,8 +59,8 @@ export default function GroupProgressBar({ progress }: Props) {
   };
 
   return (
-    <div className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} p-3 mb-3`}>
-      <div className={`text-[11px] font-semibold ${theme.textSecondary} uppercase tracking-wide mb-2`}>
+    <div className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} p-3 mb-3`}>
+      <div className={`text-2xs font-semibold ${theme.textSecondary} uppercase tracking-wide mb-2`}>
         {t.group_progress_title}
       </div>
       <div
@@ -87,7 +87,7 @@ export default function GroupProgressBar({ progress }: Props) {
                   )}
                   {done && <span className="ml-1 text-emerald-600"><Icon name="check" /></span>}
                 </span>
-                <span className={`text-[11px] font-mono ${theme.textMuted}`}>
+                <span className={`text-2xs font-mono ${theme.textMuted}`}>
                   {p.completed}/{p.total}
                 </span>
               </div>

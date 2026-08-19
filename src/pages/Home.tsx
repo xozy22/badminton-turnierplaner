@@ -39,28 +39,25 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Stat Cards */}
+      {/* The figures sat on saturated gradients, which put every number on a
+          colour field and made the three compete with each other. The colour
+          moves to an edge marker: it still identifies the card, without
+          fighting the value for attention. */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-        <div className={`${theme.statCard1} rounded-2xl shadow-lg p-5 text-white`}>
-          <div className="text-4xl font-extrabold">{players.length}</div>
-          <div className="text-white/70 text-sm font-medium mt-1">
-            {t.home_players_registered}
+        {[
+          { value: players.length, label: t.home_players_registered, accent: "bg-accent" },
+          { value: activeTournaments.length, label: t.home_active_tournaments, accent: "bg-warning" },
+          { value: visibleTournaments.length, label: t.home_total_tournaments, accent: "bg-phase" },
+        ].map((tile) => (
+          <div
+            key={tile.label}
+            className="relative overflow-hidden rounded-md border border-line bg-surface p-5 shadow-sm"
+          >
+            <span className={`absolute inset-y-0 left-0 w-1 ${tile.accent}`} aria-hidden="true" />
+            <div className="text-4xl font-bold tabular-nums text-primary">{tile.value}</div>
+            <div className="mt-1 text-sm font-medium text-muted">{tile.label}</div>
           </div>
-        </div>
-        <div className={`${theme.statCard2} rounded-2xl shadow-lg p-5 text-white`}>
-          <div className="text-4xl font-extrabold">
-            {activeTournaments.length}
-          </div>
-          <div className="text-white/70 text-sm font-medium mt-1">
-            {t.home_active_tournaments}
-          </div>
-        </div>
-        <div className={`${theme.statCard3} rounded-2xl shadow-lg p-5 text-white`}>
-          <div className="text-4xl font-extrabold">{visibleTournaments.length}</div>
-          <div className="text-white/70 text-sm font-medium mt-1">
-            {t.home_total_tournaments}
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Active Tournaments */}
@@ -74,7 +71,7 @@ export default function Home() {
               <Link
                 key={tr.id}
                 to={`/tournaments/${tr.id}`}
-                className={`block ${theme.cardBg} rounded-xl shadow-sm border ${theme.cardBorder} p-4 hover:shadow-md ${theme.cardHoverBorder} transition-all duration-200`}
+                className={`block ${theme.cardBg} rounded-md shadow-sm border ${theme.cardBorder} p-4 hover:shadow-sm ${theme.cardHoverBorder} transition-all duration-200`}
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -100,7 +97,7 @@ export default function Home() {
       <div className="flex gap-3">
         <Link
           to="/players"
-          className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textPrimary} px-5 py-2.5 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all duration-200 text-sm font-medium`}
+          className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textPrimary} px-5 py-2.5 rounded-md ${theme.cardHoverBorder} hover:shadow-sm transition-all duration-200 text-sm font-medium`}
         >
           <Icon name="users" /> {t.home_manage_players}
         </Link>
@@ -126,7 +123,7 @@ export default function Home() {
             } catch (err) { console.error(err); setCreating(false); }
           }}
           disabled={creating}
-          className={`${theme.primaryBg} ${theme.primaryText} px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all duration-200 text-sm font-medium disabled:opacity-50`}
+          className={`${theme.primaryBg} ${theme.primaryText} px-5 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all duration-200 text-sm font-medium disabled:opacity-50`}
         >
           <Icon name="trophy" /> {t.home_new_tournament}
         </button>

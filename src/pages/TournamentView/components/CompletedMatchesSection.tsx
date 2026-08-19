@@ -208,7 +208,7 @@ export default function CompletedMatchesSection({
         };
 
         const groupHeader = (group: number, count: number) => (
-          <div className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide mb-1 mt-2 first:mt-0 text-phase-text`}>
+          <div className={`flex items-center gap-2 text-2xs font-bold uppercase tracking-wide mb-1 mt-2 first:mt-0 text-phase-text`}>
             <span>{t.group_progress_label.replace("{n}", String(group))}</span>
             <span className={`font-mono font-normal ${theme.textMuted}`}>
               {t.groups_matches_count.replace("{count}", String(count))}
@@ -222,7 +222,7 @@ export default function CompletedMatchesSection({
               {groups.map(({ group, matches: gm }) => (
                 <div key={group}>
                   {groupHeader(group, gm.length)}
-                  <div className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} overflow-hidden`}>
+                  <div className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} overflow-hidden`}>
                     {gm.map((m, i) => renderCompactRow(m, i, gm.length))}
                   </div>
                 </div>
@@ -231,7 +231,7 @@ export default function CompletedMatchesSection({
           );
         }
         return (
-          <div className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} overflow-hidden`}>
+          <div className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} overflow-hidden`}>
             {nonEditing.map((m, i) => renderCompactRow(m, i, nonEditing.length))}
           </div>
         );

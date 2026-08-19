@@ -59,13 +59,13 @@ function UpdateBanner() {
       <span>{t.update_available_banner.replace("{version}", updateVersion)}</span>
       <button
         onClick={() => { navigate("/settings"); setDismissed(true); }}
-        className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg font-medium transition-colors"
+        className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-sm font-medium transition-colors"
       >
         {t.update_go_to_settings}
       </button>
       <button
         onClick={() => setDismissed(true)}
-        className="hover:bg-white/20 px-2 py-1 rounded-lg transition-colors opacity-70 hover:opacity-100"
+        className="hover:bg-white/20 px-2 py-1 rounded-sm transition-colors opacity-70 hover:opacity-100"
       >
         {t.update_dismiss}
       </button>

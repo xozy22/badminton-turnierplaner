@@ -96,7 +96,7 @@ export default function Statistics() {
           </h1>
           <p className={`${theme.textSecondary} mt-1`}>{t.stats_subtitle}</p>
         </div>
-        <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-10 text-center`}>
+        <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-lg p-10 text-center`}>
           <div className="text-5xl mb-4"><Icon name="inbox" /></div>
           <p className={`${theme.textSecondary} text-lg`}>{t.stats_no_data}</p>
         </div>
@@ -136,7 +136,7 @@ export default function Statistics() {
             <select
               value={selectedTournamentId ?? ""}
               onChange={e => setSelectedTournamentId(e.target.value === "" ? null : Number(e.target.value))}
-              className={`${theme.inputBg} ${theme.inputBorder} ${theme.inputText} border rounded-xl px-4 py-2 text-sm min-w-[250px]`}
+              className={`${theme.inputBg} ${theme.inputBorder} ${theme.inputText} border rounded-md px-4 py-2 text-sm min-w-[250px]`}
             >
               <option value="">{t.stats_all_tournaments}</option>
               {tournaments.map(tr => (
@@ -163,7 +163,7 @@ export default function Statistics() {
             ].map((card) => (
               <div
                 key={card.label}
-                className={`${card.bg} rounded-2xl shadow-lg p-4 ${card.bg.includes("bg-gradient") ? "text-white" : theme.textPrimary}`}
+                className={`${card.bg} rounded-lg shadow-lg p-4 ${card.bg.includes("bg-gradient") ? "text-white" : theme.textPrimary}`}
               >
                 <div className="text-3xl font-extrabold">{card.value}</div>
                 <div className={`text-sm font-medium mt-0.5 ${card.bg.includes("bg-gradient") ? "text-white/70" : theme.textSecondary}`}>
@@ -175,7 +175,7 @@ export default function Statistics() {
 
           {/* By Format */}
           {tournamentStats.byFormat.length > 0 && (
-            <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-5 mb-4`}>
+            <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-lg p-5 mb-4`}>
               <h3 className={`text-sm font-semibold ${theme.textPrimary} mb-3`}>{t.stats_by_format}</h3>
               {tournamentStats.byFormat.map(({ format, count }) => {
                 const maxCount = Math.max(...tournamentStats.byFormat.map((f) => f.count));
@@ -195,7 +195,7 @@ export default function Statistics() {
 
           {/* By Mode */}
           {tournamentStats.byMode.length > 0 && (
-            <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-5`}>
+            <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-lg p-5`}>
               <h3 className={`text-sm font-semibold ${theme.textPrimary} mb-3`}>{t.stats_by_mode}</h3>
               {tournamentStats.byMode.map(({ mode, count }) => {
                 const maxCount = Math.max(...tournamentStats.byMode.map((m) => m.count));
@@ -231,7 +231,7 @@ export default function Statistics() {
               { label: t.stats_avg_points_per_set, value: matchStats.avgPointsPerSet > 0 ? matchStats.avgPointsPerSet.toFixed(1) : "—" },
               { label: t.stats_closest_match, value: matchStats.closestMatch ? t.stats_points_diff.replace("{n}", String(matchStats.closestMatch.delta)) : "—" },
             ].map((card) => (
-              <div key={card.label} className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-4`}>
+              <div key={card.label} className={`${theme.cardBg} border ${theme.cardBorder} rounded-lg p-4`}>
                 <div className={`text-2xl font-extrabold ${theme.textPrimary}`}>{card.value}</div>
                 <div className={`text-xs font-medium mt-0.5 ${theme.textSecondary}`}>{card.label}</div>
               </div>
@@ -239,11 +239,11 @@ export default function Statistics() {
           </div>
 
           <div className="flex gap-3">
-            <div className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} rounded-xl p-3 text-center`}>
+            <div className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} rounded-md p-3 text-center`}>
               <span className={`text-xl font-bold ${theme.textPrimary}`}>{matchStats.totalSets}</span>
               <span className={`text-xs ${theme.textSecondary} ml-2`}>{t.stats_total_sets}</span>
             </div>
-            <div className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} rounded-xl p-3 text-center`}>
+            <div className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} rounded-md p-3 text-center`}>
               <span className={`text-xl font-bold ${theme.textPrimary}`}>{matchStats.totalPoints}</span>
               <span className={`text-xs ${theme.textSecondary} ml-2`}>{t.stats_total_points}</span>
             </div>
@@ -259,18 +259,18 @@ export default function Statistics() {
           </h2>
 
           <div className="flex gap-3 mb-4">
-            <div className={`${theme.statCard1} rounded-2xl shadow-lg p-4 text-white flex-1`}>
+            <div className={`${theme.statCard1} rounded-lg shadow-lg p-4 text-white flex-1`}>
               <div className="text-3xl font-extrabold">{courtStats.totalCourtsUsed}</div>
               <div className="text-white/70 text-sm font-medium mt-0.5">{t.stats_courts_used}</div>
             </div>
-            <div className={`${theme.statCard2} rounded-2xl shadow-lg p-4 text-white flex-1`}>
+            <div className={`${theme.statCard2} rounded-lg shadow-lg p-4 text-white flex-1`}>
               <div className="text-3xl font-extrabold">{courtStats.avgMatchesPerCourt.toFixed(1)}</div>
               <div className="text-white/70 text-sm font-medium mt-0.5">{t.stats_avg_matches_per_court}</div>
             </div>
           </div>
 
           {courtStats.matchesPerCourt.length > 0 && (
-            <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-5`}>
+            <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-lg p-5`}>
               <h3 className={`text-sm font-semibold ${theme.textPrimary} mb-3`}>{t.stats_matches_per_court}</h3>
               {courtStats.matchesPerCourt.map(({ court, count }) => {
                 const maxCount = Math.max(...courtStats.matchesPerCourt.map((c) => c.count));
@@ -298,7 +298,7 @@ export default function Statistics() {
           </h2>
 
           {/* Gender split bar */}
-          <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-5 mb-4`}>
+          <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-lg p-5 mb-4`}>
             <h3 className={`text-sm font-semibold ${theme.textPrimary} mb-3`}>
               {t.stats_gender_split} — {t.stats_players_total.replace("{count}", String(demoStats.totalPlayers))}
             </h3>
@@ -328,7 +328,7 @@ export default function Statistics() {
 
           {/* Age distribution */}
           {demoStats.ageGroups.some(g => g.count > 0) && (
-            <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-5 mb-4`}>
+            <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-lg p-5 mb-4`}>
               <h3 className={`text-sm font-semibold ${theme.textPrimary} mb-3`}>{t.stats_age_distribution}</h3>
               {demoStats.ageGroups.filter(g => g.count > 0).map(({ label, count }) => {
                 const maxCount = Math.max(...demoStats.ageGroups.map((a) => a.count));
@@ -348,7 +348,7 @@ export default function Statistics() {
 
           {/* Top clubs */}
           {demoStats.topClubs.length > 0 && (
-            <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-5`}>
+            <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-lg p-5`}>
               <h3 className={`text-sm font-semibold ${theme.textPrimary} mb-3`}>{t.stats_top_clubs}</h3>
               {demoStats.topClubs.map(({ club, count }) => {
                 const maxCount = Math.max(...demoStats.topClubs.map((c) => c.count));
@@ -380,7 +380,7 @@ export default function Statistics() {
             {t.stats_player_rankings}
           </h2>
 
-          <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl overflow-hidden`}>
+          <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-lg overflow-hidden`}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>

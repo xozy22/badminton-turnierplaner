@@ -61,7 +61,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-sunken p-6">
-        <div className="max-w-2xl w-full bg-white border border-danger rounded-2xl shadow-sm p-6">
+        <div className="max-w-2xl w-full bg-white border border-danger rounded-lg shadow-sm p-6">
           <h1 className="text-lg font-bold text-danger-text">
             {this.props.title ?? "Da ist etwas schiefgelaufen"}
           </h1>
@@ -73,13 +73,13 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="mt-4 flex gap-2">
             <button
               onClick={this.handleReload}
-              className="bg-danger text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-danger transition-colors"
+              className="bg-danger text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-danger transition-colors"
             >
               {this.props.reloadLabel ?? "Neu laden"}
             </button>
             <button
               onClick={() => navigator.clipboard?.writeText(details)}
-              className="border border-line-strong text-secondary px-4 py-2 rounded-xl text-sm font-medium hover:border-line-strong transition-colors"
+              className="border border-line-strong text-secondary px-4 py-2 rounded-md text-sm font-medium hover:border-line-strong transition-colors"
             >
               {this.props.detailsLabel ?? "Details kopieren"}
             </button>
@@ -89,7 +89,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <summary className="text-xs uppercase tracking-wide text-muted cursor-pointer">
               Technische Details
             </summary>
-            <pre className="mt-2 text-xs text-secondary bg-surface-sunken rounded-xl p-3 overflow-auto max-h-64 whitespace-pre-wrap">
+            <pre className="mt-2 text-xs text-secondary bg-surface-sunken rounded-md p-3 overflow-auto max-h-64 whitespace-pre-wrap">
               {details}
             </pre>
           </details>

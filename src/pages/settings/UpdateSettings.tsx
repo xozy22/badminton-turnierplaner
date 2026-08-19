@@ -88,20 +88,20 @@ export function UpdateChecker() {
         <button
           onClick={checkForUpdates}
           disabled={checking || downloading}
-          className={`${theme.primaryBg} text-white px-4 py-2 rounded-xl ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium disabled:opacity-50`}
+          className={`${theme.primaryBg} text-white px-4 py-2 rounded-md ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium disabled:opacity-50`}
         >
           {checking ? t.settings_checking : `🔄 ${t.settings_check_updates}`}
         </button>
       </div>
 
       {status === "uptodate" && (
-        <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl px-4 py-3 text-sm">
+        <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md px-4 py-3 text-sm">
           <Icon name="check" /> {t.settings_up_to_date.replace("{version}", currentVersion)}
         </div>
       )}
 
       {status === "available" && updateInfo && (
-        <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-xl p-4`}>
+        <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-md p-4`}>
           <div className={`text-sm font-semibold ${theme.textPrimary} mb-1`}>
             <span aria-hidden="true"><Icon name="party" /></span> {t.settings_new_version.replace("{version}", "")} <span className="font-mono">{updateInfo.version}</span>
           </div>
@@ -128,7 +128,7 @@ export function UpdateChecker() {
           ) : (
             <button
               onClick={installUpdate}
-              className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium"
+              className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium"
             >
               <span aria-hidden="true"><Icon name="download" /></span> {t.settings_install_update}
             </button>
@@ -137,7 +137,7 @@ export function UpdateChecker() {
       )}
 
       {status === "error" && (
-        <div className="bg-danger-subtle text-danger-text border border-danger rounded-xl px-4 py-3 text-sm">
+        <div className="bg-danger-subtle text-danger-text border border-danger rounded-md px-4 py-3 text-sm">
           <span aria-hidden="true"><Icon name="x" /></span> {errorMsg || t.settings_update_failed}
         </div>
       )}

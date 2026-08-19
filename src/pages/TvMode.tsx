@@ -393,7 +393,7 @@ export default function TvMode() {
         <span>{playerName(pid)}</span>
         {seed != null && (
           <span
-            className="ml-1 px-1 py-0 rounded text-[10px] font-bold bg-warning/20 text-warning-text border border-warning/40 align-middle"
+            className="ml-1 px-1 py-0 rounded text-2xs font-bold bg-warning/20 text-warning-text border border-warning/40 align-middle"
             title={t.seed_badge_tooltip.replace("{n}", String(seed))}
           >
             {t.seed_badge_short.replace("{n}", String(seed))}
@@ -555,10 +555,10 @@ export default function TvMode() {
       return (
         <div
           key={courtNum}
-          className="rounded-2xl border-2 border-dashed border-line-strong bg-gray-900/50 p-4 flex flex-col items-center justify-center min-h-[140px]"
+          className="rounded-lg border-2 border-dashed border-line-strong bg-gray-900/50 p-4 flex flex-col items-center justify-center min-h-[140px]"
           style={{ backgroundImage: `url("${COURT_BG}")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'auto 85%' }}
         >
-          <span className="text-xs font-bold text-amber-700 bg-warning-subtle/50 px-2.5 py-0.5 rounded-md mb-2">
+          <span className="text-xs font-bold text-amber-700 bg-warning-subtle/50 px-2.5 py-0.5 rounded-sm mb-2">
             {courtLabel}
           </span>
           <div className="text-gray-600 text-sm">{t.tv_free}</div>
@@ -580,17 +580,17 @@ export default function TvMode() {
     return (
       <div
         key={courtNum}
-        className={`rounded-2xl border-2 ${isBronze ? BRONZE_BORDER : tv.courtBorder} ${isBronze ? BRONZE_BG : tv.courtBg} p-4 min-h-[140px] flex flex-col relative overflow-hidden`}
+        className={`rounded-lg border-2 ${isBronze ? BRONZE_BORDER : tv.courtBorder} ${isBronze ? BRONZE_BG : tv.courtBg} p-4 min-h-[140px] flex flex-col relative overflow-hidden`}
         style={{ backgroundImage: `url("${COURT_BG}")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'auto 85%' }}
       >
         {/* Court header: court label · context (Group/Round) · timer */}
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-amber-700 bg-warning-subtle/50 px-2.5 py-0.5 rounded-md">
+            <span className="text-xs font-bold text-amber-700 bg-warning-subtle/50 px-2.5 py-0.5 rounded-sm">
               {courtLabel}
             </span>
             {ctxLabel && (
-              <span className={`text-[11px] font-bold uppercase tracking-wide ${isBronze ? "text-orange-300" : tv.primary}`}>
+              <span className={`text-2xs font-bold uppercase tracking-wide ${isBronze ? "text-orange-300" : tv.primary}`}>
                 {ctxLabel}
               </span>
             )}
@@ -613,7 +613,7 @@ export default function TvMode() {
 
         {/* Score */}
         <div className="flex items-center gap-3 mt-2">
-          <div className="text-2xl font-extrabold font-mono text-center bg-black/30 rounded-xl px-4 py-2 flex-1">
+          <div className="text-2xl font-extrabold font-mono text-center bg-black/30 rounded-md px-4 py-2 flex-1">
             <span className={t1Sets > t2Sets ? tv.winText : "text-white"}>{t1Sets}</span>
             <span className="text-gray-600 mx-2">:</span>
             <span className={t2Sets > t1Sets ? tv.winText : "text-white"}>{t2Sets}</span>
@@ -640,7 +640,7 @@ export default function TvMode() {
     return (
       <div
         key={m.id}
-        className={`rounded-xl px-3 py-2 border transition-all ${
+        className={`rounded-md px-3 py-2 border transition-all ${
           isBronze
             ? "bg-orange-900/20 border-orange-400/40"
             : blocked
@@ -650,7 +650,7 @@ export default function TvMode() {
                 : "bg-black/20 border-line"
         }`}
       >
-        <div className="flex items-center justify-between mb-1 text-[10px] font-bold uppercase tracking-widest">
+        <div className="flex items-center justify-between mb-1 text-2xs font-bold uppercase tracking-widest">
           {isFirst && !blocked && !isBronze && (
             <span className="text-warning-text">{t.tv_next_up}</span>
           )}
@@ -666,7 +666,7 @@ export default function TvMode() {
           </div>
         </div>
         {blocked && (
-          <div className="mt-1 text-[10px] font-bold text-danger-text flex items-center gap-1">
+          <div className="mt-1 text-2xs font-bold text-danger-text flex items-center gap-1">
             <span><Icon name="ban" /></span><span>{t.match_blocked_short}</span>
           </div>
         )}
@@ -687,9 +687,9 @@ export default function TvMode() {
     }
     const ctx = matchContextLabel(m);
     return (
-      <div key={m.id} className="bg-black/20 rounded-xl px-4 py-2.5 text-sm">
+      <div key={m.id} className="bg-black/20 rounded-md px-4 py-2.5 text-sm">
         {ctx && (
-          <div className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">
+          <div className="text-2xs font-bold uppercase tracking-widest text-white/50 mb-1">
             {ctx}
           </div>
         )}
@@ -714,7 +714,7 @@ export default function TvMode() {
     const isBehind = (p: GroupProgress) => p.remaining > 0 && median - p.completed >= 2;
     return (
       <div className="px-8 py-2 bg-black/20 border-b border-line/50 flex items-center gap-6 overflow-x-auto">
-        <span className="text-[11px] font-bold text-white/50 uppercase tracking-widest shrink-0">
+        <span className="text-2xs font-bold text-white/50 uppercase tracking-widest shrink-0">
           {t.tv_groups_strip_header}
         </span>
         {progress.map((p) => {
@@ -757,7 +757,7 @@ export default function TvMode() {
             <div className={`${tv.primary} text-sm font-medium`}>
               {MODE_LABELS[tournament.mode]} &middot; {FORMAT_LABELS[tournament.format]}
               {phaseLabel && (
-                <span className="ml-2 px-2 py-0.5 rounded-md bg-black/30 text-white text-xs font-bold uppercase tracking-wider">
+                <span className="ml-2 px-2 py-0.5 rounded-sm bg-black/30 text-white text-xs font-bold uppercase tracking-wider">
                   {phaseLabel}
                 </span>
               )}
@@ -837,7 +837,7 @@ export default function TvMode() {
                 <div className="space-y-3">
                   {recentGrouped.map(({ group, matches }) => (
                     <div key={group}>
-                      <div className="text-[11px] font-bold uppercase tracking-widest text-phase-text mb-1">
+                      <div className="text-2xs font-bold uppercase tracking-widest text-phase-text mb-1">
                         {t.group_progress_label.replace("{n}", String(group))}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
@@ -877,7 +877,7 @@ export default function TvMode() {
                 return (
                   <div key={section.key}>
                     {section.label && (
-                      <div className={`flex items-center gap-2 mb-1.5 text-[11px] font-bold uppercase tracking-widest ${
+                      <div className={`flex items-center gap-2 mb-1.5 text-2xs font-bold uppercase tracking-widest ${
                         isBronze ? "text-orange-300" : section.behind ? "text-danger-text" : "text-phase-text"
                       }`}>
                         {isBronze && <Icon name="medal" className="text-orange-300" />}
@@ -907,7 +907,7 @@ export default function TvMode() {
       </div>
 
       {/* Keyboard hint */}
-      <div className="fixed bottom-2 right-3 text-[10px] text-gray-600 opacity-60">
+      <div className="fixed bottom-2 right-3 text-2xs text-gray-600 opacity-60">
         {t.tv_keyboard_hint}
       </div>
     </div>

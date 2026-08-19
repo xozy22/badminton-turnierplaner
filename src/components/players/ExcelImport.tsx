@@ -336,7 +336,7 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col border ${theme.cardBorder} overflow-hidden`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] flex flex-col border ${theme.cardBorder} overflow-hidden`}>
         {/* Header */}
         <div className="px-5 py-4 border-b flex justify-between items-center">
           <h2 className={`font-semibold text-lg ${theme.textPrimary}`}>{t.import_title}</h2>
@@ -362,7 +362,7 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
               }`}
             >
               <span
-                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-2xs ${
                   step === s
                     ? `${theme.primaryBg} text-white`
                     : i < ["upload", "mapping", "preview", "done"].indexOf(step)
@@ -637,7 +637,7 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                         <td className="px-3 py-1.5">
                           <div>{row.firstName || <em>{t.import_empty}</em>}</div>
                           {row.fuzzyMatch && (
-                            <div className="text-[10px] text-warning-text mt-0.5">
+                            <div className="text-2xs text-warning-text mt-0.5">
                               {t.import_fuzzy_match.replace("{name}", row.fuzzyMatch)}
                             </div>
                           )}

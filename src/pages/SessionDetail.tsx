@@ -239,11 +239,11 @@ export default function SessionDetail() {
                   }
                 }}
                 maxLength={120}
-                className={`text-2xl font-extrabold ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-3 py-1 ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none`}
+                className={`text-2xl font-extrabold ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-3 py-1 ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none`}
               />
               <button
                 onClick={handleNameSave}
-                className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-lg text-sm font-medium`}
+                className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-sm text-sm font-medium`}
               >
                 {t.common_save}
               </button>
@@ -261,7 +261,7 @@ export default function SessionDetail() {
               </h1>
               <button
                 onClick={() => setEditingName(true)}
-                className={`text-xs ${theme.textMuted} hover:${theme.textPrimary} px-2 py-1 border ${theme.inputBorder} rounded-lg ${theme.cardHoverBorder} transition-all`}
+                className={`text-xs ${theme.textMuted} hover:${theme.textPrimary} px-2 py-1 border ${theme.inputBorder} rounded-sm ${theme.cardHoverBorder} transition-all`}
               >
                 <Icon name="pencil" /> {t.common_edit}
               </button>
@@ -276,14 +276,14 @@ export default function SessionDetail() {
         <div className="flex flex-wrap gap-2">
           <Link
             to={`/sessions/${session.id}/live`}
-            className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-4 py-2 rounded-xl text-sm font-semibold transition-all`}
+            className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-4 py-2 rounded-md text-sm font-semibold transition-all`}
           >
             <Icon name="monitor" /> {t.sessions_open_dashboard}
           </Link>
           {session.status === "active" && (
             <button
               onClick={() => handleStatusChange("ended")}
-              className="border border-warning text-warning-text hover:bg-warning-subtle px-4 py-2 rounded-xl text-sm font-medium transition-all"
+              className="border border-warning text-warning-text hover:bg-warning-subtle px-4 py-2 rounded-md text-sm font-medium transition-all"
             >
               {t.sessions_end}
             </button>
@@ -292,13 +292,13 @@ export default function SessionDetail() {
             <>
               <button
                 onClick={() => handleStatusChange("active")}
-                className="border border-emerald-200 text-emerald-700 hover:bg-emerald-50 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                className="border border-emerald-200 text-emerald-700 hover:bg-emerald-50 px-4 py-2 rounded-md text-sm font-medium transition-all"
               >
                 {t.sessions_reactivate}
               </button>
               <button
                 onClick={() => handleStatusChange("archived")}
-                className={`border ${theme.inputBorder} ${theme.textMuted} ${theme.cardHoverBorder} px-4 py-2 rounded-xl text-sm font-medium transition-all`}
+                className={`border ${theme.inputBorder} ${theme.textMuted} ${theme.cardHoverBorder} px-4 py-2 rounded-md text-sm font-medium transition-all`}
               >
                 {t.sessions_archive}
               </button>
@@ -307,7 +307,7 @@ export default function SessionDetail() {
           {session.status === "archived" && (
             <button
               onClick={() => handleStatusChange("active")}
-              className={`border ${theme.inputBorder} ${theme.textMuted} ${theme.cardHoverBorder} px-4 py-2 rounded-xl text-sm font-medium transition-all`}
+              className={`border ${theme.inputBorder} ${theme.textMuted} ${theme.cardHoverBorder} px-4 py-2 rounded-md text-sm font-medium transition-all`}
             >
               {t.sessions_unarchive}
             </button>
@@ -316,7 +316,7 @@ export default function SessionDetail() {
       </div>
 
       {/* Tournaments */}
-      <div className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} p-5 shadow-sm`}>
+      <div className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} p-5 shadow-sm`}>
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <div>
             <h2 className={`font-bold ${theme.textPrimary}`}>
@@ -330,7 +330,7 @@ export default function SessionDetail() {
             onClick={() => setShowAttach(true)}
             disabled={session.status !== "active"}
             title={session.status !== "active" ? t.session_attach_blocked_status_hint : undefined}
-            className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed`}
+            className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-sm text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             + {t.session_detail_attach_button}
           </button>
@@ -350,7 +350,7 @@ export default function SessionDetail() {
             {tournaments.map((tt) => (
               <div
                 key={tt.id}
-                className={`flex items-center gap-3 px-3 py-2 border ${theme.inputBorder} rounded-xl ${theme.cardHoverBorder} transition-all`}
+                className={`flex items-center gap-3 px-3 py-2 border ${theme.inputBorder} rounded-md ${theme.cardHoverBorder} transition-all`}
               >
                 <div className="flex-1 min-w-0">
                   <Link
@@ -364,7 +364,7 @@ export default function SessionDetail() {
                   </p>
                 </div>
                 <span
-                  className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${tournamentStatusBadge(tt.status)}`}
+                  className={`shrink-0 text-2xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${tournamentStatusBadge(tt.status)}`}
                 >
                   {tt.status}
                 </span>
@@ -390,7 +390,7 @@ export default function SessionDetail() {
       {/* Attach dialog */}
       {showAttach && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className={`${theme.cardBg} rounded-2xl shadow-xl border ${theme.cardBorder} max-w-lg w-full max-h-[80vh] overflow-y-auto`}>
+          <div className={`${theme.cardBg} rounded-lg shadow-lg border ${theme.cardBorder} max-w-lg w-full max-h-[80vh] overflow-y-auto`}>
             <div className="p-5">
               <h2 className={`text-lg font-bold ${theme.textPrimary} mb-1`}>
                 {t.session_detail_attach_dialog_title}
@@ -404,7 +404,7 @@ export default function SessionDetail() {
                 value={attachQuery}
                 onChange={(e) => setAttachQuery(e.target.value)}
                 placeholder={t.common_search}
-                className={`w-full mb-3 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                className={`w-full mb-3 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               />
 
               {attachCandidates.length === 0 ? (
@@ -420,12 +420,12 @@ export default function SessionDetail() {
                         await handleAttach(tt.id);
                         // Stay open so the user can attach more in one go
                       }}
-                      className={`w-full text-left flex items-center gap-3 px-3 py-2 border ${theme.inputBorder} rounded-xl ${theme.cardHoverBorder} transition-all`}
+                      className={`w-full text-left flex items-center gap-3 px-3 py-2 border ${theme.inputBorder} rounded-md ${theme.cardHoverBorder} transition-all`}
                     >
                       <span className={`flex-1 ${theme.textPrimary} truncate text-sm`}>
                         {tt.name}
                       </span>
-                      <span className={`text-[10px] uppercase tracking-wide ${theme.textMuted}`}>
+                      <span className={`text-2xs uppercase tracking-wide ${theme.textMuted}`}>
                         {tt.status}
                       </span>
                       <span className={`text-xs ${theme.textSecondary}`}>+ {t.common_add}</span>
@@ -437,7 +437,7 @@ export default function SessionDetail() {
               <div className="flex justify-end pt-4">
                 <button
                   onClick={() => { setShowAttach(false); setAttachQuery(""); }}
-                  className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} ${theme.cardHoverBorder} px-4 py-2 rounded-xl text-sm font-medium transition-all`}
+                  className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} ${theme.cardHoverBorder} px-4 py-2 rounded-md text-sm font-medium transition-all`}
                 >
                   {t.common_close}
                 </button>
@@ -454,7 +454,7 @@ export default function SessionDetail() {
           state ("nothing running") gets an emerald confirmation. */}
       {showEndConfirm && session && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className={`${theme.cardBg} rounded-2xl shadow-xl border ${theme.cardBorder} max-w-md w-full p-5`}>
+          <div className={`${theme.cardBg} rounded-lg shadow-lg border ${theme.cardBorder} max-w-md w-full p-5`}>
             <h2 className={`text-lg font-bold ${theme.textPrimary} mb-2`}>
               ⏹ {t.sessions_end}
             </h2>
@@ -469,12 +469,12 @@ export default function SessionDetail() {
                 {t.sessions_end_loading_stats}
               </p>
             ) : endStats.activeTournaments.length === 0 ? (
-              <div className="border border-emerald-200 bg-emerald-50 rounded-xl px-3 py-2 mb-4 text-xs text-emerald-700">
+              <div className="border border-emerald-200 bg-emerald-50 rounded-md px-3 py-2 mb-4 text-xs text-emerald-700">
                 <Icon name="check" /> {t.sessions_end_stats_none}
               </div>
             ) : (
-              <div className="border border-warning bg-warning-subtle rounded-xl px-3 py-2 mb-4">
-                <div className="text-[10px] font-bold uppercase tracking-wide text-warning-text mb-1">
+              <div className="border border-warning bg-warning-subtle rounded-md px-3 py-2 mb-4">
+                <div className="text-2xs font-bold uppercase tracking-wide text-warning-text mb-1">
                   <Icon name="alert" /> {t.sessions_end_stats_title}
                 </div>
                 <ul className="text-xs text-warning-text space-y-0.5 pl-1">
@@ -491,13 +491,13 @@ export default function SessionDetail() {
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => { setShowEndConfirm(false); setEndStats(null); }}
-                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
+                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md ${theme.cardHoverBorder} transition-all text-sm font-medium`}
               >
                 {t.common_cancel}
               </button>
               <button
                 onClick={confirmEnd}
-                className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-md text-sm font-semibold transition-all"
               >
                 {t.sessions_end}
               </button>

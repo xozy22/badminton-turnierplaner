@@ -223,7 +223,7 @@ export default function Sessions() {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-4 py-2 rounded-xl shadow-sm transition-all text-sm font-semibold`}
+          className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-4 py-2 rounded-md shadow-sm transition-all text-sm font-semibold`}
         >
           + {t.sessions_new}
         </button>
@@ -240,7 +240,7 @@ export default function Sessions() {
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+            className={`px-3 py-1.5 rounded-sm text-sm font-medium border transition-all ${
               filter === key
                 ? `${theme.primaryBg} ${theme.primaryText} border-transparent`
                 : `${theme.cardBg} ${theme.textSecondary} ${theme.inputBorder} ${theme.cardHoverBorder}`
@@ -253,7 +253,7 @@ export default function Sessions() {
 
       {/* Empty state */}
       {filteredSessions.length === 0 && (
-        <div className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} p-10 text-center`}>
+        <div className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} p-10 text-center`}>
           <div className="text-4xl mb-3 opacity-50"><Icon name="link" /></div>
           <p className={`text-sm ${theme.textSecondary}`}>
             {filter === "active"
@@ -272,7 +272,7 @@ export default function Sessions() {
           return (
             <div
               key={s.id}
-              className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} p-4 ${theme.cardHoverBorder} transition-all shadow-sm hover:shadow`}
+              className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} p-4 ${theme.cardHoverBorder} transition-all shadow-sm hover:shadow`}
             >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0">
@@ -284,7 +284,7 @@ export default function Sessions() {
                   </p>
                 </div>
                 <span
-                  className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${statusBadgeClass(s.status)}`}
+                  className={`shrink-0 text-2xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${statusBadgeClass(s.status)}`}
                 >
                   {statusLabel(s.status)}
                 </span>
@@ -307,20 +307,20 @@ export default function Sessions() {
               <div className="flex flex-wrap gap-2">
                 <Link
                   to={`/sessions/${s.id}/live`}
-                  className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-lg text-xs font-semibold transition-all`}
+                  className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-sm text-xs font-semibold transition-all`}
                 >
                   <Icon name="monitor" /> {t.sessions_open_dashboard}
                 </Link>
                 <Link
                   to={`/sessions/${s.id}`}
-                  className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} ${theme.cardHoverBorder} px-3 py-1.5 rounded-lg text-xs font-medium transition-all`}
+                  className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} ${theme.cardHoverBorder} px-3 py-1.5 rounded-sm text-xs font-medium transition-all`}
                 >
                   <Icon name="settings" /> {t.sessions_manage}
                 </Link>
                 {s.status === "active" && (
                   <button
                     onClick={() => handleEnd(s)}
-                    className={`${theme.cardBg} border border-warning text-warning-text hover:bg-warning-subtle px-3 py-1.5 rounded-lg text-xs font-medium transition-all`}
+                    className={`${theme.cardBg} border border-warning text-warning-text hover:bg-warning-subtle px-3 py-1.5 rounded-sm text-xs font-medium transition-all`}
                   >
                     {t.sessions_end}
                   </button>
@@ -329,13 +329,13 @@ export default function Sessions() {
                   <>
                     <button
                       onClick={() => handleReactivate(s)}
-                      className={`${theme.cardBg} border border-emerald-200 text-emerald-700 hover:bg-emerald-50 px-3 py-1.5 rounded-lg text-xs font-medium transition-all`}
+                      className={`${theme.cardBg} border border-emerald-200 text-emerald-700 hover:bg-emerald-50 px-3 py-1.5 rounded-sm text-xs font-medium transition-all`}
                     >
                       {t.sessions_reactivate}
                     </button>
                     <button
                       onClick={() => handleArchive(s)}
-                      className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textMuted} ${theme.cardHoverBorder} px-3 py-1.5 rounded-lg text-xs font-medium transition-all`}
+                      className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textMuted} ${theme.cardHoverBorder} px-3 py-1.5 rounded-sm text-xs font-medium transition-all`}
                     >
                       {t.sessions_archive}
                     </button>
@@ -344,7 +344,7 @@ export default function Sessions() {
                 {s.status === "archived" && (
                   <button
                     onClick={() => handleReactivate(s)}
-                    className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textMuted} ${theme.cardHoverBorder} px-3 py-1.5 rounded-lg text-xs font-medium transition-all`}
+                    className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textMuted} ${theme.cardHoverBorder} px-3 py-1.5 rounded-sm text-xs font-medium transition-all`}
                   >
                     {t.sessions_unarchive}
                   </button>
@@ -365,7 +365,7 @@ export default function Sessions() {
       {/* Create dialog */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className={`${theme.cardBg} rounded-2xl shadow-xl border ${theme.cardBorder} max-w-lg w-full max-h-[90vh] overflow-y-auto`}>
+          <div className={`${theme.cardBg} rounded-lg shadow-lg border ${theme.cardBorder} max-w-lg w-full max-h-[90vh] overflow-y-auto`}>
             <div className="p-5">
               <h2 className={`text-lg font-bold ${theme.textPrimary} mb-4`}>
                 {t.session_create_title}
@@ -382,7 +382,7 @@ export default function Sessions() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   maxLength={120}
-                  className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                  className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                   placeholder={t.session_name_placeholder}
                 />
               </div>
@@ -399,7 +399,7 @@ export default function Sessions() {
                     setNewVenueId(v === "none" ? "none" : Number(v));
                     setNewAttachIds(new Set()); // reset selection when venue changes
                   }}
-                  className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                  className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                 >
                   <option value="none">{t.session_venue_none}</option>
                   {venues.map((v) => (
@@ -423,7 +423,7 @@ export default function Sessions() {
                     {t.session_attach_no_candidates}
                   </p>
                 ) : (
-                  <div className={`max-h-48 overflow-y-auto border ${theme.inputBorder} rounded-xl`}>
+                  <div className={`max-h-48 overflow-y-auto border ${theme.inputBorder} rounded-md`}>
                     {attachCandidates.map((tt) => (
                       <label
                         key={tt.id}
@@ -442,7 +442,7 @@ export default function Sessions() {
                         <span className={`text-sm ${theme.textPrimary} flex-1 truncate`}>
                           {tt.name}
                         </span>
-                        <span className={`text-[10px] uppercase tracking-wide ${theme.textMuted}`}>
+                        <span className={`text-2xs uppercase tracking-wide ${theme.textMuted}`}>
                           {tt.status}
                         </span>
                       </label>
@@ -460,14 +460,14 @@ export default function Sessions() {
                     setNewVenueId("none");
                     setNewAttachIds(new Set());
                   }}
-                  className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
+                  className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md ${theme.cardHoverBorder} transition-all text-sm font-medium`}
                 >
                   {t.common_cancel}
                 </button>
                 <button
                   onClick={handleCreate}
                   disabled={!newName.trim() || creating}
-                  className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all`}
+                  className={`${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-4 py-2 rounded-md text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all`}
                 >
                   {t.session_create_button}
                 </button>
@@ -480,7 +480,7 @@ export default function Sessions() {
       {/* Delete confirm */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className={`${theme.cardBg} rounded-2xl shadow-xl border ${theme.cardBorder} max-w-md w-full p-5`}>
+          <div className={`${theme.cardBg} rounded-lg shadow-lg border ${theme.cardBorder} max-w-md w-full p-5`}>
             <h2 className={`text-lg font-bold ${theme.textPrimary} mb-2`}>
               {t.sessions_delete_confirm_title}
             </h2>
@@ -492,13 +492,13 @@ export default function Sessions() {
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
+                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md ${theme.cardHoverBorder} transition-all text-sm font-medium`}
               >
                 {t.common_cancel}
               </button>
               <button
                 onClick={handleDelete}
-                className="bg-danger hover:bg-danger text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                className="bg-danger hover:bg-danger text-white px-4 py-2 rounded-md text-sm font-semibold transition-all"
               >
                 {t.sessions_delete}
               </button>
@@ -515,7 +515,7 @@ export default function Sessions() {
           gets an emerald confirmation instead. */}
       {endTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className={`${theme.cardBg} rounded-2xl shadow-xl border ${theme.cardBorder} max-w-md w-full p-5`}>
+          <div className={`${theme.cardBg} rounded-lg shadow-lg border ${theme.cardBorder} max-w-md w-full p-5`}>
             <h2 className={`text-lg font-bold ${theme.textPrimary} mb-2`}>
               ⏹ {t.sessions_end}
             </h2>
@@ -533,12 +533,12 @@ export default function Sessions() {
                 {t.sessions_end_loading_stats}
               </p>
             ) : endStats.activeTournaments.length === 0 ? (
-              <div className="border border-emerald-200 bg-emerald-50 rounded-xl px-3 py-2 mb-4 text-xs text-emerald-700">
+              <div className="border border-emerald-200 bg-emerald-50 rounded-md px-3 py-2 mb-4 text-xs text-emerald-700">
                 <Icon name="check" /> {t.sessions_end_stats_none}
               </div>
             ) : (
-              <div className="border border-warning bg-warning-subtle rounded-xl px-3 py-2 mb-4">
-                <div className="text-[10px] font-bold uppercase tracking-wide text-warning-text mb-1">
+              <div className="border border-warning bg-warning-subtle rounded-md px-3 py-2 mb-4">
+                <div className="text-2xs font-bold uppercase tracking-wide text-warning-text mb-1">
                   <Icon name="alert" /> {t.sessions_end_stats_title}
                 </div>
                 <ul className="text-xs text-warning-text space-y-0.5 pl-1">
@@ -555,13 +555,13 @@ export default function Sessions() {
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => { setEndTarget(null); setEndStats(null); }}
-                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} transition-all text-sm font-medium`}
+                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md ${theme.cardHoverBorder} transition-all text-sm font-medium`}
               >
                 {t.common_cancel}
               </button>
               <button
                 onClick={confirmEnd}
-                className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-md text-sm font-semibold transition-all"
               >
                 {t.sessions_end}
               </button>

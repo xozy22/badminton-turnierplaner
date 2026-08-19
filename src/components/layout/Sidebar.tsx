@@ -62,7 +62,7 @@ export default function Sidebar() {
               <div className="text-base font-bold tracking-tight text-white">
                 BOSS
               </div>
-              <div className={`text-[8px] font-medium ${theme.sidebarAccent} tracking-wide uppercase leading-tight`}>
+              <div className={`text-2xs font-medium ${theme.sidebarAccent} tracking-wide uppercase leading-tight`}>
                 Badminton Operating<br/>and Scheduling System
               </div>
             </div>
@@ -82,7 +82,7 @@ export default function Sidebar() {
             to={link.to}
             title={collapsed ? link.label : undefined}
             className={({ isActive }) =>
-              `flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-4"} py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              `flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-4"} py-2.5 rounded-sm text-sm font-medium transition-all duration-200 ${
                 isActive
                   ? `${theme.sidebarActiveBg} text-white shadow-lg ${theme.sidebarActiveShadow}`
                   : `${theme.sidebarText} ${theme.sidebarHoverBg} hover:text-white`
@@ -101,7 +101,7 @@ export default function Sidebar() {
           to="/settings"
           title={collapsed ? t.nav_settings : undefined}
           className={({ isActive }) =>
-            `flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-4"} py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+            `flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-4"} py-2.5 rounded-sm text-sm font-medium transition-all duration-200 ${
               isActive
                 ? `${theme.sidebarActiveBg} text-white shadow-lg ${theme.sidebarActiveShadow}`
                 : `${theme.sidebarText} ${theme.sidebarHoverBg} hover:text-white`
@@ -115,7 +115,7 @@ export default function Sidebar() {
         {/* Collapse toggle */}
         <button
           onClick={toggle}
-          className={`w-full flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-4"} py-2 rounded-lg text-xs transition-all duration-200 ${theme.sidebarText} ${theme.sidebarHoverBg} hover:text-white`}
+          className={`w-full flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-4"} py-2 rounded-sm text-xs transition-all duration-200 ${theme.sidebarText} ${theme.sidebarHoverBg} hover:text-white`}
           title={collapsed ? t.nav_expand_sidebar : t.nav_collapse_sidebar}
         >
           <span className={`transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`}>
@@ -126,7 +126,7 @@ export default function Sidebar() {
 
         {/* Version */}
         {!collapsed && (
-          <div className={`text-[10px] ${theme.sidebarText} text-center pt-1 opacity-50 leading-relaxed`}>
+          <div className={`text-2xs ${theme.sidebarText} text-center pt-1 opacity-50 leading-relaxed`}>
             <div>v{__APP_VERSION__}</div>
             <div className="mt-0.5">Idee und Umsetzung</div>
             <div>Felix Blasshofer &amp; Dennis Kobiolka</div>

@@ -143,7 +143,7 @@ export default function Modal({
         aria-labelledby={titleId.current}
         tabIndex={-1}
         onKeyDown={onKeyDown}
-        className={`w-full ${SIZES[size]} max-h-[90vh] overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-2xl outline-none`}
+        className={`w-full ${SIZES[size]} max-h-[90vh] overflow-y-auto rounded-lg border border-line bg-surface p-6 shadow-lg outline-none`}
       >
         <div className="mb-5 text-center">
           {icon && (
@@ -182,7 +182,7 @@ export function ModalCancelButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex-1 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-sm font-medium text-secondary transition-all hover:opacity-80 disabled:opacity-50"
+      className="flex-1 rounded-md border border-line-strong bg-surface px-4 py-2.5 text-sm font-medium text-secondary transition-all hover:opacity-80 disabled:opacity-50"
     >
       {children ?? t.common_cancel}
     </button>
@@ -215,7 +215,7 @@ export function ModalConfirmButton({
       type="button"
       onClick={onClick}
       disabled={disabled || pending}
-      className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-medium shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 ${tones[tone]}`}
+      className={`flex-1 rounded-md px-4 py-2.5 text-sm font-medium shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 ${tones[tone]}`}
     >
       {pending ? (
         <>

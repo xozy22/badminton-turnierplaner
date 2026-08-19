@@ -198,6 +198,36 @@
   color-scheme: dark;
 }
 
+/* ---------------------------------------------------------------------------
+   Shape and type scale
+   ---------------------------------------------------------------------------
+   Five corner radii, five shadow steps and twelve font sizes were in use,
+   chosen per component with no rule about which meant what. Worse, 118 of
+   those sizes were absolute pixels: the app scales type by changing the root
+   font size, which moves `rem` values and leaves `px` untouched — so the
+   size setting reached only half the interface, and at XXS the small text
+   ended up nearly as large as the body text.
+
+   Each value has one job now:
+     radius   sm = controls · md = cards · lg = containers (round stays round)
+     shadow   sm = resting  · lg = floating (menu, dialog)
+     type     2xs is the smallest step, in rem like all the others
+   --------------------------------------------------------------------------- */
+@theme {
+  --radius-sm: 0.375rem;   /* 6px  — buttons, inputs, chips */
+  --radius-md: 0.625rem;   /* 10px — cards, menus */
+  --radius-lg: 1rem;       /* 16px — containers, dialogs */
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 4px 14px rgb(0 0 0 / 0.10);
+
+  /* Replaces the 8, 9, 10 and 11 pixel literals. Larger than three of them
+     on purpose — 8px is below what anyone should have to read, and it never
+     followed the size setting either. */
+  --text-2xs: 0.6875rem;   /* 11px */
+  --text-2xs--line-height: 1.4;
+}
+
 /* Makes the tokens available as Tailwind utilities: bg-surface, text-muted,
    border-strong, ring-accent and so on. `inline` keeps them as var()
    references, so a theme switch repaints without rebuilding any CSS. */

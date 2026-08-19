@@ -160,7 +160,7 @@ export default function FormatInfoModal({
       onClick={onClose}
     >
       <div
-        className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col border ${theme.cardBorder} mx-4 overflow-hidden`}
+        className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-lg max-h-[85vh] flex flex-col border ${theme.cardBorder} mx-4 overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -186,7 +186,7 @@ export default function FormatInfoModal({
         <div className="flex-1 overflow-y-auto p-6 pt-4">
 
         {/* ASCII Diagram */}
-        <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-xl p-4 mb-4 overflow-x-auto`}>
+        <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-md p-4 mb-4 overflow-x-auto`}>
           <pre className={`text-xs ${theme.textSecondary} font-mono leading-relaxed whitespace-pre`}>
             {FORMAT_DIAGRAMS[format]}
           </pre>
@@ -202,7 +202,7 @@ export default function FormatInfoModal({
         </div>
 
         {/* Best suited for */}
-        <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-xl p-4 mb-4`}>
+        <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-md p-4 mb-4`}>
           <h4 className={`text-xs font-semibold ${theme.textPrimary} uppercase tracking-wide mb-1.5`}>
             {t.format_info_best_for}
           </h4>
@@ -213,7 +213,7 @@ export default function FormatInfoModal({
 
         {/* Pros and Cons */}
         <div className="grid grid-cols-2 gap-3 mb-5">
-          <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-xl p-4`}>
+          <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-md p-4`}>
             <h4 className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-2">
               {t.format_info_pros}
             </h4>
@@ -226,7 +226,7 @@ export default function FormatInfoModal({
               ))}
             </ul>
           </div>
-          <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-xl p-4`}>
+          <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-md p-4`}>
             <h4 className="text-xs font-semibold text-danger-text uppercase tracking-wide mb-2">
               {t.format_info_cons}
             </h4>
@@ -247,7 +247,7 @@ export default function FormatInfoModal({
         <div className={`p-6 pt-4 border-t ${theme.cardBorder} shrink-0`}>
           <button
             onClick={onClose}
-            className={`w-full ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium`}
+            className={`w-full ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
           >
             {t.common_close}
           </button>

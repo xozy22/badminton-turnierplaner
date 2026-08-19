@@ -89,7 +89,7 @@ export function useConfirm(): [React.ReactNode, (request: ConfirmRequest) => Pro
           <input
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
-            className="mt-2 w-full rounded-xl border border-line-strong bg-surface-input px-3 py-2 text-center font-mono text-primary outline-none focus:border-accent"
+            className="mt-2 w-full rounded-md border border-line-strong bg-surface-input px-3 py-2 text-center font-mono text-primary outline-none focus:border-accent"
             aria-label={request.requireWord}
           />
         </label>

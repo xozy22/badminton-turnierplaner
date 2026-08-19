@@ -57,7 +57,7 @@ export default function OverflowMenu({ items }: { items: OverflowItem[] }) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t.common_more_actions}
-        className="rounded-xl border border-line bg-surface px-3 py-2.5 text-sm font-medium text-secondary transition-all hover:border-accent-border"
+        className="rounded-md border border-line bg-surface px-3 py-2.5 text-sm font-medium text-secondary transition-all hover:border-accent-border"
       >
         <Icon name="more" />
       </button>
@@ -73,7 +73,7 @@ export default function OverflowMenu({ items }: { items: OverflowItem[] }) {
             }
           }}
           ref={(el) => el?.querySelector<HTMLButtonElement>("button")?.focus()}
-          className="absolute right-0 top-full z-50 mt-1 min-w-52 overflow-hidden rounded-xl border border-line bg-surface shadow-xl"
+          className="absolute right-0 top-full z-50 mt-1 min-w-52 overflow-hidden rounded-md border border-line bg-surface shadow-lg"
         >
           {regular.map((item) => (
             <MenuButton key={item.label} item={item} onDone={close} />

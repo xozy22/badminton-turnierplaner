@@ -17,7 +17,7 @@ export default function SeedBadge({ rank, className = "" }: Props) {
   const tooltip = t.seed_badge_tooltip.replace("{n}", String(rank));
   return (
     <span
-      className={`inline-flex items-center ml-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-warning-subtle text-warning-text border border-warning ${className}`}
+      className={`inline-flex items-center ml-1 px-1.5 py-0.5 rounded-sm text-2xs font-bold bg-warning-subtle text-warning-text border border-warning ${className}`}
       title={tooltip}
       aria-label={tooltip}
     >

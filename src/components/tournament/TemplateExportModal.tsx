@@ -84,18 +84,18 @@ export default function TemplateExportModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-md p-6 border ${theme.cardBorder}`}>
         <h3 className={`text-lg font-bold ${theme.textPrimary} mb-4`}><Icon name="clipboard" /> {t.template_export_title}</h3>
         <p className={`text-sm ${theme.textSecondary} mb-4`}>{t.template_export_description}</p>
         <div className="space-y-3 mb-5">
-          <label className={`flex items-center gap-3 p-3 rounded-xl border ${theme.cardBorder} ${templateInclude.settings ? theme.selectedBg : ''} cursor-pointer`}>
+          <label className={`flex items-center gap-3 p-3 rounded-md border ${theme.cardBorder} ${templateInclude.settings ? theme.selectedBg : ''} cursor-pointer`}>
             <input type="checkbox" checked={templateInclude.settings} onChange={(e) => setTemplateInclude((p) => ({ ...p, settings: e.target.checked }))} className="rounded accent-emerald-600" />
             <div>
               <div className={`text-sm font-medium ${theme.textPrimary}`}><Icon name="settings" /> {t.template_settings}</div>
               <div className={`text-xs ${theme.textMuted}`}>{t.template_settings_desc}</div>
             </div>
           </label>
-          <label className={`flex items-center gap-3 p-3 rounded-xl border ${theme.cardBorder} ${templateInclude.players ? theme.selectedBg : ''} cursor-pointer`}>
+          <label className={`flex items-center gap-3 p-3 rounded-md border ${theme.cardBorder} ${templateInclude.players ? theme.selectedBg : ''} cursor-pointer`}>
             <input type="checkbox" checked={templateInclude.players} onChange={(e) => setTemplateInclude((p) => ({ ...p, players: e.target.checked, teams: e.target.checked ? p.teams : false }))} className="rounded accent-emerald-600" />
             <div>
               <div className={`text-sm font-medium ${theme.textPrimary}`}><Icon name="users" /> {t.template_players.replace("{count}", String(players.length))}</div>
@@ -103,7 +103,7 @@ export default function TemplateExportModal({
             </div>
           </label>
           {tournament.team_config && (
-            <label className={`flex items-center gap-3 p-3 rounded-xl border ${theme.cardBorder} ${templateInclude.teams ? theme.selectedBg : ''} cursor-pointer ${!templateInclude.players ? 'opacity-40 pointer-events-none' : ''}`}>
+            <label className={`flex items-center gap-3 p-3 rounded-md border ${theme.cardBorder} ${templateInclude.teams ? theme.selectedBg : ''} cursor-pointer ${!templateInclude.players ? 'opacity-40 pointer-events-none' : ''}`}>
               <input type="checkbox" checked={templateInclude.teams} disabled={!templateInclude.players} onChange={(e) => setTemplateInclude((p) => ({ ...p, teams: e.target.checked }))} className="rounded accent-emerald-600" />
               <div>
                 <div className={`text-sm font-medium ${theme.textPrimary}`}><span aria-hidden="true"><Icon name="handshake" /></span> {t.template_teams}</div>
@@ -118,8 +118,8 @@ export default function TemplateExportModal({
             other side. Always rendered when settings are exported (v2.8.8
             guarantees a venue block). */}
         {templateInclude.settings && exportVenue && (
-          <div className={`mb-5 px-3 py-2 rounded-xl border border-phase bg-phase-subtle`}>
-            <div className="text-[10px] font-bold uppercase tracking-wide text-phase-text mb-0.5">
+          <div className={`mb-5 px-3 py-2 rounded-md border border-phase bg-phase-subtle`}>
+            <div className="text-2xs font-bold uppercase tracking-wide text-phase-text mb-0.5">
               <Icon name="building" /> {t.template_export_venue_label}
             </div>
             <div className="text-sm font-medium text-violet-900 truncate">
@@ -134,14 +134,14 @@ export default function TemplateExportModal({
           </div>
         )}
         {templateInclude.settings && !exportVenue && (
-          <div className={`mb-5 px-3 py-2 rounded-xl border border-warning bg-warning-subtle text-xs text-warning-text`}>
+          <div className={`mb-5 px-3 py-2 rounded-md border border-warning bg-warning-subtle text-xs text-warning-text`}>
             <Icon name="alert" /> {t.template_export_venue_missing}
           </div>
         )}
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium`}
+            className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
           >
             {t.common_cancel}
           </button>
@@ -238,7 +238,7 @@ export default function TemplateExportModal({
               URL.revokeObjectURL(url);
               onClose();
             }}
-            className={`flex-1 ${theme.primaryBg} text-white px-4 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium`}
+            className={`flex-1 ${theme.primaryBg} text-white px-4 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium`}
           >
             <Icon name="download" /> {t.template_export_button}
           </button>

@@ -128,7 +128,7 @@ export default function GruppenTab({
             {isCompleted ? (
               <span className="font-bold">{t1Sets}:{t2Sets}</span>
             ) : isActive ? (
-              <span className="text-warning-text text-[10px] font-semibold uppercase tracking-wide">
+              <span className="text-warning-text text-2xs font-semibold uppercase tracking-wide">
                 {t.groups_match_in_progress}
               </span>
             ) : (
@@ -138,7 +138,7 @@ export default function GruppenTab({
           <td className={`px-3 py-2 text-left ${t2Class} truncate`}>
             {teamLabel(m, 2)}
           </td>
-          <td className={`px-3 py-2 text-right font-mono text-[11px] ${theme.textMuted} whitespace-nowrap`}>
+          <td className={`px-3 py-2 text-right font-mono text-2xs ${theme.textMuted} whitespace-nowrap`}>
             {setDetail || (m.status === "pending" ? t.groups_match_not_played : "")}
           </td>
         </tr>
@@ -148,7 +148,7 @@ export default function GruppenTab({
     return (
       <div
         key={`matches-${groupNum}`}
-        className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} overflow-hidden mt-3`}
+        className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden mt-3`}
       >
         <div className={`px-5 py-2.5 border-b ${theme.cardBorder} ${theme.headerGradient}`}>
           <span className={`font-semibold text-sm ${theme.standingsHeaderText}`}>
@@ -165,10 +165,10 @@ export default function GruppenTab({
             return (
               <div key={r.id}>
                 <div className={`flex items-center gap-2 px-5 py-1.5 ${theme.cardBg} border-t ${theme.cardBorder} ${idx === 0 ? "border-t-0" : ""}`}>
-                  <span className={`text-[11px] font-bold uppercase tracking-wide text-phase-text`}>
+                  <span className={`text-2xs font-bold uppercase tracking-wide text-phase-text`}>
                     {t.tournament_view_round_label.replace("{n}", String(idx + 1))}
                   </span>
-                  <span className={`text-[10px] font-mono ${theme.textMuted}`}>
+                  <span className={`text-2xs font-mono ${theme.textMuted}`}>
                     {t.groups_matches_count.replace("{count}", String(roundMatches.length))}
                   </span>
                 </div>
@@ -219,7 +219,7 @@ export default function GruppenTab({
       const teamStandings = calculateTeamStandings(gPlayers, gMatches, gSets);
       return (
         <div key={groupNum}>
-        <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} overflow-hidden`}>
+        <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
           <div className={`px-5 py-2.5 border-b ${theme.cardBorder} ${theme.headerGradient}`}>
             <span className={`font-semibold text-sm ${theme.standingsHeaderText}`}>
               {t.groups_group.replace("{n}", String(groupNum))}
@@ -261,7 +261,7 @@ export default function GruppenTab({
                     {playerDisplayName(ts.player2)}
                     <SeedBadge rank={seedRankByPlayer?.get(ts.player2.id)} />
                     {i < qualifyCount && (
-                      <span className="ml-1 text-[9px] text-emerald-500 font-bold">Q</span>
+                      <span className="ml-1 text-2xs text-emerald-500 font-bold">Q</span>
                     )}
                   </td>
                   <td className={`px-3 py-2 text-center font-bold ${theme.activeBadgeText}`}>{ts.wins}</td>
@@ -282,7 +282,7 @@ export default function GruppenTab({
     const gStandings = calculateStandings(gPlayers, gMatches, gSets);
     return (
       <div key={groupNum}>
-      <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} overflow-hidden`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
         <div className={`px-5 py-2.5 border-b ${theme.cardBorder} ${theme.headerGradient}`}>
           <span className={`font-semibold text-sm ${theme.standingsHeaderText}`}>
             {t.groups_group.replace("{n}", String(groupNum))}
@@ -321,7 +321,7 @@ export default function GruppenTab({
                   {playerDisplayName(s.player)}
                   <SeedBadge rank={seedRankByPlayer?.get(s.player.id)} />
                   {i < qualifyCount && (
-                    <span className="ml-1 text-[9px] text-emerald-500 font-bold">Q</span>
+                    <span className="ml-1 text-2xs text-emerald-500 font-bold">Q</span>
                   )}
                 </td>
                 <td className={`px-3 py-2 text-center font-bold ${theme.activeBadgeText}`}>{s.wins}</td>
@@ -346,9 +346,9 @@ export default function GruppenTab({
         <div className="flex gap-2 mb-4 flex-wrap">
           <button
             onClick={() => setActiveGroup("all")}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
               activeGroup === "all"
-                ? `${theme.roundActiveBg} ${theme.roundActiveText} shadow-md`
+                ? `${theme.roundActiveBg} ${theme.roundActiveText} shadow-sm`
                 : `${theme.cardBg} ${theme.textSecondary} hover:opacity-80 border ${theme.cardBorder} ${theme.cardHoverBorder}`
             }`}
           >
@@ -358,9 +358,9 @@ export default function GruppenTab({
             <button
               key={g}
               onClick={() => setActiveGroup(g)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                 activeGroup === g
-                  ? `${theme.roundActiveBg} ${theme.roundActiveText} shadow-md`
+                  ? `${theme.roundActiveBg} ${theme.roundActiveText} shadow-sm`
                   : `${theme.cardBg} ${theme.textSecondary} hover:opacity-80 border ${theme.cardBorder} ${theme.cardHoverBorder}`
               }`}
             >

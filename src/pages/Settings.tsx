@@ -38,7 +38,7 @@ function Section({
   const [open, setOpen] = useState(defaultOpen);
   const border = borderColor || theme.cardBorder;
   return (
-    <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${border} overflow-hidden mb-4`}>
+    <div className={`${theme.cardBg} rounded-lg shadow-sm border ${border} overflow-hidden mb-4`}>
       <button
         onClick={() => setOpen(!open)}
         className={`w-full px-6 py-4 flex items-center justify-between text-left hover:opacity-80 transition-colors`}
@@ -284,7 +284,7 @@ export default function Settings() {
                       updateSetting("timerWarningMin", val);
                       if (val >= settings.timerDangerMin) updateSetting("timerDangerMin", val + 5);
                     }}
-                    className={`w-20 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-3 py-2 text-sm text-center ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                    className={`w-20 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-3 py-2 text-sm text-center ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                   />
                   <span className="text-xs text-muted">{t.settings_timer_minutes}</span>
                 </div>
@@ -305,7 +305,7 @@ export default function Settings() {
                       updateSetting("timerDangerMin", val);
                       if (val <= settings.timerWarningMin) updateSetting("timerWarningMin", Math.max(1, val - 5));
                     }}
-                    className={`w-20 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-3 py-2 text-sm text-center ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                    className={`w-20 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-3 py-2 text-sm text-center ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                   />
                   <span className="text-xs text-muted">{t.settings_timer_minutes}</span>
                 </div>
@@ -333,13 +333,13 @@ export default function Settings() {
               type="text"
               value={dbPath}
               readOnly
-              className={`flex-1 border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.inputBg} ${theme.textSecondary} font-mono select-all outline-none`}
+              className={`flex-1 border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.inputBg} ${theme.textSecondary} font-mono select-all outline-none`}
               onClick={(e) => (e.target as HTMLInputElement).select()}
             />
             {isTauri() && (
               <button
                 onClick={handleOpenFolder}
-                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium whitespace-nowrap`}
+                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium whitespace-nowrap`}
               >
                 <Icon name="folder" /> {t.settings_db_open}
               </button>
@@ -350,7 +350,7 @@ export default function Settings() {
               <button
                 onClick={handleChangeDir}
                 disabled={changing}
-                className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium disabled:bg-gray-300"
+                className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium disabled:bg-gray-300"
               >
                 {changing ? t.settings_db_changing : (
                   <>
@@ -360,7 +360,7 @@ export default function Settings() {
               </button>
               <button
                 onClick={handleResetToDefault}
-                className={`${theme.textMuted} hover:opacity-80 px-4 py-2 rounded-xl text-sm transition-colors`}
+                className={`${theme.textMuted} hover:opacity-80 px-4 py-2 rounded-md text-sm transition-colors`}
               >
                 {t.settings_db_reset_default}
               </button>
@@ -377,13 +377,13 @@ export default function Settings() {
             <div className="flex gap-3 mb-2">
               <button
                 onClick={handleBackup}
-                className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium"
+                className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 shadow-sm transition-all text-sm font-medium"
               >
                 <Icon name="save" /> {t.settings_backup_create}
               </button>
               <button
                 onClick={handleRestore}
-                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl hover:border-warning hover:text-warning-text transition-all text-sm font-medium`}
+                className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md hover:border-warning hover:text-warning-text transition-all text-sm font-medium`}
               >
                 <Icon name="download" /> {t.settings_backup_restore}
               </button>
@@ -400,38 +400,38 @@ export default function Settings() {
             {t.settings_danger_zone}
           </h3>
           <div className="space-y-2">
-            <div className={`flex items-center justify-between bg-danger/10 rounded-xl p-3 border border-rose-500/20`}>
+            <div className={`flex items-center justify-between bg-danger/10 rounded-md p-3 border border-rose-500/20`}>
               <div>
                 <div className={`text-sm font-medium ${theme.textPrimary}`}>{t.settings_delete_all_players}</div>
                 <div className="text-xs text-muted">{t.settings_delete_all_players_hint}</div>
               </div>
               <button
                 onClick={() => { setConfirmTarget("players"); setConfirmText(""); }}
-                className={`${theme.cardBg} border border-rose-500/30 text-danger-text px-3 py-1.5 rounded-lg hover:bg-danger/10 transition-all text-xs font-medium whitespace-nowrap ml-3`}
+                className={`${theme.cardBg} border border-rose-500/30 text-danger-text px-3 py-1.5 rounded-sm hover:bg-danger/10 transition-all text-xs font-medium whitespace-nowrap ml-3`}
               >
                 {t.common_delete}
               </button>
             </div>
-            <div className={`flex items-center justify-between bg-danger/10 rounded-xl p-3 border border-rose-500/20`}>
+            <div className={`flex items-center justify-between bg-danger/10 rounded-md p-3 border border-rose-500/20`}>
               <div>
                 <div className={`text-sm font-medium ${theme.textPrimary}`}>{t.settings_delete_all_tournaments}</div>
                 <div className="text-xs text-muted">{t.settings_delete_all_tournaments_hint}</div>
               </div>
               <button
                 onClick={() => { setConfirmTarget("tournaments"); setConfirmText(""); }}
-                className={`${theme.cardBg} border border-rose-500/30 text-danger-text px-3 py-1.5 rounded-lg hover:bg-danger/10 transition-all text-xs font-medium whitespace-nowrap ml-3`}
+                className={`${theme.cardBg} border border-rose-500/30 text-danger-text px-3 py-1.5 rounded-sm hover:bg-danger/10 transition-all text-xs font-medium whitespace-nowrap ml-3`}
               >
                 {t.common_delete}
               </button>
             </div>
-            <div className={`flex items-center justify-between bg-danger/20 rounded-xl p-3 border border-rose-500/30`}>
+            <div className={`flex items-center justify-between bg-danger/20 rounded-md p-3 border border-rose-500/30`}>
               <div>
                 <div className={`text-sm font-medium text-danger-text`}>{t.settings_wipe_database}</div>
                 <div className="text-xs text-danger-text">{t.settings_wipe_database_hint}</div>
               </div>
               <button
                 onClick={() => { setConfirmTarget("wipe"); setConfirmText(""); }}
-                className="bg-danger text-white px-3 py-1.5 rounded-lg hover:bg-danger transition-all text-xs font-medium whitespace-nowrap ml-3"
+                className="bg-danger text-white px-3 py-1.5 rounded-sm hover:bg-danger transition-all text-xs font-medium whitespace-nowrap ml-3"
               >
                 RESET
               </button>
@@ -443,7 +443,7 @@ export default function Settings() {
       {/* Credits */}
       <Section title={t.settings_credits} icon="medal" defaultOpen={false}>
         <div className="space-y-3">
-          <div className={`rounded-xl p-4 border ${theme.cardBorder} ${theme.cardBg}`}>
+          <div className={`rounded-md p-4 border ${theme.cardBorder} ${theme.cardBg}`}>
             <div className={`text-xs font-semibold uppercase tracking-wide ${theme.textMuted} mb-2`}>
               {t.settings_credits_idea_and_dev}
             </div>
@@ -456,7 +456,7 @@ export default function Settings() {
       {/* Confirmation Modal */}
       {confirmTarget && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
+          <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-md p-6 border ${theme.cardBorder}`}>
             <div className="text-center mb-5">
               <div className="text-4xl mb-3"><Icon name="alert" /></div>
               <h3 className={`text-lg font-bold ${theme.textPrimary}`}>{t.settings_confirm_title}</h3>
@@ -476,7 +476,7 @@ export default function Settings() {
                 type="text"
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
-                className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all text-center font-mono tracking-widest`}
+                className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all text-center font-mono tracking-widest`}
                 placeholder={CONFIRM_WORD}
                 autoFocus
               />
@@ -484,14 +484,14 @@ export default function Settings() {
             <div className="flex gap-3">
               <button
                 onClick={() => { setConfirmTarget(null); setConfirmText(""); }}
-                className={`flex-1 ${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium`}
+                className={`flex-1 ${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
               >
                 {t.common_cancel}
               </button>
               <button
                 onClick={handleWipeConfirm}
                 disabled={confirmText !== CONFIRM_WORD || wiping}
-                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger transition-all text-sm font-medium disabled:bg-line-strong disabled:text-muted disabled:cursor-not-allowed"
+                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-md hover:bg-danger transition-all text-sm font-medium disabled:bg-line-strong disabled:text-muted disabled:cursor-not-allowed"
               >
                 {wiping ? (
                   <>

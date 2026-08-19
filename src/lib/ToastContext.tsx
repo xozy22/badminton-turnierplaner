@@ -105,7 +105,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
   const { bg, icon } = palette[toast.kind];
   return (
     <div
-      className={`flex items-center gap-2 ${bg} text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium pointer-events-auto max-w-sm`}
+      className={`flex items-center gap-2 ${bg} text-white px-4 py-3 rounded-md shadow-lg text-sm font-medium pointer-events-auto max-w-sm`}
       role={toast.kind === "error" ? "alert" : "status"}
       aria-live={toast.kind === "error" ? "assertive" : "polite"}
     >

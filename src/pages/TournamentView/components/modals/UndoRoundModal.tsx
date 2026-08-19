@@ -51,7 +51,7 @@ export default function UndoRoundModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className={`${theme.cardBg} rounded-2xl shadow-2xl p-6 max-w-md w-full border ${theme.cardBorder}`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-lg p-6 max-w-md w-full border ${theme.cardBorder}`}>
         <div className="flex items-center gap-3 mb-4">
           <div className="text-3xl"><Icon name="undo" /></div>
           <h3 className={`font-bold text-lg ${theme.textPrimary}`}>
@@ -63,7 +63,7 @@ export default function UndoRoundModal({
           {t.tournament_view_undo_target_label}
         </p>
 
-        <div className={`rounded-xl border-2 ${dangerous ? "border-warning bg-warning-subtle/50 dark:bg-warning-subtle" : `${theme.cardBorder} ${theme.cardBg}`} p-4 mb-4`}>
+        <div className={`rounded-md border-2 ${dangerous ? "border-warning bg-warning-subtle/50 dark:bg-warning-subtle" : `${theme.cardBorder} ${theme.cardBg}`} p-4 mb-4`}>
           <div className={`font-semibold ${theme.textPrimary} mb-2`}>{target.label}</div>
           <ul className={`text-sm space-y-1 ${theme.textSecondary}`}>
             <li>• {t.tournament_view_undo_match_count.replace("{n}", String(target.matchCount))}</li>
@@ -92,7 +92,7 @@ export default function UndoRoundModal({
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
-            className={`px-4 py-2 rounded-xl text-sm ${theme.textSecondary} border ${theme.cardBorder} hover:opacity-80`}
+            className={`px-4 py-2 rounded-md text-sm ${theme.textSecondary} border ${theme.cardBorder} hover:opacity-80`}
           >
             {t.common_cancel}
           </button>
@@ -102,7 +102,7 @@ export default function UndoRoundModal({
               dangerous
                 ? "bg-danger hover:bg-danger"
                 : "bg-warning hover:bg-warning"
-            } text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors`}
+            } text-white px-4 py-2 rounded-md text-sm font-medium transition-colors`}
           >
             {t.tournament_view_undo_confirm}
           </button>

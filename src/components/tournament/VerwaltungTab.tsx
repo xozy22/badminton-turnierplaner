@@ -61,7 +61,7 @@ export default function VerwaltungTab({
   const isFixedTeamModeTop = tournament.mode !== "singles" && formatsWithFixedTeamsTop.includes(tournament.format);
 
   return (
-    <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} overflow-hidden`}>
+    <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
       <div className={`px-5 py-3 border-b ${theme.cardBorder} ${theme.headerGradient} flex justify-between items-center`}>
         <span className={`font-semibold text-sm ${theme.standingsHeaderText}`}>
           {"\u{1F465}"} {t.management_participants.replace("{count}", String(players.length))}
@@ -127,10 +127,10 @@ export default function VerwaltungTab({
                 <button
                   key={ap.id}
                   onClick={() => handleAddPlayer(ap.id)}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm hover:bg-surface-sunken transition-colors text-left"
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-sm text-sm hover:bg-surface-sunken transition-colors text-left"
                 >
                   <span className={theme.textPrimary}>{playerDisplayName(ap)}</span>
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${ap.gender === "m" ? "bg-info-subtle text-blue-500" : "bg-pink-50 text-pink-500"}`}>
+                  <span className={`text-2xs font-medium px-1.5 py-0.5 rounded-full ${ap.gender === "m" ? "bg-info-subtle text-blue-500" : "bg-pink-50 text-pink-500"}`}>
                     {ap.gender === "m" ? t.common_gender_male_short : t.common_gender_female_short}
                   </span>
                 </button>
@@ -150,7 +150,7 @@ export default function VerwaltungTab({
             value={verwaltungSearch}
             onChange={(e) => setVerwaltungSearch(e.target.value)}
             placeholder={t.management_search_placeholder}
-            className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+            className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
           />
           <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}>{"\u{1F50D}"}</span>
           {verwaltungSearch && (
@@ -158,7 +158,7 @@ export default function VerwaltungTab({
           )}
         </div>
         {(tournament.entry_fee_single > 0 || tournament.entry_fee_double > 0) && (
-          <div className={`flex rounded-lg border ${theme.inputBorder} overflow-hidden text-xs`}>
+          <div className={`flex rounded-sm border ${theme.inputBorder} overflow-hidden text-xs`}>
             {([
               { value: "all" as const, label: t.management_filter_all },
               { value: "paid" as const, label: t.management_filter_paid },
@@ -283,10 +283,10 @@ export default function VerwaltungTab({
                           <td className={`px-3 py-2 pl-6 font-medium ${isRetired ? `${theme.textMuted} line-through` : theme.textPrimary}`}>
                             {playerDisplayName(pd.player)}
                             <SeedBadge rank={pd.seed_rank} />
-                            {isRetired && <span className="ml-1.5 text-[10px] text-danger-text no-underline inline-block">{"\u{1F3E5}"}</span>}
+                            {isRetired && <span className="ml-1.5 text-2xs text-danger-text no-underline inline-block">{"\u{1F3E5}"}</span>}
                           </td>
                           <td className="px-2 py-2 text-center">
-                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${pd.player.gender === "m" ? "bg-info-subtle text-blue-500" : "bg-pink-50 text-pink-500"}`}>
+                            <span className={`text-2xs font-medium px-1.5 py-0.5 rounded-full ${pd.player.gender === "m" ? "bg-info-subtle text-blue-500" : "bg-pink-50 text-pink-500"}`}>
                               {pd.player.gender === "m" ? t.common_gender_male_short : t.common_gender_female_short}
                             </span>
                           </td>
@@ -354,7 +354,7 @@ export default function VerwaltungTab({
                                       const updated = await getTournamentPlayersDetailed(tournament.id);
                                       setPaymentData(updated);
                                     }}
-                                    className={`text-xs px-2 py-1 rounded-lg border ${theme.cardBorder} ${theme.textSecondary} hover:border-green-400 hover:text-green-600 transition-all`}
+                                    className={`text-xs px-2 py-1 rounded-sm border ${theme.cardBorder} ${theme.textSecondary} hover:border-green-400 hover:text-green-600 transition-all`}
                                   >
                                     {m === "bar" ? t.payment_cash : m === "ueberweisung" ? t.payment_transfer : t.payment_paypal}
                                   </button>

@@ -57,7 +57,7 @@ export default function SeedingStep({
   const unseededList = [...unseededFromSeedOrder, ...unseededExtra];
 
   return (
-    <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 space-y-5`}>
+    <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5 space-y-5`}>
       <div>
         <h2 className={`font-semibold ${theme.textPrimary} mb-1`}>
           <Icon name="target" /> {t.seeding_title}
@@ -73,11 +73,11 @@ export default function SeedingStep({
           {t.seeding_section_seeded} ({seededList.length})
         </h3>
         {seededList.length === 0 ? (
-          <div className={`rounded-xl border border-dashed ${theme.cardBorder} px-4 py-6 text-center text-sm ${theme.textMuted}`}>
+          <div className={`rounded-md border border-dashed ${theme.cardBorder} px-4 py-6 text-center text-sm ${theme.textMuted}`}>
             {t.seeding_empty_hint}
           </div>
         ) : (
-          <div className={`rounded-xl border ${theme.cardBorder} overflow-hidden`}>
+          <div className={`rounded-md border ${theme.cardBorder} overflow-hidden`}>
             {seededList.map((pid, idx) => {
               const p = players.find((pl) => pl.id === pid);
               if (!p) return null;
@@ -123,7 +123,7 @@ export default function SeedingStep({
                     {playerDisplayName(p)}
                   </span>
                   <span
-                    className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                    className={`text-2xs font-medium px-2 py-0.5 rounded-full ${
                       p.gender === "m"
                         ? "bg-info-subtle text-blue-500"
                         : "bg-pink-50 text-pink-500"
@@ -164,10 +164,10 @@ export default function SeedingStep({
           <h3 className={`text-xs font-semibold uppercase tracking-wide ${theme.textMuted} mb-1`}>
             {t.seeding_section_unseeded} ({unseededList.length})
           </h3>
-          <p className={`text-[11px] ${theme.textMuted} mb-2`}>
+          <p className={`text-2xs ${theme.textMuted} mb-2`}>
             {t.seeding_unseeded_hint}
           </p>
-          <div className={`rounded-xl border ${theme.cardBorder} overflow-hidden opacity-75`}>
+          <div className={`rounded-md border ${theme.cardBorder} overflow-hidden opacity-75`}>
             {unseededList.map((pid, idx) => {
               const p = players.find((pl) => pl.id === pid);
               if (!p) return null;
@@ -189,7 +189,7 @@ export default function SeedingStep({
                     {playerDisplayName(p)}
                   </span>
                   <span
-                    className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                    className={`text-2xs font-medium px-2 py-0.5 rounded-full ${
                       p.gender === "m"
                         ? "bg-info-subtle text-blue-500"
                         : "bg-pink-50 text-pink-500"

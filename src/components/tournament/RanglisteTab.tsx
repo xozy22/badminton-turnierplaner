@@ -29,7 +29,7 @@ export default function RanglisteTab({ standings, theme }: RanglisteTabProps) {
   return (
     <div>
       {/* Normal Standings */}
-      <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} overflow-hidden`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
         <div className={`px-5 py-3 border-b ${theme.cardBorder} ${theme.headerGradient}`}>
           <span className={`font-semibold text-sm ${theme.standingsHeaderText}`}>
             {"\u{1F4CA}"} {t.standings_title}

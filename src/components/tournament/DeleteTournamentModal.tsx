@@ -21,7 +21,7 @@ export default function DeleteTournamentModal({
   const [doConfirm, deleting] = useAsyncAction(onConfirm);
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-md p-6 border ${theme.cardBorder}`}>
         <div className="text-center mb-5">
           <div className="text-4xl mb-3"><Icon name="trash" /></div>
           <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
@@ -39,14 +39,14 @@ export default function DeleteTournamentModal({
           <button
             onClick={onClose}
             disabled={deleting}
-            className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium disabled:opacity-50`}
+            className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium disabled:opacity-50`}
           >
             {t.common_cancel}
           </button>
           <button
             onClick={doConfirm}
             disabled={deleting}
-            className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger shadow-sm transition-all text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex-1 bg-danger text-white px-4 py-2.5 rounded-md hover:bg-danger shadow-sm transition-all text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {deleting ? (
             <>

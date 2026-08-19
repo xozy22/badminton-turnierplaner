@@ -38,7 +38,7 @@ function ClubInput({ value, onChange, onKeyDown, className, placeholder, clubs }
         autoComplete="off"
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-surface-raised border border-line-strong dark:border-line-strong rounded-xl shadow-lg max-h-40 overflow-y-auto">
+        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-surface-raised border border-line-strong dark:border-line-strong rounded-md shadow-lg max-h-40 overflow-y-auto">
           {filtered.slice(0, 8).map(c => (
             <button
               key={c}
@@ -322,13 +322,13 @@ export default function Players() {
           <button
             onClick={handleExport}
             disabled={players.length === 0}
-            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed`}
+            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             <Icon name="upload" /> {t.common_export}
           </button>
           <button
             onClick={() => setShowImport(true)}
-            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium`}
+            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium`}
           >
             <Icon name="download" /> {t.common_import}
           </button>
@@ -340,7 +340,7 @@ export default function Players() {
       )}
 
       {/* Add Player */}
-      <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 mb-6`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5 mb-6`}>
         <h2 className={`font-semibold ${theme.textPrimary} mb-3`}>{t.players_new_player}</h2>
         <div className="flex gap-3 items-end">
           <div className="flex-1">
@@ -354,7 +354,7 @@ export default function Players() {
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
               required
               maxLength={60}
-              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               placeholder={t.players_first_name_placeholder}
             />
           </div>
@@ -368,7 +368,7 @@ export default function Players() {
               onChange={(e) => setLastName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
               maxLength={60}
-              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               placeholder={t.players_last_name_placeholder}
             />
           </div>
@@ -379,7 +379,7 @@ export default function Players() {
             <select
               value={gender}
               onChange={(e) => setGender(e.target.value as Gender)}
-              className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
             >
               <option value="m">{t.common_gender_male}</option>
               <option value="f">{t.common_gender_female}</option>
@@ -394,7 +394,7 @@ export default function Players() {
               value={birthDate}
               onChange={(e) => setBirthDate(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              className={`w-40 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-40 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               min="1900-01-01"
               max={new Date().toISOString().split("T")[0]}
             />
@@ -407,7 +407,7 @@ export default function Players() {
               value={club}
               onChange={setClub}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               placeholder={t.players_club_placeholder}
               clubs={existingClubs}
             />
@@ -415,7 +415,7 @@ export default function Players() {
           <button
             onClick={handleAdd}
             disabled={!canAddPlayer}
-            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none`}
+            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none`}
           >
             {t.common_add}
           </button>
@@ -423,7 +423,7 @@ export default function Players() {
       </div>
 
       {/* Filter + Actions Bar */}
-      <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} overflow-hidden`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
         <div className={`px-5 py-3 border-b ${theme.cardBorder} flex items-center gap-3 flex-wrap`}>
           {/* Search */}
           <div className="relative flex-1 min-w-[180px]">
@@ -432,7 +432,7 @@ export default function Players() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t.players_search_placeholder}
-              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
             />
             <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}><Icon name="search" /></span>
             {search && (
@@ -444,7 +444,7 @@ export default function Players() {
           </div>
 
           {/* Gender Filter */}
-          <div className={`flex rounded-lg border ${theme.inputBorder} overflow-hidden text-xs`}>
+          <div className={`flex rounded-sm border ${theme.inputBorder} overflow-hidden text-xs`}>
             {([
               { value: "all" as GenderFilter, label: t.players_filter_all },
               { value: "m" as GenderFilter, label: t.players_filter_men },
@@ -472,7 +472,7 @@ export default function Players() {
               </span>
               <button
                 onClick={handleDeleteSelected}
-                className="bg-danger/10 text-danger-text border border-rose-500/20 px-3 py-1.5 rounded-lg hover:bg-danger/20 transition-all text-xs font-medium"
+                className="bg-danger/10 text-danger-text border border-rose-500/20 px-3 py-1.5 rounded-sm hover:bg-danger/20 transition-all text-xs font-medium"
               >
                 <Icon name="trash" /> {t.players_delete_selected}
               </button>
@@ -573,7 +573,7 @@ export default function Players() {
                           value={editFirstName}
                           onChange={(e) => setEditFirstName(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
                           autoFocus
                         />
                       ) : (
@@ -587,7 +587,7 @@ export default function Players() {
                           value={editLastName}
                           onChange={(e) => setEditLastName(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
                         />
                       ) : (
                         p.last_name
@@ -598,7 +598,7 @@ export default function Players() {
                         <select
                           value={editGender}
                           onChange={(e) => setEditGender(e.target.value as Gender)}
-                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm`}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-1.5 text-sm`}
                         >
                           <option value="m">{t.common_gender_male}</option>
                           <option value="f">{t.common_gender_female}</option>
@@ -621,7 +621,7 @@ export default function Players() {
                           type="date"
                           value={editBirthDate}
                           onChange={(e) => setEditBirthDate(e.target.value)}
-                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-2 py-1.5 text-sm w-36 text-center`}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-2 py-1.5 text-sm w-36 text-center`}
                           max={new Date().toISOString().split("T")[0]}
                         />
                       ) : (
@@ -639,7 +639,7 @@ export default function Players() {
                         <ClubInput
                           value={editClub}
                           onChange={setEditClub}
-                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full`}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-1.5 text-sm w-full`}
                           placeholder={t.players_club_placeholder}
                           clubs={existingClubs}
                         />
@@ -711,7 +711,7 @@ export default function Players() {
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
+          <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-md p-6 border ${theme.cardBorder}`}>
             <div className="text-center mb-5">
               <div className="text-4xl mb-3"><Icon name="alert" /></div>
               <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
@@ -748,13 +748,13 @@ export default function Players() {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className={`flex-1 ${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium`}
+                className={`flex-1 ${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
               >
                 {t.common_cancel}
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-xl hover:bg-danger transition-all text-sm font-medium"
+                className="flex-1 bg-danger text-white px-4 py-2.5 rounded-md hover:bg-danger transition-all text-sm font-medium"
               >
                 {deleteTarget.ids.length === 1 ? t.common_delete : t.players_delete_confirm_multi.replace("{count}", String(deleteTarget.ids.length))}
               </button>

@@ -279,7 +279,7 @@ export default function SessionDashboard() {
                         <div
                           key={courtNum}
                           onClick={m ? () => handleCourtClick(m) : undefined}
-                          className={`rounded-2xl border p-3 transition-all ${
+                          className={`rounded-lg border p-3 transition-all ${
                             free
                               ? `${theme.cardBg} ${theme.inputBorder} text-center`
                               : `${theme.cardBg} ${theme.cardHoverBorder} cursor-pointer shadow-sm hover:shadow`
@@ -299,7 +299,7 @@ export default function SessionDashboard() {
                             </p>
                           ) : (
                             <>
-                              <p className={`text-[10px] uppercase tracking-wide ${theme.textMuted} truncate`}>
+                              <p className={`text-2xs uppercase tracking-wide ${theme.textMuted} truncate`}>
                                 {m.tournament_name}
                               </p>
                               <p className={`text-xs font-medium ${theme.textPrimary} mt-0.5 leading-tight`}>
@@ -326,7 +326,7 @@ export default function SessionDashboard() {
             <div className="flex flex-wrap gap-1.5">
               <button
                 onClick={() => setTournamentFilter("all")}
-                className={`px-3 py-1 rounded-lg text-xs font-medium border transition-all ${
+                className={`px-3 py-1 rounded-sm text-xs font-medium border transition-all ${
                   tournamentFilter === "all"
                     ? `${theme.primaryBg} ${theme.primaryText} border-transparent`
                     : `${theme.cardBg} ${theme.textSecondary} ${theme.inputBorder} ${theme.cardHoverBorder}`
@@ -338,7 +338,7 @@ export default function SessionDashboard() {
                 <button
                   key={tt.id}
                   onClick={() => setTournamentFilter(tt.id)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium border transition-all ${
+                  className={`px-3 py-1 rounded-sm text-xs font-medium border transition-all ${
                     tournamentFilter === tt.id
                       ? `${theme.primaryBg} ${theme.primaryText} border-transparent`
                       : `${theme.cardBg} ${theme.textSecondary} ${theme.inputBorder} ${theme.cardHoverBorder}`
@@ -362,7 +362,7 @@ export default function SessionDashboard() {
                 return (
                   <div
                     key={tid}
-                    className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} p-3`}
+                    className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} p-3`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h3 className={`font-semibold text-sm ${theme.textPrimary}`}>
@@ -377,7 +377,7 @@ export default function SessionDashboard() {
                         <button
                           key={m.id}
                           onClick={() => handleQueueClick(m)}
-                          className={`text-left text-xs px-3 py-2 border ${theme.inputBorder} rounded-lg ${theme.cardHoverBorder} transition-all`}
+                          className={`text-left text-xs px-3 py-2 border ${theme.inputBorder} rounded-sm ${theme.cardHoverBorder} transition-all`}
                           title={t.session_dashboard_jump_to_tournament}
                         >
                           <p className={`${theme.textPrimary} truncate`}>
@@ -411,14 +411,14 @@ export default function SessionDashboard() {
               {t.session_dashboard_no_recent}
             </p>
           ) : (
-            <div className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} divide-y ${theme.inputBorder}`}>
+            <div className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} divide-y ${theme.inputBorder}`}>
               {recent.map((m) => (
                 <button
                   key={m.id}
                   onClick={() => handleQueueClick(m)}
                   className={`w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-surface-sunken transition-colors`}
                 >
-                  <span className={`text-[10px] uppercase tracking-wide ${theme.textMuted} shrink-0`}>
+                  <span className={`text-2xs uppercase tracking-wide ${theme.textMuted} shrink-0`}>
                     {m.tournament_name}
                   </span>
                   <span className={`text-xs ${theme.textPrimary} flex-1 truncate`}>

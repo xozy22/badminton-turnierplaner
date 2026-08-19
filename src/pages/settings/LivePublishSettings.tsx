@@ -124,7 +124,7 @@ export function LivePublishSettings() {
           value={config.endpoint}
           onChange={(e) => setConfig({ ...config, endpoint: e.target.value })}
           placeholder={t.settings_live_publish_url_placeholder}
-          className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-3 py-2 text-sm font-mono ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+          className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-3 py-2 text-sm font-mono ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
         />
       </div>
 
@@ -139,12 +139,12 @@ export function LivePublishSettings() {
             value={config.secret}
             onChange={(e) => setConfig({ ...config, secret: e.target.value })}
             placeholder={t.settings_live_publish_secret_placeholder}
-            className={`flex-1 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-3 py-2 text-sm font-mono ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+            className={`flex-1 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-3 py-2 text-sm font-mono ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
           />
           <button
             type="button"
             onClick={() => setShowSecret(!showSecret)}
-            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-3 py-2 rounded-xl hover:opacity-80 transition-all text-xs font-medium`}
+            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-3 py-2 rounded-md hover:opacity-80 transition-all text-xs font-medium`}
           >
             <Icon name={showSecret ? "eyeOff" : "eye"} />
           </button>
@@ -156,7 +156,7 @@ export function LivePublishSettings() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className={`${theme.primaryBg} text-white px-4 py-2 rounded-xl ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium disabled:opacity-50`}
+          className={`${theme.primaryBg} text-white px-4 py-2 rounded-md ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium disabled:opacity-50`}
         >
           {saving ? (
                 <>
@@ -169,7 +169,7 @@ export function LivePublishSettings() {
         <button
           onClick={handleTest}
           disabled={testing || !config.endpoint || !config.secret}
-          className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl hover:opacity-80 transition-all text-sm font-medium disabled:opacity-50`}
+          className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md hover:opacity-80 transition-all text-sm font-medium disabled:opacity-50`}
         >
           {testing ? `⏳ ${t.common_loading}` : `🔌 ${t.settings_live_publish_test}`}
         </button>
@@ -279,7 +279,7 @@ export function PushLogPanel() {
         {entries.length > 0 && (
           <button
             onClick={handleClear}
-            className={`text-[11px] ${theme.textMuted} hover:text-danger-text transition-colors`}
+            className={`text-2xs ${theme.textMuted} hover:text-danger-text transition-colors`}
           >
             {t.settings_live_publish_log_clear}
           </button>
@@ -291,8 +291,8 @@ export function PushLogPanel() {
         </div>
       ) : (
         <>
-          <div className={`${theme.cardBg} rounded-xl border ${theme.cardBorder} overflow-hidden`}>
-            <table className="w-full text-[11px]">
+          <div className={`${theme.cardBg} rounded-md border ${theme.cardBorder} overflow-hidden`}>
+            <table className="w-full text-2xs">
               <thead>
                 <tr className={`border-b ${theme.cardBorder}`}>
                   <th scope="col" className={`px-2 py-1.5 text-left font-medium ${theme.textMuted} uppercase tracking-wide`}>Zeit</th>
@@ -334,7 +334,7 @@ export function PushLogPanel() {
           {entries.length > 10 && (
             <button
               onClick={() => setShowAll(!showAll)}
-              className={`mt-2 text-[11px] ${theme.textMuted} hover:opacity-80`}
+              className={`mt-2 text-2xs ${theme.textMuted} hover:opacity-80`}
             >
               {showAll
                 ? t.settings_live_publish_log_collapse
