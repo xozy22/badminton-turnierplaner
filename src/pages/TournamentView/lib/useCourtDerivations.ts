@@ -23,6 +23,7 @@ import {
 import { engineFor } from "../../../lib/formats";
 import type { useSessionContext } from "../../../lib/sessionContext";
 import type {
+  GameSet,
   Match,
   Round,
   Tournament,
@@ -34,6 +35,7 @@ interface Args {
   rounds: Round[];
   allMatches: Match[];
   matchesByRound: Map<number, Match[]>;
+  setsByMatch: Map<number, GameSet[]>;
   paymentData: TournamentPlayerInfo[];
   activeRound: number | null;
   showAllGroups: boolean;
@@ -45,6 +47,7 @@ export function useCourtDerivations({
   rounds,
   allMatches,
   matchesByRound,
+  setsByMatch,
   paymentData,
   activeRound,
   showAllGroups,
@@ -181,7 +184,29 @@ export function useCourtDerivations({
       .map((r) => ({ round: r, matches: matchesByRound.get(r.id) || [] }))
       .filter(({ matches }) => matches.some((m) => !m.court && m.status !== "completed"));
   }, [activeRound, showAllGroups, rounds, matchesByRound]);
+  /**
+   * Everything the groups tab needs for one group: its matches, their
+   * sets, and who played in them.
+   */
+  const getGroupData = (groupNum: number) => {
+    const gRounds = rounds.filter((r) => r.phase === "group" && r.group_number === groupNum);
+    const gMatches: Match[] = [];
+    const gSets = new Map<number, GameSet[]>();
+    for (const r of gRounds) {
+      const ms = matchesByRound.get(r.id) || [];
+      gMatches.push(...ms);
+      for (const m of ms) gSets.set(m.id, setsByMatch.get(m.id) || []);
+    }
+    const pIds = new Set<number>();
+    for (const m of gMatches) {
+      pIds.add(m.team1_p1); if (m.team1_p2) pIds.add(m.team1_p2);
+      if (m.team2_p1) pIds.add(m.team2_p1); if (m.team2_p2) pIds.add(m.team2_p2);
+    }
+    return { gMatches, gSets, pIds };
+  };
+
   return {
+    getGroupData,
     globalOccupiedCourts,
     runningPlayerCourts,
     conflictedMatches,

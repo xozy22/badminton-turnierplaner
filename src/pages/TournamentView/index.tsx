@@ -5,10 +5,6 @@ import { useParams, useLocation, useNavigate } from "react-router-dom";
 import NextStepBar from "../../components/tournament/NextStepBar";
 import { LoadingState, NotFoundState } from "../../components/ui/States";
 import { useTheme } from "../../lib/ThemeContext";
-import type {
-  Match,
-  GameSet,
-} from "../../lib/types";
 import { playerDisplayName } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
 import { useToast } from "../../lib/ToastContext";
@@ -269,30 +265,13 @@ export default function TournamentView() {
    * the UI. The draw itself no longer needs this; the group_ko engine has
    * its own copy of the logic (REVIEW-BACKLOG.md D2).
    */
-  const getGroupData = (groupNum: number) => {
-    const gRounds = rounds.filter((r) => r.phase === "group" && r.group_number === groupNum);
-    const gMatches: Match[] = [];
-    const gSets = new Map<number, GameSet[]>();
-    for (const r of gRounds) {
-      const ms = matchesByRound.get(r.id) || [];
-      gMatches.push(...ms);
-      for (const m of ms) gSets.set(m.id, setsByMatch.get(m.id) || []);
-    }
-    const pIds = new Set<number>();
-    for (const m of gMatches) {
-      pIds.add(m.team1_p1); if (m.team1_p2) pIds.add(m.team1_p2);
-      if (m.team2_p1) pIds.add(m.team2_p1); if (m.team2_p2) pIds.add(m.team2_p2);
-    }
-    return { gMatches, gSets, pIds };
-  };
-
-
   // What the court view works out from the match list (REVIEW-BACKLOG.md D1).
   const derived = useCourtDerivations({
     tournament,
     rounds,
     allMatches,
     matchesByRound,
+    setsByMatch,
     paymentData,
     activeRound,
     showAllGroups,
@@ -599,7 +578,7 @@ export default function TournamentView() {
         winnersRounds={winnersRounds}
         losersRounds={losersRounds}
         derived={derived}
-        getGroupData={getGroupData}
+        getGroupData={derived.getGroupData}
         playerName={playerName}
         onAddPlayer={handleAddPlayer}
         onRemovePlayer={handleRemovePlayer}

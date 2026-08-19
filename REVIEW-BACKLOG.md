@@ -402,32 +402,46 @@ Trennzeichen ist das Semikolon und die Datei beginnt mit einem BOM, damit Excel 
 
 # D · Architektur & Code-Qualität
 
-### [~] D1 — `TournamentView/index.tsx` ist mit 3052 Zeilen unwartbar — **verkleinert; das 600-Zeilen-Ziel bleibt offen**
-**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/pages/TournamentView/index.tsx`
+### [~] D1 — `TournamentView/index.tsx` ist mit 3052 Zeilen unwartbar — **Turnieransicht erledigt, andere Dateien offen**
+**Schwere:** hoch · **Aufwand:** L · **Dateien:** `src/pages/TournamentView/` (dreizehn Dateien)
 
-**Problem:** Eine Datei mit 3052 Zeilen, die Zustand, Datenzugriff, Formatlogik, Drag-and-drop und das gesamte Markup vereint.
+**3052 → 589 Zeilen.** Die Datei ist jetzt: Importe, ein Dutzend Hook-Aufrufe, eine Handvoll kleiner Ableitungen, und das Markup, das sieben Komponenten zusammensetzt.
 
-**Umgesetzt:** Die Formatlogik ist nach `src/lib/formats/` gewandert (D2), die Ergebnis-Ausgabe nach `lib/resultExport.ts`, die Validierung nach `lib/tournamentValidation.ts`, die Rücknahme-Vorschau nach `lib/undoTarget.ts`, sechs Dialoge in eigene Dateien. **3052 → 2499 Zeilen.**
+**Warum es zuerst nicht ging.** Ich hatte gemessen und aufgehört: der Spiele-Tab hätte als Komponente rund 35 Props gebraucht, die bestehenden Tab-Komponenten liegen bei 16. Die Diagnose war richtig — die Schlussfolgerung war es nicht. Die Prop-Zahl war kein Naturgesetz, sondern die Folge davon, dass vierzig Einzelwerte lose herumlagen. **Erst bündeln, dann schneiden**: Als die Dialogschalter zu einem `dialogs`-Objekt wurden, fielen die Dialoge von 42 auf 16 Props; als die Match-Handler und die abgeleiteten Feldwerte je ein Objekt wurden, fiel der Spiele-Tab von 38 auf 25.
 
-**Warum ich hier anhalte.** Ich habe den nächsten Schnitt gemessen, statt ihn zu schätzen. Der Spiele-Tab ist mit 288 Zeilen der größte zusammenhängende Markup-Block und wäre der naheliegende Kandidat — als Komponente bräuchte er rund **35 Props**. Die bestehenden Tab-Komponenten dieses Projekts liegen bei 16. Dasselbe beim Dialog-Block: 145 Zeilen, gut 25 Props.
+**Sieben Hooks** (`lib/`), die den Zustand halten, statt ihn durchzureichen:
 
-Das ist kein Zufall, sondern die Diagnose: Die Datei ist nicht deshalb lang, weil Markup darin steht, sondern weil **ein Zustandsraum von rund vierzig Werten** von fast jedem Teil des Markups berührt wird. Ihn durch Prop-Listen zu fädeln macht die Sache schlechter — dieselbe Kopplung, nur über Dateigrenzen verteilt und damit schwerer zu übersehen.
+| Hook | Was er hält |
+|------|-------------|
+| `useTournamentData` | alles Geladene, plus `loadAll` und `refreshScores` |
+| `useTournamentDialogs` | welcher Dialog offen ist — vierzehn Schalter |
+| `useMatchActions` | Ergebnis eintragen, Feld zuweisen, wiedereröffnen |
+| `useCourtDerivations` | was sich aus der Spielliste ergibt |
+| `useRosterActions` | Teilnehmer, Aufgaben und deren Rücknahme |
+| `useFormatControl` | Auslosung starten, nächste Runde ziehen |
+| `useLiveControls`, `useUndoRound`, `useTournamentActions` | Live-Steuerung, Rundenrücknahme, Turnieraktionen |
 
-**Was es tatsächlich bräuchte:** einen `TournamentViewContext` (oder einen Reducer), der den Zustand hält, damit Abschnittskomponenten sich nehmen, was sie brauchen, statt es gereicht zu bekommen. Das ist ein eigenes Vorhaben — und es trifft die Kernansicht, an der während eines laufenden Turniers alles hängt. Ein solcher Umbau gehört zwischen zwei Turniere gelegt und nicht ans Ende einer Sitzung.
+**Sechs Komponenten** (`components/`): `SessionBar`, `TournamentHeader`, `TournamentModals`, `DraftPanel`, `MatchesTab`, `SecondaryTabs`.
 
-**Die anderen Dateien über 600 Zeilen**, gemessen zum Schluss:
+**Zwei Dinge, die dabei auffielen:**
 
-| Datei | Zeilen | Einschätzung |
-|-------|--------|--------------|
-| `TournamentView/index.tsx` | 2499 | s. o. |
-| `db.ts` | 1837 | Datenzugriff, eine Funktion je Abfrage — aufteilbar nach Tabelle |
-| `TournamentCreate.tsx` | 1565 | Assistent mit Schritten; dieselbe Diagnose wie D1 |
+- **Der React Compiler hatte vier Memos aufgegeben.** Deklariert war `[tournament?.session_id, tournament?.id]`, abgeleitet `tournament` — enger als der Compiler schließen kann, also optimierte er die ganze Komponente nicht. Auf `tournament` geweitet; ein geändertes Turnier ist ohnehin ein Grund, neu zu rechnen.
+- **`futureRoundQueues={futureRoundQueues}`** hat dasselbe Wort zweimal mit verschiedener Bedeutung. Links steht der Attributname der Kindkomponente, rechts der übergebene Wert; nur rechts darf umbenannt werden. Der erste Versuch traf beide und erzeugte einen Syntaxfehler — die gute Sorte Fehlschlag.
+
+**Jeder Schritt in der laufenden Anwendung geprüft**, nicht nur übersetzt: Ergebnis eintragen und das automatische Ausfüllen beobachten, Feldsperren im Auswahlfeld, den Datenschutzhinweis beim Live-Schalten, drei Dialoge öffnen, alle Tabs durchgehen. Einmal schien die Auslosung nicht mehr zu laufen — ich habe die Änderung weggelegt und denselben Ablauf gegen den vorigen Commit geprüft: gleiches Ergebnis, also keine Regression, sondern unbrauchbare Testdaten meinerseits.
+
+**Was offen bleibt:** Andere Dateien über 600 Zeilen. Nach Art unterschiedlich:
+
+| Datei | Zeilen | Art |
+|-------|--------|-----|
+| `db.ts` | 1837 | Datenzugriff, eine Funktion je Abfrage — nach Tabelle teilbar |
+| `TournamentCreate.tsx` | 1559 | derselbe Fall wie die Turnieransicht, dasselbe Rezept |
 | `lib.rs` | 1443 | zur Hälfte die Migrationskette — eine Tabelle, keine Logik |
 | `i18n/*.ts` | je ~1000 | Übersetzungstabellen, Länge ohne Belang |
-| `draw.ts`, `scoring.ts` | 970 / 785 | Algorithmen mit hoher Testabdeckung; teilbar, aber kein Schmerzpunkt |
-| `TvMode.tsx`, `Players.tsx`, `ExcelImport.tsx`, `Sportstaetten.tsx` | 742–915 | knapp darüber, jeweils ein Zustandsraum wie oben |
+| `draw.ts`, `scoring.ts` | 970 / 785 | Algorithmen, hohe Testabdeckung, kein Schmerzpunkt |
+| `TvMode.tsx`, `Players.tsx`, `ExcelImport.tsx`, `Sportstaetten.tsx` | 742–915 | knapp darüber, je ein Zustandsraum wie oben |
 
-**Fertig wenn:** Keine Ansichts- oder Logikdatei über 600 Zeilen; jede Hook-Datei einzeln testbar. — **Nicht erfüllt.** Der Rest des Backlogs ist es.
+**Fertig wenn:** ~~Keine Ansichts- oder Logikdatei über 600 Zeilen~~ — für die Turnieransicht erfüllt, für die übrigen offen. Das Rezept steht jetzt fest und ist auf `TournamentCreate.tsx` übertragbar.
 
 ---
 
