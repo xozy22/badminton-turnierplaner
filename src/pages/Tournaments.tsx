@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { EmptyState } from "../components/ui/States";
 import Icon from "../components/ui/Icon";
 import { Link, useNavigate } from "react-router-dom";
 import { getTournaments, deleteTournament, updateTournamentStatus, createTournament, createPlayer, getPlayers, addPlayerToTournament, updateTeamConfig, updateHallConfig, isTauri, getSportstaetten, createSportstaette, updateTournamentVenueId } from "../lib/db";
@@ -505,10 +506,11 @@ export default function Tournaments() {
 
       {/* Active Tournaments */}
       {activeTournaments.length === 0 && !showArchive ? (
-        <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-12 text-center`}>
-          <div className="text-4xl mb-3" aria-hidden="true">🏸</div>
-          <div className="text-muted">{t.tournaments_none_yet}</div>
-        </div>
+        <EmptyState
+          icon="trophy"
+          title={t.tournaments_none_yet}
+          hint={t.tournaments_empty_hint}
+        />
       ) : (
         <div className="space-y-3">
           {activeTournaments.map((tr) => renderTournamentCard(tr, false))}

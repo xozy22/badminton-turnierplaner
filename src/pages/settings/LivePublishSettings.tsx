@@ -4,6 +4,7 @@
 // Extracted from the 1483-line Settings page (REVIEW-BACKLOG.md D5).
 
 import { useEffect, useState } from "react";
+import { LoadingState } from "../../components/ui/States";
 import Icon from "../../components/ui/Icon";
 import { usePolling } from "../../lib/usePolling";
 import { getAppSetting, setAppSetting } from "../../lib/db";
@@ -98,7 +99,7 @@ export function LivePublishSettings() {
   };
 
   if (!loaded) {
-    return <div className={`text-sm ${theme.textMuted}`}>{t.common_loading}</div>;
+    return <LoadingState rows={2} />;
   }
 
   // Aggregate per-tournament status badges.
@@ -171,7 +172,15 @@ export function LivePublishSettings() {
           disabled={testing || !config.endpoint || !config.secret}
           className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md hover:opacity-80 transition-all text-sm font-medium disabled:opacity-50`}
         >
-          {testing ? `⏳ ${t.common_loading}` : `🔌 ${t.settings_live_publish_test}`}
+          {testing ? (
+            <>
+              <Icon name="hourglass" /> {t.common_loading}
+            </>
+          ) : (
+            <>
+              <Icon name="plug" /> {t.settings_live_publish_test}
+            </>
+          )}
         </button>
       </div>
 

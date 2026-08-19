@@ -106,6 +106,8 @@ export const en: Translations = {
   players_clear_selection: "Clear selection",
   players_shown_of_total: "{shown} of {total} players shown",
   players_select_all: "Select all",
+  players_empty_hint: "Add them above, or import a list from Excel.",
+  tournaments_empty_hint: "Create one to draw a schedule and record results.",
   players_none_yet: "No players yet.",
   players_no_filter_results: "No players found for this filter.",
   players_delete_confirm_single: "Delete player?",

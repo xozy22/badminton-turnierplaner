@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { LoadingState } from "../components/ui/States";
 import Icon from "../components/ui/Icon";
 import { getTournaments, getPlayers, getAllMatchesWithTournament, getAllSetsFlat } from "../lib/db";
 import { calculateTournamentStats, calculateMatchStats, calculateCourtStats, calculatePlayerDemographics, calculatePlayerRankings } from "../lib/stats";
@@ -80,7 +81,7 @@ export default function Statistics() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className={`text-lg ${theme.textSecondary}`}>{t.common_loading}...</div>
+        <LoadingState rows={4} />
       </div>
     );
   }

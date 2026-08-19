@@ -126,6 +126,8 @@ export const de: Translations = {
   tournaments_archive_button: "Archivieren",
   tournaments_unarchive: "Wiederherstellen",
   tournaments_new: "Neues Turnier",
+  players_empty_hint: "Oben hinzufügen oder eine Liste aus Excel einlesen.",
+  tournaments_empty_hint: "Eines anlegen, um einen Spielplan auszulosen und Ergebnisse einzutragen.",
   tournaments_none_yet: "Noch keine Turniere vorhanden.",
   tournaments_delete_title: "Turnier löschen?",
   tournaments_delete_message: "\"{name}\" wird mit allen Runden, Spielen und Ergebnissen unwiderruflich gelöscht.",

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { LoadingState } from "../components/ui/States";
 import Icon, { type IconName } from "../components/ui/Icon";
 import { loadSettings, saveSettings, syncSettingsFromDb, type AppSettings } from "../lib/appSettings";
 import { wipeAllPlayers, wipeAllTournaments, wipeEntireDatabase, isTauri } from "../lib/db";
@@ -224,7 +225,7 @@ export default function Settings() {
 
   const CONFIRM_WORD = confirmTarget === "players" ? t.settings_confirm_word_players : confirmTarget === "wipe" ? t.settings_confirm_word_wipe : t.settings_confirm_word_tournaments;
 
-  if (loading) return <div>{t.common_loading}</div>;
+  if (loading) return <div className="p-6"><LoadingState rows={3} /></div>;
 
   return (
     <div>

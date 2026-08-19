@@ -15,6 +15,7 @@
 // /sessions/:id/live route, parallel to /tv/:id).
 
 import { useEffect, useMemo, useState } from "react";
+import { LoadingState } from "../components/ui/States";
 import Icon from "../components/ui/Icon";
 import { formatDateTime } from "../lib/datetime";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -188,7 +189,7 @@ export default function SessionDashboard() {
   if (!session) {
     return (
       <div className={`min-h-screen ${theme.cardBg} flex items-center justify-center`}>
-        <p className={theme.textSecondary}>{t.common_loading}</p>
+        <LoadingState rows={3} />
       </div>
     );
   }

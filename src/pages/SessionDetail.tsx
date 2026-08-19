@@ -8,6 +8,7 @@
 // /sessions/:id/live (SessionDashboard).
 
 import { useEffect, useMemo, useState } from "react";
+import { LoadingState } from "../components/ui/States";
 import Icon from "../components/ui/Icon";
 import { formatDateTime } from "../lib/datetime";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -205,7 +206,7 @@ export default function SessionDetail() {
   if (loading || !session) {
     return (
       <div className={`${theme.textSecondary} text-center py-10`}>
-        {t.common_loading}
+        <LoadingState rows={3} />
       </div>
     );
   }

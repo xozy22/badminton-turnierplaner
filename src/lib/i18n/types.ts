@@ -104,6 +104,8 @@ export interface Translations {
   players_clear_selection: string;
   players_shown_of_total: string;
   players_select_all: string;
+  players_empty_hint: string;
+  tournaments_empty_hint: string;
   players_none_yet: string;
   players_no_filter_results: string;
   players_delete_confirm_single: string;

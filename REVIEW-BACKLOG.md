@@ -17,8 +17,7 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — C-Reihe erledigt, D1/D2/D5 teilweise | Basis für alles Weitere |
 | | offen: Ansichten in Komponenten zerlegen (D1), Anzeige-Eigenschaften in die Format-Engines (D2), Datenbankverwaltung aus den Einstellungen lösen (D5) | |
 | **4** ✅ | E1–E4 (Performance) — erledigt; E5 von 145 auf 64 KB (Ziel 60) | Schnelle Gewinne |
-| **5** ⏳ | F1–F10, G1–G5 — vierzehn von fünfzehn erledigt | Das „komplett überarbeitet"-Gefühl |
-| | offen: F7 — die Lade-/Leerzustands-Bausteine stehen, die übrigen Seiten nutzen sie noch nicht | |
+| **5** ✅ | F1–F10, G1–G5 (Design & Barrierefreiheit) — erledigt | Das „komplett überarbeitet"-Gefühl |
 | **6** | H1 ✅, H2–H5, I1–I5, J3–J6 | Politur & Sicherheit |
 
 ---
@@ -694,18 +693,20 @@ Das Feldmenü gab es bereits; es war nur per Doppelklick erreichbar. Es ist jetz
 
 ---
 
-### [~] F7 — Lade- und Leerzustände uneinheitlich — **Bausteine da, Turnieransicht umgestellt**
-**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/components/ui/States.tsx` (neu), `src/pages/TournamentView/index.tsx`
+### [x] F7 — Lade- und Leerzustände uneinheitlich — **erledigt**
+**Schwere:** niedrig · **Aufwand:** S · **Dateien:** `src/components/ui/States.tsx` (neu), sieben Seiten
 
 **Problem:** Ladezustände waren meist ein unformatiertes „Wird geladen…" ohne Layout — die Seite sprang beim Eintreffen der Daten. Leerzustände waren je Seite unterschiedlich gestaltet, teils fehlten sie.
 
 **Umgesetzt:** `States.tsx` bringt drei Bausteine: `LoadingState` mit Platzhalterzeilen, die die Höhe des kommenden Inhalts einnehmen (versetzt eingeblendet — eine einzelne pulsierende Fläche liest sich wie ein Fehler, eine Folge wie Fortschritt), `EmptyState` mit Symbol, Titel, erklärendem Satz und Handlungsaufforderung, und `NotFoundState`.
 
-**Ein Fehler, den das aufdeckte:** Die Turnieransicht unterschied nicht zwischen „lädt noch" und „gibt es nicht". Eine veraltete Turnier-ID ließ sie **endlos** „Wird geladen" anzeigen, ohne Ausweg. Sie merkt sich jetzt, wenn das Turnier nicht gelesen werden konnte, und zeigt eine Meldung mit Rückweg zur Turnierliste — im Browser gegengeprüft.
+Eingesetzt in Turnieransicht, Spielern, Turnieren, Statistik, Session-Dashboard, Session-Detail, Einstellungen und Live-Veröffentlichung. Die Leerzustände nennen jetzt den Weg heraus statt nur festzustellen, dass nichts da ist.
 
-**Was fehlt:** Die übrigen Seiten nutzen die Bausteine noch nicht; dort steht weiterhin die nackte Textzeile. Mechanische Arbeit, aber Seite für Seite.
+**Ein Fehler, den das aufdeckte:** Die Turnieransicht unterschied nicht zwischen „lädt noch" und „gibt es nicht". Eine veraltete Turnier-ID ließ sie **endlos** „Wird geladen" anzeigen, ohne Ausweg. Sie merkt sich jetzt einen fehlgeschlagenen Zugriff und zeigt eine Meldung mit Rückweg — an `/tournaments/999` gegengeprüft.
 
-**Fertig wenn:** Jede Seite hat einen definierten Lade- und Leerzustand ohne Layoutsprung.
+**Bewusst unverändert:** Der TV-Modus behält seine schlichte Textzeile. Platzhalterflächen auf einem Beamer sind für Zuschauer, die auf Ergebnisse warten, eher irritierend als hilfreich.
+
+**Fertig wenn:** ~~Jede Seite hat einen definierten Lade- und Leerzustand ohne Layoutsprung~~ — erfüllt.
 
 ---
 

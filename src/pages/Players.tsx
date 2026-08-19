@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { EmptyState } from "../components/ui/States";
 import Icon from "../components/ui/Icon";
 import { getPlayers, createPlayer, updatePlayer, removePlayer, restorePlayer, isTauri } from "../lib/db";
 // exceljs is ~800 KB; it loads when someone actually exports
@@ -696,10 +697,12 @@ export default function Players() {
               })}
               {filteredPlayers.length === 0 && (
                 <tr>
-                  <td colSpan={8} className={`px-5 py-12 text-center ${theme.textMuted}`}>
-                    {players.length === 0
-                      ? t.players_none_yet
-                      : t.players_no_filter_results}
+                  <td colSpan={8} className="p-5">
+                    {players.length === 0 ? (
+                      <EmptyState icon="users" title={t.players_none_yet} hint={t.players_empty_hint} />
+                    ) : (
+                      <EmptyState icon="search" title={t.players_no_filter_results} />
+                    )}
                   </td>
                 </tr>
               )}
