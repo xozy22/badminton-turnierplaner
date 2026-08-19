@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Icon, { type IconName } from "../../components/ui/Icon";
 import { useConfirm } from "../../components/ui/ConfirmDialog";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
@@ -6,16 +6,11 @@ import NextStepBar from "../../components/tournament/NextStepBar";
 import { LoadingState, NotFoundState } from "../../components/ui/States";
 import { useTheme } from "../../lib/ThemeContext";
 import {
-  getTournamentPlayers,
   updateTournamentStatus,
-  removePlayerFromTournament,
   isTauri,
-  createSchedule,
-  setKingOfCourtQueue,
   deleteRoundsAtomically,
 } from "../../lib/db";
 import type {
-  Player,
   Match,
   GameSet,
 } from "../../lib/types";
@@ -26,8 +21,6 @@ import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { getEffectiveScoring } from "./lib/effectiveScoring";
 import { getUndoTarget } from "./lib/undoTarget";
 import { engineFor } from "../../lib/formats";
-import type { FormatContext, FormatPlan } from "../../lib/formats";
-import { markGrandFinalRounds } from "../../lib/db";
 import {
   matchesToCsv,
   standingsToCsv,
@@ -46,6 +39,7 @@ import { useLiveControls } from "./lib/useLiveControls";
 import { useMatchActions } from "./lib/useMatchActions";
 import { useRosterActions } from "./lib/useRosterActions";
 import { useCourtDerivations } from "./lib/useCourtDerivations";
+import { useFormatControl } from "./lib/useFormatControl";
 import { useTournamentDialogs } from "./lib/useTournamentDialogs";
 import {
   useTournamentData,
@@ -55,7 +49,7 @@ import {
 export default function TournamentView() {
   const { theme } = useTheme();
   const { t } = useT();
-  const { showSuccess, showError, showInfo } = useToast();
+  const { showSuccess, showError } = useToast();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -106,7 +100,6 @@ export default function TournamentView() {
   const {
     showAddPlayer,
     setShowAddPlayer,
-    setShowAttendance,
     setShowReopenConfirm,
     setShowUndoRound,
     setRetireTarget,
@@ -185,107 +178,40 @@ export default function TournamentView() {
    * fresh on every render from the loaded state — cheap, and it keeps the
    * engines free of React and database concerns (REVIEW-BACKLOG.md D2).
    */
-  const buildFormatContext = useCallback(
-    (playersOverride?: Player[]): FormatContext | null => {
-      if (!tournament) return null;
-      const active = (playersOverride ?? players).filter((p) => !retiredPlayerIds.has(p.id));
-      return {
-        tournament,
-        players: active,
-        rounds,
-        matchesByRound,
-        setsByMatch,
-        allMatches,
-        seedOrder,
-        teams: navTeams ?? [],
-        // One court: assign it right away, no drag and drop needed.
-        courtForNewMatch: (tournament.courts || 1) === 1 ? 1 : null,
-        formatState: { kotcQueue, grandFinalRoundIds: [...grandFinalRoundIds] },
-      };
-    },
-    [tournament, players, retiredPlayerIds, rounds, matchesByRound, setsByMatch, allMatches, seedOrder, navTeams, kotcQueue, grandFinalRoundIds],
-  );
-
-  /**
-   * Writes a plan: schedule, status and phase in one transaction, then the
-   * per-format state, then a reload. Shared by "start" and "next round".
-   */
-  const applyFormatPlan = async (plan: FormatPlan): Promise<boolean> => {
-    if (plan.rounds.length === 0) return false;
-
-    let createdIds: number[];
-    try {
-      createdIds = await createSchedule(tournamentId, plan.rounds, {
-        ...(plan.status !== undefined ? { status: plan.status } : {}),
-        ...(plan.phase !== undefined ? { phase: plan.phase } : {}),
-      });
-    } catch (err) {
-      console.error("applyFormatPlan: schedule creation failed:", err);
-      showError(t.tournament_view_start_failed);
-      return false;
-    }
-
-    // Grand finals are stored as winners rounds; remember which ones.
-    const grandFinals = plan.rounds
-      .map((spec, index) => (spec.isGrandFinal ? createdIds[index] : null))
-      .filter((id): id is number => id !== null);
-    if (grandFinals.length > 0) {
-      const merged = [...grandFinalRoundIds, ...grandFinals];
-      await markGrandFinalRounds(tournamentId, merged);
-      setGrandFinalRoundIds(new Set(merged));
-    }
-
-    if (plan.stateUpdates?.kotcQueue) {
-      await setKingOfCourtQueue(tournamentId, plan.stateUpdates.kotcQueue);
-      setKotcQueue(plan.stateUpdates.kotcQueue);
-    }
-
-    if (plan.byePlayers && plan.byePlayers.length > 0) {
-      showInfo(
-        t.tournament_view_round_byes.replace(
-          "{players}",
-          plan.byePlayers.map((pid) => playerName(pid)).join(", "),
-        ),
-      );
-    }
-
-    if (plan.activateLastRound && createdIds.length > 0) {
-      setActiveRound(createdIds[createdIds.length - 1]);
-    }
-
-    loadAll();
-    return true;
+  const allRoundMatchesCompleted = (roundId: number): boolean => {
+    const matches = matchesByRound.get(roundId) || [];
+    return matches.length > 0 && matches.every((m) => m.status === "completed");
   };
 
-  const handleStartTournament = async (playersOverride?: Player[]) => {
-    const ctx = buildFormatContext(playersOverride);
-    if (!ctx) return;
+  // Starting the tournament and drawing the next round
+  // (REVIEW-BACKLOG.md D1).
+  const {
+    buildFormatContext,
+    handleAttendanceConfirm,
+    advanceFormat,
+  } = useFormatControl({
+    tournamentId,
+    tournament,
+    players,
+    setPlayers,
+    rounds,
+    matchesByRound,
+    setsByMatch,
+    allMatches,
+    retiredPlayerIds,
+    seedOrder,
+    navTeams,
+    kotcQueue,
+    setKotcQueue,
+    grandFinalRoundIds,
+    setGrandFinalRoundIds,
+    setActiveRound,
+    dialogs,
+    playerName,
+    allRoundMatchesCompleted,
+    loadAll,
+  });
 
-    const plan = engineFor(ctx.tournament.format).start(ctx);
-    if (!plan) {
-      showError(t.tournament_view_start_failed);
-      return;
-    }
-    await applyFormatPlan(plan);
-  };
-
-  /**
-   * Absent players are removed before the draw, so the bracket is built
-   * from who is actually there.
-   */
-  const handleAttendanceConfirm = async (presentIds: Set<number>) => {
-    setShowAttendance(false);
-    const absent = players.filter((p) => !presentIds.has(p.id)).map((p) => p.id);
-    for (const id of absent) {
-      await removePlayerFromTournament(tournamentId, id);
-    }
-    const fresh = await getTournamentPlayers(tournamentId);
-    setPlayers(fresh);
-    await handleStartTournament(fresh);
-  };
-
-  /** Draws whatever the format has queued up next. */
-  /** Opens the TV display in its own window (Tauri) or tab (browser). */
   const openTvWindow = async () => {
     if (isTauri()) {
       try {
@@ -312,19 +238,6 @@ export default function TournamentView() {
     }
   };
 
-  const advanceFormat = async () => {
-    const ctx = buildFormatContext();
-    if (!ctx) return;
-
-    const plan = engineFor(ctx.tournament.format).advance(ctx);
-    if (!plan) return;
-
-    // Keep the current tab when the previous round is still running, so
-    // ongoing matches stay visible on an early draw.
-    const lastRound = rounds.length > 0 ? rounds[rounds.length - 1] : null;
-    const wasComplete = lastRound ? allRoundMatchesCompleted(lastRound.id) : true;
-    await applyFormatPlan({ ...plan, activateLastRound: plan.activateLastRound ?? wasComplete });
-  };
 
   // onChange: Nur den eingegebenen Wert speichern, KEIN Auto-Fill
   // Who is in the tournament, and who dropped out (REVIEW-BACKLOG.md D1).
@@ -462,10 +375,6 @@ export default function TournamentView() {
     return { gMatches, gSets, pIds };
   };
 
-  const allRoundMatchesCompleted = (roundId: number): boolean => {
-    const matches = matchesByRound.get(roundId) || [];
-    return matches.length > 0 && matches.every((m) => m.status === "completed");
-  };
 
   // What the court view works out from the match list (REVIEW-BACKLOG.md D1).
   const derived = useCourtDerivations({
