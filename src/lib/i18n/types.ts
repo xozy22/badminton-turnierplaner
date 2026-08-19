@@ -548,6 +548,18 @@ export interface Translations {
   release_notes_current: string;
   release_notes_german_only: string;
   release_notes_show_all: string;
+  draw_preview_title: string;
+  draw_preview_title_round: string;
+  draw_preview_description: string;
+  draw_preview_confirm: string;
+  draw_preview_redraw: string;
+  draw_preview_round: string;
+  draw_preview_group: string;
+  draw_preview_bye: string;
+  draw_preview_no_matches: string;
+  draw_preview_sitting_out: string;
+  draw_preview_summary: string;
+  draw_preview_no_redraw: string;
   seeding_description: string;
   seeding_move_up: string;
   seeding_move_down: string;

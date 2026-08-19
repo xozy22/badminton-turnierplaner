@@ -9,7 +9,7 @@
 // in, which are the attendance check before the draw and the advance
 // button afterwards (REVIEW-BACKLOG.md D1, D2).
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import {
   createSchedule,
   getTournamentPlayers,
@@ -18,6 +18,7 @@ import {
   setKingOfCourtQueue,
 } from "../../../lib/db";
 import { engineFor } from "../../../lib/formats";
+import { couldDrawDiffer } from "../../../lib/formats/planIdentity";
 import { useT } from "../../../lib/I18nContext";
 import { useToast } from "../../../lib/ToastContext";
 import type { FormatContext, FormatPlan } from "../../../lib/formats";
@@ -145,16 +146,72 @@ export function useFormatControl({
     return true;
   };
 
-  const handleStartTournament = async (playersOverride?: Player[]) => {
+  /** The plan the preview is showing, plus how to build another one. */
+  const pendingPlan = useRef<{
+    plan: FormatPlan;
+    make: () => FormatPlan | null;
+    playersOverride?: Player[];
+  } | null>(null);
+
+  /**
+   * Builds a plan and offers it for inspection instead of writing it.
+   *
+   * The plan is built twice: if both come out the same, drawing again
+   * cannot change anything and the preview says so rather than showing a
+   * button that does nothing (FEATURE-BACKLOG.md C4).
+   */
+  const previewPlan = (
+    make: () => FormatPlan | null,
+    isStart: boolean,
+    playersOverride?: Player[],
+  ): boolean => {
+    const plan = make();
+    if (!plan) return false;
+    const second = make();
+    dialogs.setDrawPreview({
+      rounds: plan.rounds,
+      byePlayers: plan.byePlayers ?? [],
+      canRedraw: second !== null && couldDrawDiffer(plan, second),
+      isStart,
+    });
+    pendingPlan.current = { plan, make, playersOverride };
+    return true;
+  };
+
+  const handleStartTournament = (playersOverride?: Player[]) => {
     const ctx = buildFormatContext(playersOverride);
     if (!ctx) return;
 
-    const plan = engineFor(ctx.tournament.format).start(ctx);
-    if (!plan) {
-      showError(t.tournament_view_start_failed);
-      return;
-    }
-    await applyFormatPlan(plan);
+    const ok = previewPlan(
+      () => {
+        const fresh = buildFormatContext(playersOverride);
+        return fresh ? engineFor(fresh.tournament.format).start(fresh) : null;
+      },
+      true,
+      playersOverride,
+    );
+    if (!ok) showError(t.tournament_view_start_failed);
+  };
+
+  /** Draws again from the same state; the preview replaces itself. */
+  const redrawPreview = () => {
+    const pending = pendingPlan.current;
+    if (!pending) return;
+    previewPlan(pending.make, dialogs.drawPreview?.isStart ?? true, pending.playersOverride);
+  };
+
+  /** Writes the plan the preview is showing. */
+  const confirmPreview = async () => {
+    const pending = pendingPlan.current;
+    if (!pending) return;
+    dialogs.setDrawPreview(null);
+    pendingPlan.current = null;
+    await applyFormatPlan(pending.plan);
+  };
+
+  const cancelPreview = () => {
+    dialogs.setDrawPreview(null);
+    pendingPlan.current = null;
   };
 
   /**
@@ -169,23 +226,31 @@ export function useFormatControl({
     }
     const fresh = await getTournamentPlayers(tournamentId);
     setPlayers(fresh);
-    await handleStartTournament(fresh);
+    handleStartTournament(fresh);
   };
 
   /** Draws whatever the format has queued up next. */
   /** Opens the TV display in its own window (Tauri) or tab (browser). */
-  const advanceFormat = async () => {
+  const advanceFormat = () => {
     const ctx = buildFormatContext();
     if (!ctx) return;
-
-    const plan = engineFor(ctx.tournament.format).advance(ctx);
-    if (!plan) return;
 
     // Keep the current tab when the previous round is still running, so
     // ongoing matches stay visible on an early draw.
     const lastRound = rounds.length > 0 ? rounds[rounds.length - 1] : null;
     const wasComplete = lastRound ? allRoundMatchesCompleted(lastRound.id) : true;
-    await applyFormatPlan({ ...plan, activateLastRound: plan.activateLastRound ?? wasComplete });
+
+    // A follow-up round gets the same preview. For a knockout it is a
+    // confirmation -- the winners decide the pairings -- but Swiss, Monrad
+    // and random doubles draw afresh every round, and those are exactly
+    // the ones worth checking before they stand.
+    previewPlan(() => {
+      const fresh = buildFormatContext();
+      if (!fresh) return null;
+      const plan = engineFor(fresh.tournament.format).advance(fresh);
+      if (!plan) return null;
+      return { ...plan, activateLastRound: plan.activateLastRound ?? wasComplete };
+    }, false);
   };
   return {
     buildFormatContext,
@@ -193,5 +258,8 @@ export function useFormatControl({
     handleStartTournament,
     handleAttendanceConfirm,
     advanceFormat,
+    confirmPreview,
+    redrawPreview,
+    cancelPreview,
   };
 }

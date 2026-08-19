@@ -202,7 +202,7 @@ zwanzig Läufe würde also ohne den Code praktisch nie bestehen.
 Ein Qualifikationsfeld, dessen Sieger ins Hauptfeld nachrücken. Für
 Vereinsturniere selten; die Gruppenphase leistet Ähnliches.
 
-### C4 — Auslosung ansehen, bevor sie gilt
+### C4 — Auslosung ansehen, bevor sie gilt ✔ erledigt (2026-08-19)
 **Nutzen:** mittel · **Aufwand:** S · *BTP: „Die Auslosung wird zur Kontrolle angezeigt"*
 
 Der BTP zeigt das Ergebnis **vor** dem Speichern und lässt es verwerfen. BOSS
@@ -211,6 +211,25 @@ lost aus und schreibt sofort.
 Rückgängig geht über die Rundenrücknahme — aber „ansehen und verwerfen" ist
 etwas anderes als „speichern und zurücknehmen", besonders wenn zwanzig
 Menschen zusehen.
+
+**Umgesetzt.** Zwischen Auslosung und Schreiben steht jetzt ein Dialog mit
+allen Paarungen, den Freilosen und den Aussetzenden. Drei Wege hinaus:
+übernehmen, neu auslosen, verwerfen. Bis zum Übernehmen ist nichts
+geschrieben — in der laufenden Anwendung nachgemessen: Nach „neu auslosen"
+und „verwerfen" stand das Turnier weiterhin auf `draft` mit null Runden.
+
+Gilt auch für Folgerunden. Beim K.-o.-Baum ist das eine Bestätigung — die
+Sieger bestimmen die Paarungen —, beim Schweizer System, bei Monrad und bei
+zufälligen Doppeln wird jede Runde neu gelost, und genau die will man vorher
+sehen.
+
+**Abweichung vom Vorschlag:** „Neu auslosen" erscheint nur, wenn ein zweiter
+Versuch etwas anderes ergeben könnte. Das wird nicht am Format abgelesen,
+sondern gemessen: Der Plan wird zweimal gebaut und verglichen
+(`formats/planIdentity.ts`). Das ist von der Konstruktion her richtig — eine
+K.-o.-Runde aus den Siegern ist festgelegt, eine Schweizer Runde nicht, und
+ein Feld aus zwei Teilnehmern hat nur eine mögliche Auslosung, was auch immer
+das Format sonst täte.
 
 ---
 

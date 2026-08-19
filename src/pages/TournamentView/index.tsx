@@ -166,6 +166,9 @@ export default function TournamentView() {
     buildFormatContext,
     handleAttendanceConfirm,
     advanceFormat,
+    confirmPreview,
+    redrawPreview,
+    cancelPreview,
   } = useFormatControl({
     tournamentId,
     tournament,
@@ -461,6 +464,10 @@ export default function TournamentView() {
         onUnpublish={handleUnpublish}
         onPerformUndo={performUndo}
         onOutcomeConfirm={matchActions.handleOutcomeConfirm}
+        onDrawConfirm={confirmPreview}
+        onDrawRedraw={redrawPreview}
+        onDrawCancel={cancelPreview}
+        playerName={playerName}
         onNavigate={navigate}
       />
 

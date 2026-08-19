@@ -9,6 +9,7 @@
 
 import { useState } from "react";
 import type { Player } from "../../../lib/types";
+import type { DrawPreview } from "../components/modals/DrawPreviewModal";
 
 /** The rest-time warning, which offers a bypass. */
 export interface RestWarning {
@@ -72,6 +73,7 @@ export function useTournamentDialogs() {
   const [playerConflict, setPlayerConflict] = useState<PlayerConflict | null>(null);
   const [courtTaken, setCourtTaken] = useState<CourtTaken | null>(null);
   const [outcomeTarget, setOutcomeTarget] = useState<OutcomeTarget | null>(null);
+  const [drawPreview, setDrawPreview] = useState<DrawPreview | null>(null);
 
   return {
     showAddPlayer,
@@ -106,6 +108,8 @@ export function useTournamentDialogs() {
     setCourtTaken,
     outcomeTarget,
     setOutcomeTarget,
+    drawPreview,
+    setDrawPreview,
   };
 }
 

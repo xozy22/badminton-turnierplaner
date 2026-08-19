@@ -22,6 +22,7 @@ import RestWarningModal from "./modals/RestWarningModal";
 import PlayerConflictModal from "./modals/PlayerConflictModal";
 import CourtTakenModal from "./modals/CourtTakenModal";
 import MatchOutcomeModal from "./modals/MatchOutcomeModal";
+import DrawPreviewModal from "./modals/DrawPreviewModal";
 import DeleteTournamentModal from "../../../components/tournament/DeleteTournamentModal";
 import {
   deleteTournament,
@@ -65,6 +66,10 @@ interface Props {
     outcome: Exclude<MatchOutcome, null>,
     winnerTeam: 1 | 2 | null,
   ) => void | Promise<void>;
+  onDrawConfirm: () => void | Promise<void>;
+  onDrawRedraw: () => void;
+  onDrawCancel: () => void;
+  playerName: (id: number | null) => string;
   onNavigate: (to: string) => void;
   /** The shared confirm dialog element, rendered alongside. */
   confirmDialog: React.ReactNode;
@@ -92,6 +97,10 @@ export default function TournamentModals(props: Props) {
     onUnpublish,
     onPerformUndo,
     onOutcomeConfirm,
+    onDrawConfirm,
+    onDrawRedraw,
+    onDrawCancel,
+    playerName,
     onNavigate,
     confirmDialog,
   } = props;
@@ -238,6 +247,15 @@ export default function TournamentModals(props: Props) {
     target={dialogs.outcomeTarget}
     onClose={() => dialogs.setOutcomeTarget(null)}
     onConfirm={onOutcomeConfirm}
+  />
+
+  <DrawPreviewModal
+    preview={dialogs.drawPreview}
+    playerName={playerName}
+    onConfirm={onDrawConfirm}
+    onRedraw={onDrawRedraw}
+    onCancel={onDrawCancel}
+    busy={false}
   />
 
   <PlayerConflictModal
