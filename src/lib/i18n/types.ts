@@ -541,6 +541,8 @@ export interface Translations {
 
   // ===== Seeding Step =====
   seeding_title: string;
+  seeding_groups_hint: string;
+  seeding_group_drawn: string;
   seeding_description: string;
   seeding_move_up: string;
   seeding_move_down: string;

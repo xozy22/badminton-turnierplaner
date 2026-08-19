@@ -239,6 +239,58 @@ export interface BracketMatch {
   team2_p2: number | null;
 }
 
+// --- Seeding groups --------------------------------------------------------
+//
+// Regulations do not fix every seeded position individually. Seeds 1 and 2
+// are placed, but 3 and 4 share one group and are drawn between themselves,
+// as do 5 through 8, 9 through 16, and so on. Somebody ranked fourth should
+// not be handed the harder quarter of the bracket over somebody ranked
+// third when the two are that close (FEATURE-BACKLOG.md C1).
+//
+// BOSS treated the seeding list as a strict order, so the fourth entry
+// always got the same slot. The list still says who is seeded and roughly
+// how strongly; the draw now reads it in groups.
+
+/**
+ * The seeding groups for a field of `count` seeds, as index ranges into
+ * the seed list: [[0], [1], [2,3], [4..7], [8..15], ...].
+ *
+ * A trailing group is cut short when the list ends inside it -- five seeds
+ * give [[0], [1], [2,3], [4]], and that single entry is simply not drawn
+ * against anyone.
+ */
+export function seedGroups(count: number): number[][] {
+  const groups: number[][] = [];
+  let start = 0;
+  let size = 1;
+  while (start < count) {
+    const group: number[] = [];
+    for (let i = start; i < Math.min(start + size, count); i++) group.push(i);
+    groups.push(group);
+    start += size;
+    // 1, 1, 2, 4, 8, ... -- the first two are placed individually.
+    size = start < 2 ? 1 : start;
+  }
+  return groups;
+}
+
+/**
+ * Draws lots inside each seeding group, leaving the groups themselves in
+ * order. The entries of a group are interchangeable by definition, so this
+ * is the whole of it.
+ */
+function drawWithinSeedGroups<T>(seeded: T[]): T[] {
+  const out = [...seeded];
+  for (const group of seedGroups(seeded.length)) {
+    if (group.length < 2) continue;
+    const drawn = shuffle(group.map((i) => out[i]));
+    group.forEach((slot, k) => {
+      out[slot] = drawn[k];
+    });
+  }
+  return out;
+}
+
 // --- Club separation -------------------------------------------------------
 //
 // Tournament regulations ask for club-mates to be kept apart in the first
@@ -404,7 +456,9 @@ export function generateEliminationBracket(
   seeds?: number[]
 ): BracketMatch[] {
   const byId = new Map(players.map((p) => [p.id, p]));
-  const seeded = (seeds ?? []).filter((id) => byId.has(id));
+  const seeded = drawWithinSeedGroups(
+    (seeds ?? []).filter((id) => byId.has(id)),
+  );
   const seededSet = new Set(seeded);
   const unseeded = shuffle(players.filter((p) => !seededSet.has(p.id))).map((p) => p.id);
 
@@ -437,7 +491,8 @@ export function generateEliminationBracketDoubles(
   }
   const unseeded = shuffle(teams.filter((t) => !seenSeeds.has(key(t))));
 
-  const ordered: Participant[] = [...seeded, ...unseeded].map((t) => [t[0], t[1]]);
+  const ordered: Participant[] = [...drawWithinSeedGroups(seeded), ...unseeded]
+    .map((t) => [t[0], t[1]]);
   return buildBracket(ordered, seeded.length, clubOf);
 }
 
@@ -676,7 +731,7 @@ export function splitTeamsIntoGroups(
     ? shuffle(teams.filter((t) => !seenSeeds.has(key(t))))
     : teams;
 
-  seeded.forEach((team, i) => {
+  drawWithinSeedGroups(seeded).forEach((team, i) => {
     const round = Math.floor(i / numGroups);
     const posInRound = i % numGroups;
     const groupIdx = round % 2 === 0 ? posInRound : numGroups - 1 - posInRound;
@@ -714,7 +769,7 @@ export function splitIntoGroups(
     const rest = shuffle(players.filter((p) => !seededIds.has(p.id)));
 
     // Snake/serpentine: forward on even rounds, backward on odd rounds
-    seeded.forEach((p, i) => {
+    drawWithinSeedGroups(seeded).forEach((p, i) => {
       const round = Math.floor(i / numGroups);
       const posInRound = i % numGroups;
       const groupIdx = round % 2 === 0 ? posInRound : numGroups - 1 - posInRound;

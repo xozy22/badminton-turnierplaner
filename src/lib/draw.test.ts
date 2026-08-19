@@ -22,6 +22,7 @@ import {
   recommendedSwissRounds,
   getPreviousPairings,
   getPreviousPairingCounts,
+  seedGroups,
 } from "./draw";
 import { makePlayer, makePlayers, makeMixedPlayers, makeMatch, resetIds } from "../test/factories";
 import type { Player, StandingEntry } from "./types";
@@ -31,6 +32,15 @@ beforeEach(resetIds);
 /** "1-2" style key, order independent — mirrors the internal pairingKey. */
 function key(a: number, b: number): string {
   return `${Math.min(a, b)}-${Math.max(a, b)}`;
+}
+
+/** Which seeding group a seed index belongs to (0 = seed 1, 1 = seed 2, …). */
+function groupIndexOf(count: number): Map<number, number> {
+  const m = new Map<number, number>();
+  seedGroups(count).forEach((group, gi) => {
+    for (const i of group) m.set(i, gi);
+  });
+  return m;
 }
 
 /** Builds a standings list in the given order (only ids matter for pairing). */
@@ -758,28 +768,44 @@ describe("splitIntoGroups", () => {
     expect(groups[1]).toHaveLength(4);
   });
 
-  it("uses snake distribution for seeded players", () => {
+  it("uses snake distribution for the seeding groups", () => {
+    // Seeds 1 and 2 open groups 1 and 2. Seeds 3 and 4 share a seeding
+    // group, so which of them opens group 3 is drawn (FEATURE-BACKLOG.md
+    // C1) -- but they go to different groups either way.
     const players = makePlayers(8);
     const seeds = players.slice(0, 4).map((p) => p.id);
-    const groups = splitIntoGroups(players, 4, seeds);
-
-    // Seeds 1..4 go to groups 1..4 in the first pass.
-    expect(groups[0][0].id).toBe(seeds[0]);
-    expect(groups[1][0].id).toBe(seeds[1]);
-    expect(groups[2][0].id).toBe(seeds[2]);
-    expect(groups[3][0].id).toBe(seeds[3]);
+    for (let run = 0; run < 20; run++) {
+      const groups = splitIntoGroups(players, 4, seeds);
+      expect(groups[0][0].id, `run ${run}`).toBe(seeds[0]);
+      expect(groups[1][0].id, `run ${run}`).toBe(seeds[1]);
+      expect(
+        [groups[2][0].id, groups[3][0].id].sort(),
+        `run ${run}`,
+      ).toEqual([seeds[2], seeds[3]].sort());
+    }
   });
 
   it("reverses direction on the second seeding pass", () => {
+    // 4 groups + 8 seeds → the second pass runs backwards, so the strongest
+    // group gets the weakest partner. Stated in seeding groups: every group
+    // holds one entry from 1/2/3/4 and one from 5/8.
     const players = makePlayers(8);
     const seeds = players.slice(0, 8).map((p) => p.id);
-    const groups = splitIntoGroups(players, 4, seeds);
+    const gi = groupIndexOf(8);
+    const seedIndexOf = new Map(seeds.map((id, i) => [id, i]));
 
-    // 4 groups + 8 seeds → G1=[1,8], G2=[2,7], G3=[3,6], G4=[4,5]
-    expect(groups[0].map((p) => p.id)).toEqual([seeds[0], seeds[7]]);
-    expect(groups[1].map((p) => p.id)).toEqual([seeds[1], seeds[6]]);
-    expect(groups[2].map((p) => p.id)).toEqual([seeds[2], seeds[5]]);
-    expect(groups[3].map((p) => p.id)).toEqual([seeds[3], seeds[4]]);
+    for (let run = 0; run < 20; run++) {
+      const groups = splitIntoGroups(players, 4, seeds);
+      for (const [g, members] of groups.entries()) {
+        expect(members, `run ${run} group ${g}`).toHaveLength(2);
+        const gs = members.map((p) => gi.get(seedIndexOf.get(p.id)!)!);
+        // One from the top three groups, one from 5/8 (group index 3).
+        expect(gs.filter((x) => x === 3).length, `run ${run} group ${g}`).toBe(1);
+      }
+      // Seed 1 and seed 2 still lead groups 1 and 2.
+      expect(groups[0][0].id, `run ${run}`).toBe(seeds[0]);
+      expect(groups[1][0].id, `run ${run}`).toBe(seeds[1]);
+    }
   });
 
   it("places every player exactly once", () => {
@@ -811,23 +837,36 @@ describe("splitTeamsIntoGroups", () => {
   it("puts the top seeded teams in different groups", () => {
     const teams = teamsOf(8);
     const seeds = [teams[0], teams[1], teams[2], teams[3]];
-    const groups = splitTeamsIntoGroups(teams, 4, seeds);
-
-    expect(groups[0][0]).toEqual(seeds[0]);
-    expect(groups[1][0]).toEqual(seeds[1]);
-    expect(groups[2][0]).toEqual(seeds[2]);
-    expect(groups[3][0]).toEqual(seeds[3]);
+    for (let run = 0; run < 20; run++) {
+      const groups = splitTeamsIntoGroups(teams, 4, seeds);
+      expect(groups[0][0], `run ${run}`).toEqual(seeds[0]);
+      expect(groups[1][0], `run ${run}`).toEqual(seeds[1]);
+      // Seeds 3 and 4 share a seeding group, so which of them opens group
+      // 3 is drawn -- but they never share a group (FEATURE-BACKLOG.md C1).
+      expect(
+        [groups[2][0], groups[3][0]].map((t) => t[0]).sort(),
+        `run ${run}`,
+      ).toEqual([seeds[2][0], seeds[3][0]].sort());
+    }
   });
 
   it("reverses direction on the second seeding pass", () => {
+    // Same statement as for singles, in seeding groups: each group holds
+    // one team from the top three seeding groups and one from 5/8.
     const teams = teamsOf(8);
-    const groups = splitTeamsIntoGroups(teams, 4, teams);
+    const gi = groupIndexOf(8);
+    const indexOf = new Map(teams.map((t, i) => [t[0], i]));
 
-    // 4 groups + 8 seeded teams → G1=[1,8], G2=[2,7], G3=[3,6], G4=[4,5]
-    expect(groups[0]).toEqual([teams[0], teams[7]]);
-    expect(groups[1]).toEqual([teams[1], teams[6]]);
-    expect(groups[2]).toEqual([teams[2], teams[5]]);
-    expect(groups[3]).toEqual([teams[3], teams[4]]);
+    for (let run = 0; run < 20; run++) {
+      const groups = splitTeamsIntoGroups(teams, 4, teams);
+      for (const [g, members] of groups.entries()) {
+        expect(members, `run ${run} group ${g}`).toHaveLength(2);
+        const gs = members.map((t) => gi.get(indexOf.get(t[0])!)!);
+        expect(gs.filter((x) => x === 3).length, `run ${run} group ${g}`).toBe(1);
+      }
+      expect(groups[0][0], `run ${run}`).toEqual(teams[0]);
+      expect(groups[1][0], `run ${run}`).toEqual(teams[1]);
+    }
   });
 
   it("places every team exactly once", () => {
@@ -907,20 +946,51 @@ describe("bracket seeding — the standard pairings", () => {
     );
   };
 
-  it("pairs first against last, second against second-last", () => {
+  /**
+   * The same read-back, but in seeding groups: "A" is seed 1, "B" seed 2,
+   * "C" seeds 3/4, "D" seeds 5/8, and so on. Which member of a group ends
+   * up where is drawn by lot (FEATURE-BACKLOG.md C1), so the group is the
+   * finest statement the bracket still makes.
+   */
+  const groupPairings = (count: number): string[] => {
+    const letterOf = new Map<number, string>();
+    seedGroups(count).forEach((group, gi) => {
+      for (const i of group) letterOf.set(i + 1, String.fromCharCode(65 + gi));
+    });
+    return pairings(count).map((row) =>
+      row
+        .split("-")
+        .map((x) => (x === "bye" ? "bye" : letterOf.get(Number(x))!))
+        .join("-"),
+    );
+  };
+
+  it("walks the seeding groups down the bracket in the standard order", () => {
     // The seeding order was applied inverted, which produced 1-5 7-3 4-8 6-2
-    // for eight: the top seed drew the middle of the field, and two group
-    // winners could meet in the quarterfinal while two runners-up met in
-    // the other half (REVIEW-BACKLOG.md A3).
-    expect(pairings(4)).toEqual(["1-4", "2-3"]);
-    expect(pairings(8)).toEqual(["1-8", "4-5", "2-7", "3-6"]);
+    // for eight: seed 2 stood in the last match instead of the third, so
+    // two group winners could meet in the quarterfinal while two runners-up
+    // met in the other half (REVIEW-BACKLOG.md A3).
+    //
+    // Stated in ranks this no longer holds -- 1 draws somebody from 5/8,
+    // not seed 8 specifically. Stated in groups it does, and it is what
+    // the error broke.
+    expect(groupPairings(4)).toEqual(["A-C", "B-C"]);
+    expect(groupPairings(8)).toEqual(["A-D", "C-D", "B-D", "C-D"]);
   });
 
   it("holds at sixteen, where the error was largest", () => {
-    expect(pairings(16)).toEqual([
-      "1-16", "8-9", "4-13", "5-12",
-      "2-15", "7-10", "3-14", "6-11",
+    expect(groupPairings(16)).toEqual([
+      "A-E", "D-E", "C-E", "D-E",
+      "B-E", "D-E", "C-E", "D-E",
     ]);
+  });
+
+  it("actually draws lots inside a seeding group", () => {
+    // Without this the change is invisible: the groups would be right and
+    // the order inside them still fixed.
+    const seen = new Set<string>();
+    for (let run = 0; run < 40; run++) seen.add(pairings(8).join(" "));
+    expect(seen.size).toBeGreaterThan(1);
   });
 
   it("keeps the top two seeds apart until the final at every size", () => {
@@ -934,22 +1004,33 @@ describe("bracket seeding — the standard pairings", () => {
     }
   });
 
-  it("gives the byes to the top seeds, in order", () => {
-    // Five players in an eight slot bracket: seeds 1, 2 and 3 sit out
-    // round one, seeds 4 and 5 play each other.
-    expect(pairings(5)).toEqual(["1-bye", "4-5", "2-bye", "3-bye"]);
+  it("gives the byes to the top seeding groups", () => {
+    // Five players in an eight slot bracket: three sit out round one. Seeds
+    // 1 and 2 always, and one of the 3/4 pair -- which one is drawn.
+    expect(groupPairings(5)).toEqual(["A-bye", "C-D", "B-bye", "C-bye"]);
   });
 
-  it("seeds one and two are never the ones playing when byes exist", () => {
+  it("never leaves a better seeding group playing while a worse one sits out", () => {
     for (const count of [3, 5, 6, 7, 9, 11, 13]) {
+      const groupOf = new Map<number, number>();
+      seedGroups(count).forEach((group, gi) => {
+        for (const i of group) groupOf.set(i + 1, gi);
+      });
       const rows = pairings(count);
-      const byeSeeds = rows
-        .filter((r) => r.endsWith("-bye"))
-        .map((r) => Number(r.split("-")[0]));
-      // Byes go to a prefix of the ranking: 1, then 2, then 3 …
-      expect(byeSeeds.sort((a, b) => a - b), `${count} players`).toEqual(
-        Array.from({ length: byeSeeds.length }, (_, i) => i + 1),
-      );
+      const byeGroups: number[] = [];
+      const playingGroups: number[] = [];
+      for (const row of rows) {
+        const [a, b] = row.split("-");
+        if (b === "bye") byeGroups.push(groupOf.get(Number(a))!);
+        else {
+          playingGroups.push(groupOf.get(Number(a))!, groupOf.get(Number(b))!);
+        }
+      }
+      // Every group that got a bye ranks at least as high as every group
+      // that had to play. Within one group it may go either way.
+      const worstBye = Math.max(...byeGroups);
+      const bestPlaying = Math.min(...playingGroups);
+      expect(worstBye, `${count} players`).toBeLessThanOrEqual(bestPlaying);
     }
   });
 });

@@ -132,7 +132,7 @@ weniger Umbau.
 
 ## C · Auslosung
 
-### C1 — Setzgruppen statt fester Ränge
+### C1 — Setzgruppen statt fester Ränge ✔ erledigt (2026-08-19)
 **Nutzen:** hoch · **Aufwand:** S · *BTP: Setzplatz „1/2", „5/8", „9/16"*
 
 BOSS vergibt feste Setzränge: 1, 2, 3, 4. Der BTP kennt **Gruppen** — zwei
@@ -145,6 +145,24 @@ liegt, soll keinen Vorteil aus einer willkürlichen Reihenfolge ziehen.
 **Der kleinste Schritt mit der größten Wirkung in dieser Liste.** Die
 Bracket-Setzung ist seit der letzten Prüfung korrekt; darauf lässt sich das
 unmittelbar aufsetzen.
+
+**Umgesetzt.** Die Gruppen ergeben sich aus der Turnierordnung und brauchen
+keine Schemaänderung: 1, 2, 3/4, 5/8, 9/16. Die Setzliste sagt weiterhin, wer
+gesetzt ist und wie stark; die Auslosung liest sie in Gruppen und lost
+innerhalb einer Gruppe neu — im K.-o.-Baum wie in der Gruppenphase. Der
+Assistent zeigt „3/4" statt „3" und „4", sonst wäre die Änderung unsichtbar.
+
+**Abweichung vom Vorschlag:** Kein Setzplatz „1/2". Ohne Ranglisten-Anbindung
+(F3, nicht empfohlen) kennt BOSS keine Ranglistenpunkte — der Turnierleiter
+legt die Reihenfolge selbst fest und hat damit zwischen 1 und 2 bereits
+entschieden. Erst ab 3/4 gibt es etwas zu losen.
+
+**Was dabei auffiel:** Unter Gruppenlosung sind die richtige Setzung und der
+alte A3-Fehler nicht mehr an den Rängen zu unterscheiden — beide Anordnungen
+verteilen die Gruppen gleich über die Viertel. Die Tests aus A3 prüfen jetzt
+die *Gruppenfolge der Spiele* statt der Rangfolge: Dort steht Setz 2 in der
+Fehlversion im vierten statt im dritten Spiel. Nachgemessen; der Schutz gegen
+A3 bleibt bestehen.
 
 ### C2 — Vereinstrennung in der ersten Runde ✔ erledigt (2026-08-19)
 **Nutzen:** hoch · **Aufwand:** S · *BTP: Option im Auslosungsassistenten*

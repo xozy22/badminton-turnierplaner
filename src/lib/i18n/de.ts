@@ -522,6 +522,8 @@ export const de: Translations = {
 
   // ===== Seeding Step =====
   seeding_title: "Setzliste",
+  seeding_groups_hint: "Die Setzplätze 3/4, 5/8 und 9/16 sind Gruppen: Wer darin welchen Platz bekommt, wird bei jeder Auslosung neu gelost.",
+  seeding_group_drawn: "Innerhalb dieser Setzgruppe wird gelost",
   seeding_description: "Wähle die gesetzten Spieler aus und ordne sie nach Stärke (Platz 1 = stärkster Spieler). Nicht gesetzte Spieler werden zufällig zugelost.",
   seeding_move_up: "Nach oben",
   seeding_move_down: "Nach unten",

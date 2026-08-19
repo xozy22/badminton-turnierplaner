@@ -3,6 +3,7 @@ import Icon from "../../components/ui/Icon";
 import type { Player } from "../../lib/types";
 import { playerDisplayName } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
+import { seedGroups } from "../../lib/draw";
 
 interface SeedingStepProps {
   seedOrder: number[];
@@ -56,6 +57,17 @@ export default function SeedingStep({
   );
   const unseededList = [...unseededFromSeedOrder, ...unseededExtra];
 
+  // Seeding groups: 1, 2, 3/4, 5/8, 9/16. Positions inside a group are
+  // drawn by lot, so the list shows the group rather than a rank the draw
+  // does not honour (FEATURE-BACKLOG.md C1).
+  const groupOfIndex = new Map<number, { label: string; groupIndex: number }>();
+  for (const [gi, group] of seedGroups(seededList.length).entries()) {
+    const first = group[0] + 1;
+    const last = group[group.length - 1] + 1;
+    const label = first === last ? String(first) : `${first}/${last}`;
+    for (const i of group) groupOfIndex.set(i, { label, groupIndex: gi });
+  }
+
   return (
     <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5 space-y-5`}>
       <div>
@@ -65,6 +77,7 @@ export default function SeedingStep({
         <p className={`text-xs ${theme.textMuted}`}>
           {t.seeding_description}
         </p>
+        <p className={`mt-1 text-xs ${theme.textMuted}`}>{t.seeding_groups_hint}</p>
       </div>
 
       {/* Seeded section */}
@@ -81,6 +94,7 @@ export default function SeedingStep({
             {seededList.map((pid, idx) => {
               const p = players.find((pl) => pl.id === pid);
               if (!p) return null;
+              const seedGroup = groupOfIndex.get(idx) ?? { label: String(idx + 1), groupIndex: idx };
               const isDragging = dragSeedIdx === idx;
               const isOver = dragOverIdx === idx;
               return (
@@ -108,16 +122,19 @@ export default function SeedingStep({
                     title={t.seeding_is_seeded}
                   />
                   <span className="text-muted text-xs cursor-grab" draggable={false}>⠿</span>
-                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                    idx === 0
-                      ? "bg-warning-subtle text-warning-text"
-                      : idx === 1
-                      ? "bg-line-strong text-secondary"
-                      : idx === 2
-                      ? "bg-warning-subtle text-warning-text"
-                      : "bg-surface-sunken text-muted"
-                  }`}>
-                    {idx + 1}
+                  <span
+                    className={`flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full px-2 text-xs font-bold ${
+                      seedGroup.groupIndex === 0
+                        ? "bg-warning-subtle text-warning-text"
+                        : seedGroup.groupIndex === 1
+                          ? "bg-line-strong text-secondary"
+                          : seedGroup.groupIndex === 2
+                            ? "bg-warning-subtle text-warning-text"
+                            : "bg-surface-sunken text-muted"
+                    }`}
+                    title={seedGroup.label.includes("/") ? t.seeding_group_drawn : undefined}
+                  >
+                    {seedGroup.label}
                   </span>
                   <span className={`font-medium ${theme.textPrimary} flex-1`}>
                     {playerDisplayName(p)}

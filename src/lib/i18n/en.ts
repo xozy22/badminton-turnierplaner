@@ -522,6 +522,8 @@ export const en: Translations = {
 
   // ===== Seeding Step =====
   seeding_title: "Seeding List",
+  seeding_groups_hint: "Seeding positions 3/4, 5/8 and 9/16 are groups: who gets which position inside one is drawn afresh for every draw.",
+  seeding_group_drawn: "Positions inside this seeding group are drawn by lot",
   seeding_description: "Select which players are seeded and arrange them by strength (Rank 1 = strongest player). Unseeded players will be drawn randomly.",
   seeding_move_up: "Move up",
   seeding_move_down: "Move down",
