@@ -5,7 +5,8 @@ wie Modelle.
 
 Die Architektur steht in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), die
 Begründungen für den heutigen Zustand in
-[REVIEW-BACKLOG.md](REVIEW-BACKLOG.md).
+[REVIEW-BACKLOG.md](REVIEW-BACKLOG.md), und was noch fehlt — verglichen mit
+dem BTP der Landesverbände — in [FEATURE-BACKLOG.md](FEATURE-BACKLOG.md).
 
 ---
 
