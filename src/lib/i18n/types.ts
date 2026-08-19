@@ -16,6 +16,18 @@ export interface Translations {
   common_delete: string;
   common_edit: string;
   common_add: string;
+  shortcuts_open: string;
+  shortcuts_title: string;
+  shortcuts_hint: string;
+  shortcuts_group_scores: string;
+  shortcuts_group_dialogs: string;
+  shortcuts_group_general: string;
+  shortcuts_score_next: string;
+  shortcuts_score_confirm: string;
+  shortcuts_dialog_close: string;
+  shortcuts_dialog_cycle: string;
+  shortcuts_general_help: string;
+  shortcuts_general_fullscreen: string;
   common_close: string;
   common_back: string;
   common_next: string;

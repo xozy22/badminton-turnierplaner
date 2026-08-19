@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { useTheme } from "../../lib/ThemeContext";
 import Icon from "../ui/Icon";
+import ShortcutHelp from "../ui/ShortcutHelp";
 import { useT } from "../../lib/I18nContext";
 import { getCustomLogo } from "../../pages/settings/LogoSettings";
 import { getAppSetting } from "../../lib/db";
@@ -111,6 +112,8 @@ export default function Sidebar() {
           <Icon name="settings" size={collapsed ? 22 : 18} />
           {!collapsed && t.nav_settings}
         </NavLink>
+
+        {!collapsed && <ShortcutHelp />}
 
         {/* Collapse toggle */}
         <button

@@ -17,8 +17,8 @@ Reihenfolge = empfohlene Abarbeitung. Abhaken per `[x]`.
 | **3** ⏳ | C1–C9, D1–D9 (Daten & Architektur) — C-Reihe erledigt, D1/D2/D5 teilweise | Basis für alles Weitere |
 | | offen: Ansichten in Komponenten zerlegen (D1), Anzeige-Eigenschaften in die Format-Engines (D2), Datenbankverwaltung aus den Einstellungen lösen (D5) | |
 | **4** ✅ | E1–E4 (Performance) — erledigt; E5 von 145 auf 64 KB (Ziel 60) | Schnelle Gewinne |
-| **5** ⏳ | F1–F10, G1–G5 — elf erledigt; F5, G1, G2 teilweise | Das „komplett überarbeitet"-Gefühl |
-| | offen: F7 (Lade-/Leerzustände), acht Modals aus F5, Tab-Rollen und Fortschrittsbalken aus G1, Tastaturkürzel-Übersicht aus G2 | |
+| **5** ⏳ | F1–F10, G1–G5 — vierzehn von fünfzehn erledigt | Das „komplett überarbeitet"-Gefühl |
+| | offen: F7 — die Lade-/Leerzustands-Bausteine stehen, die übrigen Seiten nutzen sie noch nicht | |
 | **6** | H1 ✅, H2–H5, I1–I5, J3–J6 | Politur & Sicherheit |
 
 ---
@@ -785,14 +785,14 @@ Aus 16 `aria`-Vorkommen sind rund 180 geworden.
 
 ---
 
-### [~] G2 — Tastaturbedienung und Fokus-Sichtbarkeit ungeprüft — **weitgehend erledigt**
-**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/index.css`, projektweit
+### [x] G2 — Tastaturbedienung und Fokus-Sichtbarkeit ungeprüft — **erledigt**
+**Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/index.css`, `src/components/ui/ShortcutHelp.tsx` (neu), `src/components/layout/Sidebar.tsx`
 
-**Umgesetzt:** Ein globaler `:focus-visible`-Stil zeichnet den Fokus mit 2 px in der Akzentfarbe des Themes — im Browser gegengeprüft, dass er beim Tab-Durchlauf erscheint und bei Mausklicks ausbleibt. Anklickbare Elemente ohne Tastaturzugang gibt es keine mehr: Eine Suche nach `onClick` auf `div`/`span`/`li` ohne `tabIndex` oder `role` liefert null Treffer. Die Feldzuweisung, die vorher nur mit der Maus ging, ist über F6 erreichbar; die Punkteingabe hat ihre eigene Tab- und Enter-Führung.
+**Umgesetzt:** Ein globaler `:focus-visible`-Stil zeichnet den Fokus mit 2 px in der Akzentfarbe — im Browser gegengeprüft, dass er beim Tab-Durchlauf erscheint und bei Mausklicks ausbleibt. Anklickbare Elemente ohne Tastaturzugang gibt es keine mehr: Eine Suche nach `onClick` auf `div`/`span`/`li` ohne `tabIndex` oder `role` liefert null Treffer. Die Feldzuweisung ist über F6 erreichbar, die Punkteingabe hat ihre Tab- und Enter-Führung.
 
-**Was fehlt:** Die Tastaturkürzel sind nirgends zusammengefasst. Der Backlog verlangt eine Übersicht in der Anwendung — Enter bestätigt ein Ergebnis, Escape schließt, F11 Vollbild, Tab wandert durch die Satzfelder —, damit man sie nicht durch Ausprobieren finden muss.
+**Die Kürzel stehen jetzt in der Anwendung.** `ShortcutHelp` listet sie nach Aufgabe geordnet — Ergebnisse eintragen, Dialoge, Allgemein — und öffnet sich mit `?`, der üblichen Taste für „was kann ich hier drücken?". Sie greift nicht, während in einem Eingabefeld getippt wird. Erreichbar außerdem über einen Eintrag am Fuß der Navigationsleiste.
 
-**Fertig wenn:** Jede Kernaufgabe ist rein per Tastatur mit sichtbarem Fokus durchführbar — erfüllt — und die Kürzel sind an einer Stelle dokumentiert und in der Anwendung einsehbar.
+**Fertig wenn:** ~~Jede Kernaufgabe ist rein per Tastatur mit sichtbarem Fokus durchführbar und die Kürzel sind an einer Stelle dokumentiert und in der Anwendung einsehbar~~ — beides erfüllt.
 
 ---
 
