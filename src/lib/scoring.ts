@@ -132,6 +132,19 @@ export function isScoreValid(
       return { valid: true };
     }
 
+    // Zielpunktzahl gegen extStart, also 21:20 / 15:14 / 11:10.
+    //
+    // Bei 20:20 geht der Satz weiter, bis jemand zwei Punkte vorne liegt
+    // -- er kann 22:20 enden, aber nie 21:20. Ohne diesen Zweig fiel der
+    // Stand durch alle weiteren Pruefungen (die verlangen samt und
+    // sonders `high > pointsPerSet`) bis zum abschliessenden "gueltig".
+    // Die Eingabe wurde also angenommen, der Satz aber nie als gewonnen
+    // gewertet: das Spiel blieb offen, ohne dass etwas auf dem Bildschirm
+    // den Grund nannte.
+    if (high === pointsPerSet && low === extStart) {
+      return { valid: false, error: "score_error_ext_diff" };
+    }
+
     // Gleichstand auf oder ueber Zielpunktzahl: kein Unentschieden
     if (high >= pointsPerSet && diff === 0) {
       return { valid: false, error: "score_error_draw" };

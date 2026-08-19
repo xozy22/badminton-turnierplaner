@@ -260,6 +260,14 @@ Bei Schweizer System und Monrad schiebt sich die Buchholz-Wertung an die zweite 
 
 ---
 
+**Nachtrag — 21:20 wurde angenommen.** Vom Nutzer korrigiert, nachdem ich es zuerst für einen gültigen Zwischenstand gehalten hatte. Das ist es in einem laufenden Spiel auch — nur erfasst dieses Programm keine laufenden Spiele, sondern fertige Sätze. Bei 20:20 geht der Satz weiter, bis jemand zwei Punkte vorne liegt: er kann 22:20 enden, nie 21:20. Dieselbe Lücke bestand bei 15:14 und 11:10 in den anderen Verlängerungsmodi.
+
+**Warum es durchrutschte:** Jede Prüfung nach dem Normalfall ist mit `high > pointsPerSet` abgesichert. Genau die Zielpunktzahl gegen Zielpunktzahl minus eins ist weder ein normaler Satzgewinn (dafür müsste der Verlierer bei höchstens 19 stehen) noch ein Verlängerungsstand — der Wert fiel durch sämtliche Zweige bis zum abschließenden „gültig".
+
+**Was der Turnierleiter sah:** keine Beanstandung der Eingabe — und der Satz zählte trotzdem nicht als gewonnen. Das Spiel blieb offen, die Runde ließ sich nicht weiterschalten, und nichts auf dem Bildschirm nannte den Grund.
+
+**Wie es jetzt gefunden wurde:** `scoringRules.test.ts` vergleicht **jede** Punktekombination aller fünf Modi gegen eine zweite, unabhängig formulierte Fassung der Regel. Handverlesene Beispiele hatten die Stelle aus demselben Grund verfehlt, aus dem ein Leser sie verfehlt: Es ist die eine Kombination, die niemand ausprobiert. Ein bestehender Test hatte die falsche Annahme sogar festgeschrieben — er ist mit Begründung ersetzt.
+
 ### [x] B9 — Gruppeneinteilung im Doppel ohne Snake-Verteilung — **erledigt**
 **Schwere:** mittel · **Aufwand:** S · **Dateien:** `src/lib/draw.ts`, `src/pages/TournamentView/index.tsx`
 

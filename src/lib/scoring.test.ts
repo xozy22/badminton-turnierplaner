@@ -104,11 +104,27 @@ describe("isScoreValid", () => {
     expect(isScoreValid(18, 12, 21, 30).valid).toBe(true);
   });
 
-  it("accepts 21:20 as a legal in-progress score after deuce", () => {
-    // Reachable: 20:20 then one rally won. Not a win (needs two points
-    // clear), but the input must not be flagged as an error.
-    expect(isScoreValid(21, 20, 21, 30).valid).toBe(true);
-    expect(isSetComplete(makeSet({ team1_score: 21, team2_score: 20 }), 21, 30)).toBe(false);
+  it("rejects 21:20, which no set can end on", () => {
+    // At 20:20 the set continues until someone leads by two, so it can end
+    // 22:20 but never 21:20. This test used to assert the opposite, on the
+    // grounds that 21:20 is reachable mid-rally — true of a match in
+    // progress, but this app records finished sets, not live scores.
+    //
+    // The consequence of accepting it: no complaint about the entry, and
+    // the set never counted as won either, so the match stayed open and
+    // the round would not advance with nothing on screen saying why.
+    expect(isScoreValid(21, 20, 21, 30).valid).toBe(false);
+    expect(isScoreValid(20, 21, 21, 30).valid).toBe(false);
+    // Same hole in the other extension modes.
+    expect(isScoreValid(15, 14, 15, 25).valid).toBe(false);
+    expect(isScoreValid(11, 10, 11, 20).valid).toBe(false);
+  });
+
+  it("still accepts the target against target-1 where that is the rule", () => {
+    // Hard-cap modes have no extension: first to the target wins, however
+    // close it was.
+    expect(isScoreValid(11, 10, 11, null).valid).toBe(true);
+    expect(isScoreValid(15, 14, 15, null).valid).toBe(true);
   });
 
   it("rejects negative scores", () => {
