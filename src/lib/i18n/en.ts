@@ -741,6 +741,8 @@ export const en: Translations = {
   settings_backup_create: "Create backup",
   settings_backup_restore: "Restore",
   settings_backup_hint: "The backup saves a copy of the entire database — including player data and the live-publishing secret. Keep the file accordingly and do not pass it on lightly. After restoring, the app must be restarted.",
+  settings_backup_auto_hint: "Before restoring, wiping all data and every database upgrade, BOSS makes a copy automatically ({count} present, the last {keep} are kept).",
+  settings_backup_auto_open: "Open folder",
   settings_backup_success: "Backup saved successfully.",
   settings_backup_restore_confirm: "The current database will be replaced by the backup. All current data will be lost!\n\nA safety copy is taken first, and the app restarts.\n\nContinue?",
   settings_backup_restored: "Restoring backup - the app is restarting...",

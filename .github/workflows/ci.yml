@@ -113,6 +113,10 @@ jobs:
         working-directory: src-tauri
         run: cargo check --locked
 
+      - name: Cargo test
+        working-directory: src-tauri
+        run: cargo test --locked
+
       - name: Clippy (advisory)
         continue-on-error: true
         working-directory: src-tauri

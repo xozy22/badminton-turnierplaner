@@ -762,6 +762,8 @@ export interface Translations {
   settings_backup_create: string;
   settings_backup_restore: string;
   settings_backup_hint: string;
+  settings_backup_auto_hint: string;
+  settings_backup_auto_open: string;
   settings_backup_success: string;
   settings_backup_restore_confirm: string;
   settings_backup_restored: string;

@@ -13,6 +13,156 @@ const WIPE_MARKER_FILENAME: &str = "wipe_pending.marker";
 /// result. See REVIEW-BACKLOG.md A7.
 const PENDING_ACTION_FILENAME: &str = "pending_db_action.json";
 
+/// Ordnername fuer die automatischen Sicherheitskopien, direkt neben der
+/// Datenbank. Neben und nicht darin: wer den Datenbankordner oeffnet, soll
+/// die Kopien sehen, ohne suchen zu muessen.
+const BACKUP_DIRNAME: &str = "backups";
+
+/// So viele automatische Kopien bleiben erhalten. Fuenf deckt eine
+/// Turnierwoche ab, ohne den Ordner unbegrenzt wachsen zu lassen.
+const BACKUP_KEEP: usize = 5;
+
+/// Hoechste Migrationsversion, die diese App kennt.
+///
+/// Wird gegen die Migrationsliste geprueft (`debug_assert` in `run`), damit
+/// die Konstante nicht stillschweigend veraltet, wenn eine Migration
+/// hinzukommt.
+const CURRENT_SCHEMA_VERSION: i64 = 18;
+
+/// Datum und Uhrzeit als `YYYY-MM-DD_HHMM`, aus Unix-Sekunden.
+///
+/// Von Hand gerechnet statt mit einer Zeitbibliothek: das waere eine
+/// zusaetzliche Abhaengigkeit fuer einen Dateinamen. Der Nutzer soll im
+/// Ordner auf einen Blick sehen, welche Kopie von wann ist -- eine reine
+/// Sekundenzahl leistet das nicht.
+fn timestamp_for_filename() -> String {
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+    format_unix_seconds(secs)
+}
+
+/// Der reine Rechenteil, getrennt von der Uhr -- sonst waere er nur
+/// pruefbar, indem man auf den passenden Tag wartet.
+fn format_unix_seconds(secs: i64) -> String {
+    let days = secs.div_euclid(86_400);
+    let rem = secs.rem_euclid(86_400);
+    let (hour, minute) = (rem / 3600, (rem % 3600) / 60);
+
+    // Howard Hinnants civil_from_days: Jahresbeginn auf Maerz verschoben,
+    // damit der Schalttag ans Ende faellt und keine Sonderfaelle entstehen.
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = if m <= 2 { y + 1 } else { y };
+
+    format!("{:04}-{:02}-{:02}_{:02}{:02}", year, m, d, hour, minute)
+}
+
+/// Verzeichnis der automatischen Sicherheitskopien, neben der Datenbank.
+fn backup_dir(app_data_dir: &PathBuf) -> PathBuf {
+    resolve_db_path(app_data_dir)
+        .parent()
+        .map(|d| d.join(BACKUP_DIRNAME))
+        .unwrap_or_else(|| app_data_dir.join(BACKUP_DIRNAME))
+}
+
+/// Legt eine Sicherheitskopie der Datenbank an und raeumt alte weg.
+///
+/// `reason` landet im Dateinamen (`restore`, `wipe`, `migration`), damit
+/// spaeter erkennbar ist, wovor die Kopie geschuetzt hat.
+///
+/// Gibt bei Erfolg den Pfad zurueck. Ein Fehler wird gemeldet, aber der
+/// Aufrufer entscheidet, ob er deswegen abbricht: bei einem Restore ja,
+/// beim Start nein -- eine fehlgeschlagene Kopie darf die App nicht am
+/// Hochfahren hindern.
+fn create_safety_backup(app_data_dir: &PathBuf, reason: &str) -> Result<PathBuf, String> {
+    let db_path = resolve_db_path(app_data_dir);
+    if !db_path.exists() {
+        return Err("Datenbank nicht gefunden".to_string());
+    }
+
+    let dir = backup_dir(app_data_dir);
+    fs::create_dir_all(&dir)
+        .map_err(|e| format!("Backup-Ordner anlegen fehlgeschlagen: {}", e))?;
+
+    let target = dir.join(format!("auto-{}-{}.db", reason, timestamp_for_filename()));
+    fs::copy(&db_path, &target)
+        .map_err(|e| format!("Sicherheitskopie fehlgeschlagen: {}", e))?;
+
+    prune_safety_backups(&dir);
+    Ok(target)
+}
+
+/// Behaelt die juengsten `BACKUP_KEEP` Kopien und loescht den Rest.
+///
+/// Sortiert wird nach Dateinamen, nicht nach Aenderungszeit: der Name
+/// traegt den Zeitstempel und sortiert dadurch chronologisch, waehrend
+/// mtime beim Kopieren zwischen Dateisystemen verlorengehen kann.
+fn prune_safety_backups(dir: &PathBuf) {
+    let mut files: Vec<PathBuf> = match fs::read_dir(dir) {
+        Ok(entries) => entries
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .filter(|p| {
+                p.is_file()
+                    && p.file_name()
+                        .and_then(|n| n.to_str())
+                        .map(|n| n.starts_with("auto-") && n.ends_with(".db"))
+                        .unwrap_or(false)
+            })
+            .collect(),
+        Err(_) => return,
+    };
+
+    if files.len() <= BACKUP_KEEP {
+        return;
+    }
+
+    files.sort();
+    for old in &files[..files.len() - BACKUP_KEEP] {
+        let _ = fs::remove_file(old);
+    }
+}
+
+/// Liest die hoechste angewandte Migrationsversion aus einer SQLite-Datei.
+///
+/// Schreibgeschuetzt geoeffnet, damit das Pruefen eines Backups es nicht
+/// veraendert. Fehlt `_sqlx_migrations`, ist die Datei aelter als jede
+/// Migration -- das ist 0, kein Fehler.
+fn read_schema_version(path: &PathBuf) -> Result<i64, String> {
+    use sqlx::Row;
+
+    if !path.exists() {
+        return Ok(0);
+    }
+
+    let url = format!("sqlite:{}?mode=ro", path.to_string_lossy());
+    tauri::async_runtime::block_on(async move {
+        let pool = match sqlx::SqlitePool::connect(&url).await {
+            Ok(p) => p,
+            Err(e) => return Err(format!("Datenbank nicht lesbar: {}", e)),
+        };
+        let result = sqlx::query("SELECT MAX(version) AS v FROM _sqlx_migrations")
+            .fetch_one(&pool)
+            .await;
+        pool.close().await;
+
+        match result {
+            Ok(row) => Ok(row.try_get::<Option<i64>, _>("v").ok().flatten().unwrap_or(0)),
+            // Kein Migrationstabelle: unmigrierte oder leere Datei.
+            Err(_) => Ok(0),
+        }
+    })
+}
+
 /// Liest den benutzerdefinierten DB-Pfad aus der Config-Datei, falls vorhanden
 fn get_custom_db_dir(app_data_dir: &PathBuf) -> Option<String> {
     let config_path = app_data_dir.join(CONFIG_FILENAME);
@@ -193,6 +343,35 @@ fn get_db_path(app_handle: tauri::AppHandle) -> Result<String, String> {
         .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
     let db_path = resolve_db_path(&app_data_dir);
     Ok(db_path.to_string_lossy().to_string())
+}
+
+/// Ordner der automatischen Sicherheitskopien samt Anzahl vorhandener
+/// Dateien -- eine Kopie, die niemand findet, ist keine Sicherung.
+#[tauri::command]
+fn get_backup_info(app_handle: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let app_data_dir = app_handle.path().app_data_dir()
+        .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
+    let dir = backup_dir(&app_data_dir);
+
+    let count = fs::read_dir(&dir)
+        .map(|entries| {
+            entries
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    e.file_name()
+                        .to_str()
+                        .map(|n| n.starts_with("auto-") && n.ends_with(".db"))
+                        .unwrap_or(false)
+                })
+                .count()
+        })
+        .unwrap_or(0);
+
+    Ok(serde_json::json!({
+        "dir": dir.to_string_lossy(),
+        "count": count,
+        "keep": BACKUP_KEEP,
+    }))
 }
 
 #[tauri::command]
@@ -379,11 +558,29 @@ fn restore_db(app_handle: tauri::AppHandle, source_path: String) -> Result<(), S
         return Err("Die ausgewaehlte Datei ist keine gueltige SQLite-Datenbank".to_string());
     }
 
+    // Schemaversion pruefen, bevor irgendetwas ersetzt wird.
+    //
+    // Ein Backup aus einer neueren App-Version enthaelt Tabellen und
+    // Spalten, die diese Version nicht kennt. Die Migrationen laufen nur
+    // aufwaerts, es gibt also keinen Weg zurueck -- eingespielt wuerde das
+    // eine Datenbank hinterlassen, mit der die App nicht arbeiten kann.
+    // Aeltere Backups sind dagegen unproblematisch: die fehlenden
+    // Migrationen laufen beim naechsten Start nach.
+    let backup_version = read_schema_version(&source)?;
+    if backup_version > CURRENT_SCHEMA_VERSION {
+        return Err(format!(
+            "Dieses Backup stammt aus einer neueren Programmversion (Datenstand {}, diese Version kennt {}).              Bitte zuerst die App aktualisieren.",
+            backup_version, CURRENT_SCHEMA_VERSION
+        ));
+    }
+
     // Sicherheitskopie der aktuellen Datenbank, bevor sie ersetzt wird.
+    // Anders als beim Start ist ein Fehlschlag hier ein Abbruchgrund: der
+    // naechste Schritt ueberschreibt die Daten, und ohne Kopie gaebe es
+    // keinen Rueckweg.
     let db_path = resolve_db_path(&app_data_dir);
     if db_path.exists() {
-        let safety = PathBuf::from(format!("{}.pre-restore", db_path.to_string_lossy()));
-        let _ = fs::copy(&db_path, &safety);
+        create_safety_backup(&app_data_dir, "restore")?;
     }
 
     queue_pending_action(
@@ -398,6 +595,13 @@ fn restore_db(app_handle: tauri::AppHandle, source_path: String) -> Result<(), S
 fn wipe_database_and_restart(app_handle: tauri::AppHandle) -> Result<(), String> {
     let app_data_dir = app_handle.path().app_data_dir()
         .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
+    // Auch hier zuerst eine Sicherheitskopie: "alles loeschen" ist die
+    // Aktion, bei der ein Fehlgriff am teuersten ist. Schlaegt sie fehl,
+    // wird nicht geloescht.
+    if resolve_db_path(&app_data_dir).exists() {
+        create_safety_backup(&app_data_dir, "wipe")?;
+    }
+
     // Aktion vormerken - der nächste Startup löscht die DB-Datei vor der SQL-Plugin-Init
     queue_pending_action(&app_data_dir, serde_json::json!({ "action": "wipe" }))?;
     // App neu starten - restart() kehrt nicht zurück, daher ist der Return-Typ nur für den Fehlerfall davor
@@ -411,26 +615,56 @@ fn open_folder(app_handle: tauri::AppHandle, path: String) -> Result<(), String>
         return Err(format!("Pfad existiert nicht oder ist kein Verzeichnis: {}", path));
     }
 
-    // Validate that the path is within the app data directory
     let app_data_dir = app_handle.path().app_data_dir()
         .map_err(|e| format!("Kann App-Datenverzeichnis nicht ermitteln: {}", e))?;
     let canonical_path = p.canonicalize()
         .map_err(|e| format!("Pfad konnte nicht aufgeloest werden: {}", e))?;
-    let canonical_app_dir = app_data_dir.canonicalize()
-        .map_err(|e| format!("App-Datenverzeichnis konnte nicht aufgeloest werden: {}", e))?;
 
-    if !canonical_path.starts_with(&canonical_app_dir) {
-        return Err("Zugriff verweigert: Pfad liegt ausserhalb des App-Datenverzeichnisses".to_string());
+    // Zwei erlaubte Orte, nicht einer: das App-Datenverzeichnis und der
+    // tatsaechlich genutzte Datenbankordner. Vorher galt nur der erste --
+    // bei einem benutzerdefinierten Ordner schlug der Knopf also genau
+    // dann fehl, wenn man ihn braucht.
+    let db_dir = resolve_db_path(&app_data_dir)
+        .parent()
+        .map(|d| d.to_path_buf());
+
+    let allowed = [Some(app_data_dir), db_dir]
+        .into_iter()
+        .flatten()
+        // Ein nicht aufloesbarer Kandidat (Ordner existiert nicht mehr)
+        // faellt weg, statt die Pruefung scheitern zu lassen.
+        .filter_map(|d| d.canonicalize().ok())
+        .any(|d| canonical_path.starts_with(&d));
+
+    if !allowed {
+        return Err("Zugriff verweigert: Pfad liegt ausserhalb des App- und Datenbankverzeichnisses".to_string());
     }
 
+    // Der Ordner wird ueber den kanonischen Pfad geoeffnet: unter Windows
+    // erhaelt er dadurch das \?\-Praefix, das explorer.exe nicht mag,
+    // deshalb bleibt dort die urspruengliche Eingabe.
     #[cfg(target_os = "windows")]
+    let opener = ("explorer", path.clone());
+    #[cfg(target_os = "macos")]
+    let opener = ("open", canonical_path.to_string_lossy().to_string());
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let opener = ("xdg-open", canonical_path.to_string_lossy().to_string());
+
+    // Eine Plattform ohne Zweig meldet das, statt Erfolg vorzutaeuschen.
+    #[cfg(not(any(target_os = "windows", target_os = "macos", unix)))]
     {
-        std::process::Command::new("explorer")
-            .arg(&path)
-            .spawn()
-            .map_err(|e| format!("Ordner oeffnen fehlgeschlagen: {}", e))?;
+        return Err("Ordner oeffnen wird auf dieser Plattform nicht unterstuetzt".to_string());
     }
-    Ok(())
+
+    #[cfg(any(target_os = "windows", target_os = "macos", unix))]
+    {
+        let (program, arg) = opener;
+        std::process::Command::new(program)
+            .arg(&arg)
+            .spawn()
+            .map_err(|e| format!("Ordner oeffnen fehlgeschlagen ({}): {}", program, e))?;
+        Ok(())
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -965,7 +1199,43 @@ pub fn run() {
             // ausführen, BEVOR das SQL-Plugin die Datenbank öffnet.
             handle_pending_actions(&app_data_dir);
 
+            // Steht eine Migration an, vorher eine Kopie ziehen.
+            //
+            // Migrationen sind der eine destruktive Vorgang, den niemand
+            // ausloest -- er passiert beim Starten nach einem Update. Genau
+            // deshalb braucht er das Netz am dringendsten.
+            //
+            // Ein Fehlschlag wird nur gemeldet, nicht hochgereicht: die App
+            // am Starten zu hindern, weil eine Kopie nicht gelang, waere
+            // schlimmer als das Risiko, das sie abdeckt.
+            let startup_db_path = resolve_db_path(&app_data_dir);
+            if startup_db_path.exists() {
+                match read_schema_version(&startup_db_path) {
+                    Ok(current) if current < CURRENT_SCHEMA_VERSION => {
+                        match create_safety_backup(&app_data_dir, "migration") {
+                            Ok(path) => println!(
+                                "Sicherheitskopie vor Migration {} -> {}: {}",
+                                current,
+                                CURRENT_SCHEMA_VERSION,
+                                path.to_string_lossy()
+                            ),
+                            Err(e) => eprintln!("Sicherheitskopie vor Migration fehlgeschlagen: {}", e),
+                        }
+                    }
+                    Ok(_) => {}
+                    Err(e) => eprintln!("Schemaversion nicht lesbar: {}", e),
+                }
+            }
+
             let conn_string = build_connection_string(&app_data_dir);
+
+            // Die Konstante muss der Migrationsliste folgen; laeuft sie
+            // auseinander, greift die Restore-Pruefung ins Leere.
+            debug_assert_eq!(
+                migrations.iter().map(|m| m.version).max().unwrap_or(0),
+                CURRENT_SCHEMA_VERSION,
+                "CURRENT_SCHEMA_VERSION passt nicht zur Migrationsliste"
+            );
 
             app.handle().plugin(
                 tauri_plugin_sql::Builder::default()
@@ -985,6 +1255,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_db_path,
             get_db_dir,
+            get_backup_info,
             change_db_dir,
             reset_db_dir,
             open_folder,
@@ -995,4 +1266,42 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Von Hand gerechnete Kalenderarithmetik gegen bekannte Werte.
+    #[test]
+    fn formats_known_instants() {
+        // Der Nullpunkt selbst.
+        assert_eq!(format_unix_seconds(0), "1970-01-01_0000");
+        // Ein Schalttag, der Fall, den die Verschiebung auf Maerz abdeckt.
+        assert_eq!(format_unix_seconds(1_582_934_400), "2020-02-29_0000");
+        // Der Tag danach, damit ein Off-by-one am Schalttag auffiele.
+        assert_eq!(format_unix_seconds(1_583_020_800), "2020-03-01_0000");
+        // Jahrhundertwende ohne Schaltjahr waere 1900; 2000 ist eins.
+        assert_eq!(format_unix_seconds(951_782_400), "2000-02-29_0000");
+        // Uhrzeit, nicht nur Datum.
+        assert_eq!(format_unix_seconds(1_764_072_000), "2025-11-25_1200");
+        // Jahreswechsel, letzte Minute.
+        assert_eq!(format_unix_seconds(1_767_225_540), "2025-12-31_2359");
+    }
+
+    /// Die Namen sortieren chronologisch -- darauf beruht die Rotation,
+    /// die nach Namen sortiert statt nach Aenderungszeit.
+    #[test]
+    fn filenames_sort_chronologically() {
+        let mut names = vec![
+            format_unix_seconds(1_767_225_540),
+            format_unix_seconds(0),
+            format_unix_seconds(1_583_020_800),
+        ];
+        names.sort();
+        assert_eq!(
+            names,
+            vec!["1970-01-01_0000", "2020-03-01_0000", "2025-12-31_2359"]
+        );
+    }
 }

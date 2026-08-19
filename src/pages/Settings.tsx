@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { LoadingState } from "../components/ui/States";
 import Icon, { type IconName } from "../components/ui/Icon";
 import { loadSettings, saveSettings, syncSettingsFromDb, type AppSettings } from "../lib/appSettings";
+import { fill } from "../lib/i18n/format";
 import { wipeAllPlayers, wipeAllTournaments, wipeEntireDatabase, isTauri } from "../lib/db";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
@@ -102,6 +103,39 @@ export default function Settings() {
       setDbPath(t.settings_db_path_error);
     }
     setLoading(false);
+  };
+
+  /**
+   * Where the automatic safety copies live, and how many there are. Shown
+   * next to the manual backup: a copy nobody can find is not a backup.
+   */
+  const [backupInfo, setBackupInfo] = useState<{
+    dir: string;
+    count: number;
+    keep: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!isTauri()) return;
+    void (async () => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        setBackupInfo(await invoke("get_backup_info"));
+      } catch (err) {
+        // Not fatal: the section simply omits the line.
+        console.error("Settings: failed to read backup info:", err);
+      }
+    })();
+  }, []);
+
+  const handleOpenBackupFolder = async () => {
+    if (!backupInfo) return;
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("open_folder", { path: backupInfo.dir });
+    } catch (err) {
+      showError(`${err}`);
+    }
   };
 
   const handleOpenFolder = async () => {
@@ -392,6 +426,23 @@ export default function Settings() {
             <div className="text-xs text-muted leading-relaxed">
               {t.settings_backup_hint}
             </div>
+            {backupInfo && (
+              <div className="mt-2 text-xs text-muted leading-relaxed">
+                <span>
+                  {fill(t.settings_backup_auto_hint, {
+                    count: String(backupInfo.count),
+                    keep: String(backupInfo.keep),
+                  })}
+                </span>{" "}
+                <button
+                  type="button"
+                  onClick={handleOpenBackupFolder}
+                  className="underline underline-offset-2 hover:text-secondary transition-all"
+                >
+                  {t.settings_backup_auto_open}
+                </button>
+              </div>
+            )}
           </div>
         )}
 

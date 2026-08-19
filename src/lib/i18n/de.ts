@@ -741,6 +741,8 @@ export const de: Translations = {
   settings_backup_create: "Backup erstellen",
   settings_backup_restore: "Wiederherstellen",
   settings_backup_hint: "Das Backup speichert eine Kopie der gesamten Datenbank — einschließlich der Spielerdaten und des Live-Geheimnisses. Bewahre die Datei entsprechend auf und gib sie nicht unbedacht weiter. Nach der Wiederherstellung muss die App neu gestartet werden.",
+  settings_backup_auto_hint: "Vor dem Wiederherstellen, dem Löschen aller Daten und jeder Datenbank-Aktualisierung legt BOSS automatisch eine Kopie an ({count} vorhanden, die letzten {keep} bleiben erhalten).",
+  settings_backup_auto_open: "Ordner öffnen",
   settings_backup_success: "Backup erfolgreich gespeichert.",
   settings_backup_restore_confirm: "Die aktuelle Datenbank wird durch das Backup ersetzt. Alle aktuellen Daten gehen verloren!\n\nEine Sicherheitskopie wird vorher angelegt, die App startet dabei neu.\n\nFortfahren?",
   settings_backup_restored: "Backup wird eingespielt - App startet neu...",

@@ -126,7 +126,7 @@ Darauf setzen zwei fachliche Funktionen in `db.ts` auf: `createSchedule(tourname
 
 **Problem:** `restore_db` kopierte das Backup über die geöffnete Datenbank, `change_db_dir` schrieb die neue Konfiguration, während die App weiter in die alte Datei schrieb. Beides konnte Daten verlieren oder die Datei beschädigen.
 
-**Umgesetzt:** Alle Datei-Operationen laufen jetzt über eine vorgemerkte Aktion (`pending_db_action.json`), die beim nächsten Start ausgeführt wird, bevor das SQL-Plugin die Datenbank öffnet — dasselbe Muster, das der Wipe schon richtig gemacht hat. Abgedeckt sind `restore`, `move_db`, `reset_dir` und `wipe`; der alte Wipe-Marker wird weiterhin gelesen. Vor dem Zurückspielen eines Backups entsteht eine Sicherheitskopie `*.pre-restore`, die Prüfung des SQLite-Headers bleibt vor dem Neustart, damit eine falsche Datei sofort gemeldet wird. Auch "Speicherort zurücksetzen" läuft über diesen Weg (neues Kommando `reset_db_dir`) — vorher wurde nur die Konfigurationsdatei gelöscht, während die App weiter in die alte Datenbank schrieb. Die Meldungstexte in beiden Sprachen sagen an, dass die App neu startet.
+**Umgesetzt:** Alle Datei-Operationen laufen jetzt über eine vorgemerkte Aktion (`pending_db_action.json`), die beim nächsten Start ausgeführt wird, bevor das SQL-Plugin die Datenbank öffnet — dasselbe Muster, das der Wipe schon richtig gemacht hat. Abgedeckt sind `restore`, `move_db`, `reset_dir` und `wipe`; der alte Wipe-Marker wird weiterhin gelesen. Vor dem Zurückspielen eines Backups entsteht eine Sicherheitskopie (seit I5 im Ordner `backups/` mit Rotation, vorher `*.pre-restore`), die Prüfung des SQLite-Headers bleibt vor dem Neustart, damit eine falsche Datei sofort gemeldet wird. Auch "Speicherort zurücksetzen" läuft über diesen Weg (neues Kommando `reset_db_dir`) — vorher wurde nur die Konfigurationsdatei gelöscht, während die App weiter in die alte Datenbank schrieb. Die Meldungstexte in beiden Sprachen sagen an, dass die App neu startet.
 
 ---
 
@@ -955,25 +955,34 @@ Voreinstellung bleibt „voller Name" — eine stille Änderung würde die Anzei
 
 ---
 
-### [ ] I4 — „Ordner öffnen" funktioniert genau dann nicht, wenn man es braucht
-**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `src-tauri/src/lib.rs:180-206`
+### [x] I4 — „Ordner öffnen" funktioniert genau dann nicht, wenn man es braucht — **erledigt**
+**Schwere:** niedrig · **Aufwand:** XS · **Dateien:** `src-tauri/src/lib.rs`
 
-**Problem:** `open_folder` verweigert jeden Pfad außerhalb des App-Datenverzeichnisses — bei einem benutzerdefinierten Datenbankordner (die Funktion, für die der Knopf existiert) schlägt er also immer fehl. Zusätzlich ist nur der Windows-Zweig implementiert; unter macOS und Linux gibt die Funktion stillschweigend `Ok(())` zurück, ohne etwas zu tun.
+**Umgesetzt:** Die Pfadprüfung kennt jetzt zwei erlaubte Orte statt einem — das App-Datenverzeichnis **und** den tatsächlich genutzten Datenbankordner. Vorher galt nur der erste, weshalb der Knopf bei einem benutzerdefinierten Ordner immer scheiterte: also genau in dem Fall, für den er existiert.
 
-**Fix:** Erlaubte Pfade auf „App-Datenverzeichnis **oder** konfigurierter DB-Ordner" erweitern; `open`/`xdg-open` für macOS und Linux ergänzen; bei nicht unterstützten Plattformen einen echten Fehler zurückgeben statt Erfolg vorzutäuschen.
+`open` für macOS und `xdg-open` für Linux sind ergänzt. Eine Plattform ohne Zweig meldet das jetzt, statt `Ok(())` zurückzugeben — vorher tat der Knopf dort nichts und behauptete Erfolg.
 
-**Fertig wenn:** Der Knopf öffnet den tatsächlich verwendeten Datenbankordner auf allen unterstützten Plattformen — oder meldet verständlich, warum nicht.
+**Eine Feinheit:** Unter Windows wird der ursprüngliche Pfad übergeben, nicht der kanonische. `canonicalize` liefert dort das `\?\`-Präfix, mit dem `explorer.exe` nichts anfängt. Ein nicht auflösbarer Kandidat fällt aus der Prüfung heraus, statt sie scheitern zu lassen.
+
+**Fertig wenn:** ~~Der Knopf öffnet den tatsächlich verwendeten Datenbankordner auf allen unterstützten Plattformen — oder meldet verständlich, warum nicht~~ — erfüllt. Die macOS- und Linux-Zweige sind hier nicht ausführbar; sie sind übersetzt, aber nicht auf dem Zielsystem erprobt.
 
 ---
 
-### [ ] I5 — Backup-Datei ohne Integritätsschutz, kein automatisches Backup
-**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src-tauri/src/lib.rs:113`, `src/pages/Settings.tsx:182`
+### [x] I5 — Backup-Datei ohne Integritätsschutz, kein automatisches Backup — **erledigt**
+**Schwere:** mittel · **Aufwand:** S · **Dateien:** `src-tauri/src/lib.rs`, `src/pages/Settings.tsx`, `.github/workflows/ci.yml`
 
-**Problem:** Backups sind manuell und werden nur beim Restore per Header-Prüfung als SQLite erkannt (gut), aber es gibt keine Schema-Versionsprüfung: eine neuere Backup-Datei lässt sich in eine ältere App-Version einspielen. Ein automatisches Backup vor riskanten Aktionen (Restore, Wipe, Migration) existiert nicht — bei einem Turnier mit 60 Teilnehmern ist Datenverlust das teuerste Fehlerbild überhaupt.
+**Schemaprüfung:** Vor dem Wiederherstellen wird die höchste angewandte Migrationsversion aus der Backup-Datei gelesen (schreibgeschützt, damit das Prüfen sie nicht verändert). Ist sie höher als das, was diese App kennt, wird abgelehnt — mit beiden Zahlen in der Meldung und dem Hinweis, zuerst zu aktualisieren. Migrationen laufen nur aufwärts; eingespielt bliebe eine Datenbank zurück, mit der die App nicht arbeiten kann. Ältere Backups bleiben erlaubt, die fehlenden Migrationen laufen beim Start nach.
 
-**Fix:** Schema-Version aus dem Backup lesen und bei Inkompatibilität ablehnen; automatisches Sicherheitsbackup (Rotation über die letzten 5) vor Restore, Wipe und jeder Migration; sichtbarer Hinweis, wo diese liegen.
+**Automatische Sicherheitskopien** vor allen drei destruktiven Wegen, mit Rotation über die letzten fünf, im Ordner `backups/` neben der Datenbank:
 
-**Fertig wenn:** Vor jeder destruktiven Aktion entsteht automatisch ein Backup; inkompatible Backups werden mit klarer Meldung abgelehnt.
+- **Wiederherstellen** und **alle Daten löschen** brechen ab, wenn die Kopie nicht gelingt — der nächste Schritt überschreibt die Daten.
+- **Migration** ist der Fall, der das Netz am dringendsten braucht: Es ist der einzige destruktive Vorgang, den niemand auslöst — er passiert beim Starten nach einem Update. Hier wird ein Fehlschlag nur gemeldet, nicht hochgereicht; die App am Starten zu hindern, weil eine Kopie misslang, wäre schlimmer als das Risiko, das sie abdeckt.
+
+**Der Ordner ist auffindbar:** Der Backup-Bereich der Einstellungen nennt ihn, sagt wie viele Kopien liegen und wie viele erhalten bleiben, und öffnet ihn auf Klick. Eine Kopie, die niemand findet, ist keine Sicherung.
+
+**Ein Detail mit Tests:** Die Dateinamen tragen ein lesbares Datum (`auto-migration-2026-08-19_1012.db`). Ohne Zeitbibliothek gerechnet — eine zusätzliche Abhängigkeit für einen Dateinamen wäre unverhältnismäßig. Da die Rotation nach Namen sortiert (mtime geht beim Kopieren zwischen Dateisystemen verloren), muss die Rechnung stimmen: sechs Werte gegen bekannte Zeitpunkte geprüft, darunter zwei Schalttage und ein Jahreswechsel, und unabhängig gegengerechnet. Es sind die ersten Rust-Tests im Projekt; `cargo test` läuft jetzt in der CI mit.
+
+**Fertig wenn:** ~~Vor jeder destruktiven Aktion entsteht automatisch ein Backup; inkompatible Backups werden mit klarer Meldung abgelehnt~~ — erfüllt.
 
 ---
 
