@@ -35,6 +35,8 @@ interface Props {
    * busy" badge with a tooltip listing the conflicting players + courts.
    */
   conflictedMatches?: Map<number, ConflictPlayer[]>;
+  /** Court numbers held by other tournaments in the same session. */
+  occupiedByOthers?: Iterable<number>;
   /**
    * Map<groupNumber, remainingMatches>. When provided together with
    * `roundToGroup`, the unassigned queue is sorted descending by the
@@ -48,10 +50,15 @@ interface Props {
   roundToGroup?: Map<number, number>;
 }
 
-export default function CourtOverview({ courts, matches, activeRoundMatches, futureRoundQueues, playerName, onDrop, onUnassign, onMatchClick, hallConfig, minRestMinutes = 0, tournamentStatus, conflictedMatches, remainingByGroup, roundToGroup }: Props) {
+export default function CourtOverview({ courts, matches, activeRoundMatches, futureRoundQueues, playerName, onDrop, onUnassign, onMatchClick, hallConfig, minRestMinutes = 0, tournamentStatus, conflictedMatches, occupiedByOthers, remainingByGroup, roundToGroup }: Props) {
   const { theme } = useTheme();
   const { t } = useT();
-  // Finde fuer jedes Feld das aktive (nicht abgeschlossene) Match - aus ALLEN Runden
+  // Which match holds each court, across every round.
+  //
+  // `occupiedByOthers` adds the courts held by sibling tournaments in the
+  // same session. Without it a court in use next door looked free here,
+  // and a drag onto it went through — the dropdown knew better, the drag
+  // did not.
   const courtAssignments = useMemo(() => {
     const map = new Map<number, Match>();
     for (const m of matches) {
@@ -61,6 +68,13 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
     }
     return map;
   }, [matches]);
+
+  /** Court numbers that cannot take a match, ours and the neighbours'. */
+  const blockedCourts = useMemo(() => {
+    const blocked = new Set<number>(courtAssignments.keys());
+    for (const c of occupiedByOthers ?? []) blocked.add(c);
+    return blocked;
+  }, [courtAssignments, occupiedByOthers]);
 
   // Spiele ohne Feldzuweisung - nur aus der aktiven Runde (falls angegeben), sonst alle
   const sourceForUnassigned = activeRoundMatches ?? matches;
@@ -162,13 +176,13 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
 
   const handleDragOver = (e: React.DragEvent, court: number) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = courtAssignments.has(court) ? "none" : "move";
+    e.dataTransfer.dropEffect = blockedCourts.has(court) ? "none" : "move";
   };
 
   const handleDrop = (e: React.DragEvent, court: number) => {
     e.preventDefault();
-    // Nur auf freie Felder droppen
-    if (courtAssignments.has(court)) return;
+    // Nur auf freie Felder droppen — auch die der Geschwisterturniere.
+    if (blockedCourts.has(court)) return;
     const matchId = Number(e.dataTransfer.getData("matchId"));
     if (matchId && onDrop) {
       onDrop(matchId, court);
@@ -184,10 +198,10 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
   const freeCourts = useMemo(() => {
     const free: number[] = [];
     for (let i = 1; i <= courts; i++) {
-      if (!courtAssignments.has(i)) free.push(i);
+      if (!blockedCourts.has(i)) free.push(i);
     }
     return free;
-  }, [courts, courtAssignments]);
+  }, [courts, blockedCourts]);
 
   const handleDoubleClick = (matchId: number) => {
     // Hard block: forward to onDrop with a placeholder court so the

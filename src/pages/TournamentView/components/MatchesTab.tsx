@@ -245,6 +245,7 @@ export default function MatchesTab({
           minRestMinutes={tournament.min_rest_minutes}
           tournamentStatus={tournament.status}
           conflictedMatches={derived.conflictedMatches}
+          occupiedByOthers={derived.globalOccupiedCourts}
           remainingByGroup={derived.remainingByGroup}
           roundToGroup={derived.roundToGroup}
           onDrop={(matchId, court) => actions.handleCourtChange(matchId, court)}

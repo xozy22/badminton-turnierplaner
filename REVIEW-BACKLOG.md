@@ -292,6 +292,14 @@ Bei Schweizer System und Monrad schiebt sich die Buchholz-Wertung an die zweite 
 
 ---
 
+**Nachtrag aus der Logikprüfung — zwei Spiele konnten auf ein Feld.** Es gibt zwei Wege, ein Spiel einem Feld zuzuweisen, und nur einer prüfte, ob das Feld frei ist. Das Auswahlfeld sperrt belegte Felder anhand von `globalOccupiedCourts`, das die ganze Session umfasst. Drag-and-drop tat das nicht: `CourtOverview` bildet seine Belegung aus `matches` — der Spielliste **dieses** Turniers. Ein Feld, auf dem das Nachbarturnier derselben Session spielte, sah dort frei aus, und das Ablegen ging durch. `handleCourtChange` prüfte anschließend Spielerüberschneidung und Ruhezeit, aber nie das Feld selbst.
+
+Die Prüfung sitzt jetzt in `handleCourtChange` — dem Trichter, durch den **alle** Zuweisungswege laufen (Auswahlfeld, Ziehen, Doppelklick, Feldauswahl) — und nicht in einem davon. Dasselbe Muster wie die HTTPS-Prüfung in `postJson`. Ein neuer Hinweis nennt das belegte Feld und, bei einem Geschwisterturnier, dessen Namen: „Feld 2 wird gerade von ‚Dienstagsrunde' benutzt."
+
+Die Feldübersicht kennt die fremde Belegung ebenfalls, damit ein besetztes Feld gar nicht erst als Ablegeziel erscheint.
+
+In der laufenden Anwendung nachgewiesen: Die Sperre im Auswahlfeld umgangen, das belegte Feld erzwungen — der Hinweis erscheint, und in der Datenbank steht weiterhin nur ein Spiel auf dem Feld.
+
 ### [x] B13 — Keine Format-spezifische Teilnehmer-Validierung — **erledigt**
 **Schwere:** mittel · **Aufwand:** M · **Dateien:** `src/lib/tournamentValidation.ts` (neu), `src/pages/TournamentCreate.tsx`
 

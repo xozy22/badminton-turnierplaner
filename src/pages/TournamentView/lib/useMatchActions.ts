@@ -42,6 +42,8 @@ interface Args {
   setEditingMatchIds: React.Dispatch<React.SetStateAction<Set<number>>>;
   setRecentlyCompleted: React.Dispatch<React.SetStateAction<Set<number>>>;
   runningPlayerCourts: Map<number, RunningPlayerCourt>;
+  /** Courts held by sibling tournaments, keyed by court number. */
+  occupiedCourts?: Map<number, { id: number; tournament_name: string }>;
   playerName: (id: number | null) => string;
   refreshScores: () => void | Promise<void>;
 }
@@ -58,10 +60,11 @@ export function useMatchActions({
   setEditingMatchIds,
   setRecentlyCompleted,
   runningPlayerCourts,
+  occupiedCourts,
   playerName,
   refreshScores,
 }: Args) {
-  const { setRestWarning, setPlayerConflict } = dialogs;
+  const { setRestWarning, setPlayerConflict, setCourtTaken } = dialogs;
 
   const handleScoreChange = async (
     matchId: number,
@@ -247,6 +250,35 @@ export function useMatchActions({
   };
 
   const handleCourtChange = async (matchId: number, court: number | null, bypassRestCheck = false) => {
+    // Court-occupancy check — HARD block, and the first one, because two
+    // matches on one court is the mistake players notice from the hall.
+    //
+    // The dropdown already disables taken courts, but drag and drop did
+    // not: CourtOverview reads its occupancy from this tournament's match
+    // list, so a court held by a sibling tournament in the same session
+    // looked free. Checking here covers every path — dropdown, drag,
+    // double-click, picker — the way the HTTPS check sits in postJson
+    // rather than at each caller.
+    if (court !== null) {
+      const holder = allMatches.find(
+        (m) => m.id !== matchId && m.court === court && m.status !== "completed",
+      );
+      // courtOccupancy spans the whole session, including this
+      // tournament — so the match being moved has to be excluded here
+      // too, or putting it back on its own court would be refused.
+      const fromSession = occupiedCourts?.get(court);
+      const sessionHolder =
+        holder || !fromSession || fromSession.id === matchId ? null : fromSession;
+      if (holder || sessionHolder) {
+        setCourtTaken({
+          matchId,
+          court,
+          byTournament: sessionHolder?.tournament_name ?? null,
+        });
+        return;
+      }
+    }
+
     // Player-overlap check — HARD block, no bypass. A player who is currently
     // running on another court cannot be on a second court at the same time.
     // Runs even when `bypassRestCheck=true` (the rest-warning "assign anyway"

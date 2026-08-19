@@ -20,6 +20,7 @@ import UnpublishModal from "../../../components/tournament/UnpublishModal";
 import UndoRoundModal from "./modals/UndoRoundModal";
 import RestWarningModal from "./modals/RestWarningModal";
 import PlayerConflictModal from "./modals/PlayerConflictModal";
+import CourtTakenModal from "./modals/CourtTakenModal";
 import DeleteTournamentModal from "../../../components/tournament/DeleteTournamentModal";
 import {
   deleteTournament,
@@ -219,6 +220,11 @@ export default function TournamentModals(props: Props) {
       setRestWarning(null);
       await onCourtChange(w.matchId, w.court, true);
     }}
+  />
+
+  <CourtTakenModal
+    taken={dialogs.courtTaken}
+    onClose={() => dialogs.setCourtTaken(null)}
   />
 
   <PlayerConflictModal

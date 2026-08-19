@@ -231,6 +231,9 @@ export interface Translations {
   player_conflict_title: string;
   player_conflict_body: string;
   player_conflict_row: string;
+  court_taken_title: string;
+  court_taken_body: string;
+  court_taken_by_other_tournament: string;
   match_blocked_short: string;
   match_player_busy_short: string;
   // Live publishing

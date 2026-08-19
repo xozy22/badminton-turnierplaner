@@ -26,6 +26,18 @@ export interface PlayerConflict {
   players: { id: number; name: string; court: number }[];
 }
 
+/**
+ * A court that is already taken. Shown instead of assigning: the dropdown
+ * disables occupied courts, but drag and drop could still land on one held
+ * by a sibling tournament in the same session.
+ */
+export interface CourtTaken {
+  matchId: number;
+  court: number;
+  /** Set when another tournament in the session holds it. */
+  byTournament: string | null;
+}
+
 export interface RetireTarget {
   player: Player;
   partnerNote: string;
@@ -46,6 +58,7 @@ export function useTournamentDialogs() {
   const [removeTarget, setRemoveTarget] = useState<Player | null>(null);
   const [restWarning, setRestWarning] = useState<RestWarning | null>(null);
   const [playerConflict, setPlayerConflict] = useState<PlayerConflict | null>(null);
+  const [courtTaken, setCourtTaken] = useState<CourtTaken | null>(null);
 
   return {
     showAddPlayer,
@@ -76,6 +89,8 @@ export function useTournamentDialogs() {
     setRestWarning,
     playerConflict,
     setPlayerConflict,
+    courtTaken,
+    setCourtTaken,
   };
 }
 

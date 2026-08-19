@@ -218,6 +218,9 @@ export const de: Translations = {
   player_conflict_title: "Spieler bereits auf einem Feld",
   player_conflict_body: "Folgende Spieler dieses Matches sind bereits auf einem anderen Feld eingeteilt. Das Match kann erst zugewiesen werden, wenn diese Spieler ihr aktuelles Match beendet haben:",
   player_conflict_row: "{player} — Feld {court}",
+  court_taken_title: "Feld ist belegt",
+  court_taken_body: "Auf Feld {court} läuft bereits ein Spiel. Weise das Spiel einem freien Feld zu, oder nimm das laufende zuerst herunter.",
+  court_taken_by_other_tournament: "Feld {court} wird gerade von „{tournament}“ benutzt. In einer Session teilen sich alle Turniere dieselben Felder.",
   match_blocked_short: "Spieler aktiv",
   match_player_busy_short: "Spieler aktiv",
   // Live publishing

@@ -218,6 +218,9 @@ export const en: Translations = {
   player_conflict_title: "Player already on a court",
   player_conflict_body: "The following players of this match are already on another court. The match can only be assigned once those players have finished their current match:",
   player_conflict_row: "{player} — court {court}",
+  court_taken_title: "Court is in use",
+  court_taken_body: "A match is already running on court {court}. Assign this one to a free court, or clear the running match first.",
+  court_taken_by_other_tournament: "Court {court} is being used by “{tournament}”. Tournaments in a session share the same courts.",
   match_blocked_short: "Player busy",
   match_player_busy_short: "player busy",
   // Live publishing
