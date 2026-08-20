@@ -590,6 +590,8 @@ export const en: Translations = {
   forecast_basis_guess: "a rough guess -- once a few matches have been played, BOSS uses your own times",
   forecast_courts: "across {courts} courts at once",
   forecast_open_ended: "This format runs for as long as you like -- there is no fixed number of matches.",
+  set_unreachable: "Not needed",
+  set_unreachable_stray: "This set could not have been played -- please clear it.",
   seeding_description: "Select which players are seeded and arrange them by strength (Rank 1 = strongest player). Unseeded players will be drawn randomly.",
   seeding_move_up: "Move up",
   seeding_move_down: "Move down",

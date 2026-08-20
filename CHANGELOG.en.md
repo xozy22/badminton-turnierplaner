@@ -19,6 +19,20 @@ the application shows when its language is set to English.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A fourth set could be entered in a best-of-three.** After 21:10 and
+  21:15 the match is over at two sets to none, yet the third set field still
+  accepted a score when you moved on with Tab or the mouse instead of Enter.
+  The extra set counted towards the set and point ratios -- exactly what
+  separates equal records in a group.
+
+  Set fields the match cannot reach are now locked however you navigate the
+  entry. Correcting an earlier set frees them again. Sets already stored that
+  way stay visible, are flagged in red as "could not have been played" and
+  stay editable so they can be cleared -- and the standings stop counting
+  them from now on.
+
 ### Planning
 
 - **"How long will this take?"** The player selection now says how many

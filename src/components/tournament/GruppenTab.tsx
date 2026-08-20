@@ -12,6 +12,7 @@ import {
   calculateStandings,
   calculateTeamStandings,
   isSetComplete,
+  scoringOf,
 } from "../../lib/scoring";
 import { playerDisplayName } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
@@ -219,7 +220,9 @@ export default function GruppenTab({
     const showMatchList = activeGroup !== "all";
 
     if (isDoublesGroup) {
-      const teamStandings = calculateTeamStandings(gPlayers, gMatches, gSets);
+      const teamStandings = calculateTeamStandings(gPlayers, gMatches, gSets, {
+        scoring: scoringOf(tournament),
+      });
       return (
         <div key={groupNum}>
         <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
@@ -282,7 +285,9 @@ export default function GruppenTab({
       );
     }
 
-    const gStandings = calculateStandings(gPlayers, gMatches, gSets);
+    const gStandings = calculateStandings(gPlayers, gMatches, gSets, {
+      scoring: scoringOf(tournament),
+    });
     return (
       <div key={groupNum}>
       <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>

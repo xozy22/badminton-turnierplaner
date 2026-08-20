@@ -282,6 +282,54 @@ describe("calculateStandings", () => {
     expect(table[1]).toMatchObject({ wins: 0, losses: 1, setsWon: 0, setsLost: 2, pointsWon: 33, pointsLost: 42 });
   });
 
+  it("leaves out a set the match never reached", () => {
+    // The reported fault: a best-of-three took 21:10, 21:15 and then a
+    // third set went in too. That set was never playable, and counting it
+    // inflates both ratios that separate equal records in a group.
+    const [a, b] = [makePlayer(), makePlayer()];
+    const { match, sets } = makeCompleted(a.id, b.id, [
+      [21, 10],
+      [21, 15],
+      [22, 20],
+    ]);
+
+    const table = calculateStandings([a, b], [match], setsByMatch(sets), {
+      scoring: { setsToWin: 2, pointsPerSet: 21, cap: 30 },
+    });
+
+    expect(table[0]).toMatchObject({ setsWon: 2, setsLost: 0, pointsWon: 42, pointsLost: 25 });
+    expect(table[1]).toMatchObject({ setsWon: 0, setsLost: 2, pointsWon: 25, pointsLost: 42 });
+  });
+
+  it("keeps all three sets of a genuine decider", () => {
+    const [a, b] = [makePlayer(), makePlayer()];
+    const { match, sets } = makeCompleted(a.id, b.id, [
+      [21, 10],
+      [15, 21],
+      [21, 18],
+    ]);
+
+    const table = calculateStandings([a, b], [match], setsByMatch(sets), {
+      scoring: { setsToWin: 2, pointsPerSet: 21, cap: 30 },
+    });
+
+    expect(table[0]).toMatchObject({ setsWon: 2, setsLost: 1, pointsWon: 57 });
+  });
+
+  it("counts every stored set when no scoring rules are given", () => {
+    // Without the rules there is nothing to measure "too many" against,
+    // so the old behaviour stands rather than a guess being made.
+    const [a, b] = [makePlayer(), makePlayer()];
+    const { match, sets } = makeCompleted(a.id, b.id, [
+      [21, 10],
+      [21, 15],
+      [22, 20],
+    ]);
+
+    const table = calculateStandings([a, b], [match], setsByMatch(sets));
+    expect(table[0].setsWon).toBe(3);
+  });
+
   it("ignores matches that are not completed", () => {
     const [a, b] = [makePlayer(), makePlayer()];
     const { match, sets } = makeCompleted(a.id, b.id, [[21, 15]], { status: "active", winner_team: null });

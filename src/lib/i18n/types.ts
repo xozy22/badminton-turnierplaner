@@ -609,6 +609,8 @@ export interface Translations {
   forecast_basis_guess: string;
   forecast_courts: string;
   forecast_open_ended: string;
+  set_unreachable: string;
+  set_unreachable_stray: string;
   seeding_description: string;
   seeding_move_up: string;
   seeding_move_down: string;

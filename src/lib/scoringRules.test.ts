@@ -13,7 +13,13 @@
 // finds that kind of hole without anyone having to guess where it is.
 
 import { describe, it, expect } from "vitest";
-import { autoFillOpponentScore, isScoreValid, isSetComplete } from "./scoring";
+import {
+  autoFillOpponentScore,
+  isScoreValid,
+  isSetComplete,
+  isSetPlayable,
+  playedSets,
+} from "./scoring";
 import type { GameSet } from "./types";
 
 /**
@@ -144,5 +150,93 @@ describe("auto-fill only ever proposes a legal result", () => {
     expect(autoFillOpponentScore(20, 21, 30, true)).toBe(22);
     expect(autoFillOpponentScore(14, 15, 25, true)).toBe(16);
     expect(autoFillOpponentScore(10, 11, 20, true)).toBe(12);
+  });
+});
+
+describe("sets that could never have been played", () => {
+  const set = (n: number, a: number, b: number): GameSet => ({
+    id: n,
+    match_id: 1,
+    set_number: n,
+    team1_score: a,
+    team2_score: b,
+  });
+
+  describe("isSetPlayable", () => {
+    it("allows the first set of anything", () => {
+      expect(isSetPlayable(1, [], 2, 21, 30)).toBe(true);
+    });
+
+    it("allows the second when the first is decided", () => {
+      expect(isSetPlayable(2, [set(1, 21, 10)], 2, 21, 30)).toBe(true);
+    });
+
+    it("allows the third at one set all", () => {
+      expect(isSetPlayable(3, [set(1, 21, 10), set(2, 15, 21)], 2, 21, 30)).toBe(true);
+    });
+
+    it("refuses the third at two sets to none", () => {
+      // The reported fault: 21:10, 21:15 and then a third set went in.
+      expect(isSetPlayable(3, [set(1, 21, 10), set(2, 21, 15)], 2, 21, 30)).toBe(false);
+    });
+
+    it("frees the third again when the second is corrected", () => {
+      // Somebody fixes a mistyped second set. The third has to come back,
+      // or the correction leaves the match unfinishable.
+      const corrected = [set(1, 21, 10), set(2, 15, 21)];
+      expect(isSetPlayable(3, corrected, 2, 21, 30)).toBe(true);
+    });
+
+    it("ignores an unfinished earlier set", () => {
+      // 21:10 and 5:3 is not one set all; the third is still out of reach,
+      // but so is any decision, so the second stays open.
+      expect(isSetPlayable(2, [set(1, 21, 10)], 2, 21, 30)).toBe(true);
+      expect(isSetPlayable(3, [set(1, 21, 10), set(2, 5, 3)], 2, 21, 30)).toBe(true);
+    });
+
+    it("ends a best-of-one after the first set", () => {
+      expect(isSetPlayable(2, [set(1, 21, 10)], 1, 21, 30)).toBe(false);
+    });
+
+    it("allows five sets in a best-of-five", () => {
+      const sets = [set(1, 21, 10), set(2, 10, 21), set(3, 21, 12), set(4, 12, 21)];
+      expect(isSetPlayable(5, sets, 3, 21, 30)).toBe(true);
+    });
+  });
+
+  describe("playedSets", () => {
+    it("keeps the set that decided the match", () => {
+      const sets = [set(1, 21, 10), set(2, 21, 15)];
+      expect(playedSets(sets, 2, 21, 30)).toHaveLength(2);
+    });
+
+    it("drops what came after the decision", () => {
+      // Otherwise the extra set counts towards the set and point ratios
+      // that decide ties in a group.
+      const sets = [set(1, 21, 10), set(2, 21, 15), set(3, 22, 20)];
+      const kept = playedSets(sets, 2, 21, 30);
+      expect(kept.map((x) => x.set_number)).toEqual([1, 2]);
+    });
+
+    it("keeps all three of a genuine decider", () => {
+      const sets = [set(1, 21, 10), set(2, 15, 21), set(3, 21, 18)];
+      expect(playedSets(sets, 2, 21, 30)).toHaveLength(3);
+    });
+
+    it("reads them in order, whatever order they arrive in", () => {
+      // The database returns rows in whatever order it likes.
+      const sets = [set(3, 22, 20), set(1, 21, 10), set(2, 21, 15)];
+      expect(playedSets(sets, 2, 21, 30).map((x) => x.set_number)).toEqual([1, 2]);
+    });
+
+    it("keeps an unfinished set", () => {
+      // A match still being played has nothing to trim.
+      const sets = [set(1, 21, 10), set(2, 5, 3)];
+      expect(playedSets(sets, 2, 21, 30)).toHaveLength(2);
+    });
+
+    it("leaves an empty match empty", () => {
+      expect(playedSets([], 2, 21, 30)).toEqual([]);
+    });
   });
 });

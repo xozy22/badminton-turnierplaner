@@ -14,7 +14,13 @@ import Icon from "../../../components/ui/Icon";
 import type { ConflictPlayer } from "../../../lib/courtConflicts";
 import { CourtTimer } from "../../../components/courts/CourtTimer";
 import RestIndicator from "../../../components/players/RestIndicator";
-import { getMaxScore, isScoreValid, isSetComplete } from "../../../lib/scoring";
+import {
+  getMaxScore,
+  isScoreValid,
+  isSetComplete,
+  isSetPlayable,
+  playedSets,
+} from "../../../lib/scoring";
 import type { Match, GameSet } from "../../../lib/types";
 import type { ThemeColors } from "../../../lib/theme";
 import { useT } from "../../../lib/I18nContext";
@@ -160,10 +166,12 @@ export default function MatchCard({
     </>
   );
 
-  // Count sets won for display
+  // Count sets won for display. Sets past the deciding one are left out,
+  // the same way the standings leave them out -- otherwise the card says
+  // 3:0 for a best-of-three while the table says 2:0.
   let team1SetsWon = 0;
   let team2SetsWon = 0;
-  for (const s of sets) {
+  for (const s of playedSets(sets, setsToWin, pointsPerSet, cap)) {
     if (isSetComplete(s, pointsPerSet, cap)) {
       if (s.team1_score > s.team2_score) team1SetsWon++;
       else team2SetsWon++;
@@ -332,6 +340,23 @@ export default function MatchCard({
             ? isSetComplete(setData, pointsPerSet, cap)
             : false;
 
+          // A best-of-three ends the moment somebody has two sets, so the
+          // third one cannot exist. Locking it is separate from finishing
+          // the match: finishing is deliberate and stays on Enter, while
+          // this is only a statement about what could have been played --
+          // which has to hold however the score was entered.
+          const reachable = isSetPlayable(setNum, sets, setsToWin, pointsPerSet, cap);
+          // Values already stored in an unreachable set are shown rather
+          // than hidden: they are in the database and are skewing a table
+          // until somebody clears them.
+          const strayScore = !reachable && (score1 > 0 || score2 > 0);
+
+          const setNote = strayScore
+            ? t.set_unreachable_stray
+            : !reachable && !inputsDisabled
+              ? t.set_unreachable
+              : null;
+
           const handleScoreKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, setNum: number, team: 1 | 2) => {
             const isEnter = e.key === "Enter";
             const isTab = e.key === "Tab" && !e.shiftKey;
@@ -411,7 +436,7 @@ export default function MatchCard({
                   onBlur={(e) => { releaseFocusedRef(e); onScoreBlur(match.id, setNum, 1); }}
                   onFocus={handleScoreFocus}
                   onKeyDown={(e) => handleScoreKeyDown(e, setNum, 1)}
-                  disabled={inputsDisabled}
+                  disabled={inputsDisabled || (!reachable && !strayScore)}
                   aria-label={fill(t.score_input_label, { set: setNum, team: team1Label })}
                   aria-invalid={!validation.valid}
                   className={`w-14 h-10 border-2 rounded-md text-center text-base font-mono font-bold ${theme.inputBg} ${theme.inputText} disabled:opacity-60 outline-none transition-all ${
@@ -440,7 +465,7 @@ export default function MatchCard({
                   onBlur={(e) => { releaseFocusedRef(e); onScoreBlur(match.id, setNum, 2); }}
                   onFocus={handleScoreFocus}
                   onKeyDown={(e) => handleScoreKeyDown(e, setNum, 2)}
-                  disabled={inputsDisabled}
+                  disabled={inputsDisabled || (!reachable && !strayScore)}
                   aria-label={fill(t.score_input_label, { set: setNum, team: team2Label })}
                   aria-invalid={!validation.valid}
                   className={`w-14 h-10 border-2 rounded-md text-center text-base font-mono font-bold ${theme.inputBg} ${theme.inputText} disabled:opacity-60 outline-none transition-all ${
@@ -455,6 +480,15 @@ export default function MatchCard({
               {!validation.valid && (
                 <div className="text-2xs text-danger-text mt-1 max-w-[130px]">
                   {validation.error && fill(t[validation.error], validation.params)}
+                </div>
+              )}
+              {validation.valid && setNote && (
+                <div
+                  className={`mt-1 max-w-[130px] text-2xs ${
+                    strayScore ? "text-danger-text" : "text-muted"
+                  }`}
+                >
+                  {setNote}
                 </div>
               )}
             </div>

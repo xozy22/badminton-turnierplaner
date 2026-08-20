@@ -37,7 +37,7 @@ import {
   getPreviousPairingCounts,
   shufflePlayers,
 } from "../draw";
-import { calculateStandings, calculateTeamStandings } from "../scoring";
+import { calculateStandings, calculateTeamStandings , scoringOf} from "../scoring";
 
 /** Matchup history for Swiss and Monrad, in the shape the draw expects. */
 function matchupHistory(ctx: FormatContext, matches: { team1_p1: number; team1_p2: number | null; team2_p1: number | null; team2_p2: number | null }[]): Set<string> {
@@ -200,7 +200,9 @@ function swissLikeAdvance(ctx: FormatContext, strictRanking: boolean): FormatPla
     };
   }
 
-  const standings = calculateTeamStandings(ctx.players, matches, sets);
+  const standings = calculateTeamStandings(ctx.players, matches, sets, {
+    scoring: scoringOf(ctx.tournament),
+  });
   const drawn = strictRanking
     ? generateMonradRoundDoubles(standings, history)
     : generateSwissRoundDoubles(standings, history);

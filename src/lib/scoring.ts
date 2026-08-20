@@ -417,6 +417,37 @@ export interface StandingsOptions {
    * field ranks higher on equal points.
    */
   withBuchholz?: boolean;
+  /**
+   * The scoring rules, so sets after the deciding one can be left out.
+   *
+   * A best-of-three ends at two sets; a third one stored against it was
+   * never played, and counting it inflates both the set ratio and the
+   * point ratio -- the two things that separate equal records in a group.
+   *
+   * Optional because not every caller has a tournament to hand. Without
+   * it every stored set counts, which is how it always behaved.
+   */
+  scoring?: { setsToWin: number; pointsPerSet: number; cap: number | null };
+}
+
+/**
+ * A tournament's scoring rules, in the shape {@link StandingsOptions} wants.
+ *
+ * Uses the ordinary values rather than the `ko_*` ones on purpose: those
+ * apply to the knockout phase, and a knockout has a bracket, not a table.
+ * Every standings table in this application is a group table or a
+ * whole-tournament table, both of which are played to the ordinary rules.
+ */
+export function scoringOf(tournament: {
+  sets_to_win: number;
+  points_per_set: number;
+  cap: number | null;
+}): NonNullable<StandingsOptions["scoring"]> {
+  return {
+    setsToWin: tournament.sets_to_win,
+    pointsPerSet: tournament.points_per_set,
+    cap: tournament.cap,
+  };
 }
 
 export function calculateStandings(
@@ -459,7 +490,17 @@ export function calculateStandings(
 
     // A walkover is a win, but nothing was played: no sets, no points.
     const isWalkover = match.walkover === 1;
-    const matchSets = isWalkover ? [] : sets.get(match.id) || [];
+    const stored = isWalkover ? [] : sets.get(match.id) || [];
+    // Anything past the deciding set was never playable, whatever is in
+    // the database -- see playedSets.
+    const matchSets = options.scoring
+      ? playedSets(
+          stored,
+          options.scoring.setsToWin,
+          options.scoring.pointsPerSet,
+          options.scoring.cap,
+        )
+      : stored;
 
     const team1Players = [match.team1_p1, match.team1_p2].filter(
       (id): id is number => id !== null
@@ -587,7 +628,8 @@ function teamKey(p1: number, p2: number): string {
 export function calculateTeamStandings(
   players: Player[],
   matches: Match[],
-  sets: Map<number, GameSet[]>
+  sets: Map<number, GameSet[]>,
+  options: StandingsOptions = {},
 ): TeamStandingEntry[] {
   const entries = new Map<string, TeamStandingEntry>();
   const playerMap = new Map(players.map((p) => [p.id, p]));
@@ -623,7 +665,15 @@ export function calculateTeamStandings(
   for (const m of matches) {
     if (m.status !== "completed" || !m.winner_team) continue;
     if (m.team2_p1 === null) continue; // bye — advanced, not played
-    const matchSets = m.walkover === 1 ? [] : sets.get(m.id) || [];
+    const storedSets = m.walkover === 1 ? [] : sets.get(m.id) || [];
+    const matchSets = options.scoring
+      ? playedSets(
+          storedSets,
+          options.scoring.setsToWin,
+          options.scoring.pointsPerSet,
+          options.scoring.cap,
+        )
+      : storedSets;
 
     const t1key = m.team1_p2 ? teamKey(m.team1_p1, m.team1_p2) : null;
     const t2key = m.team2_p1 !== null && m.team2_p2 ? teamKey(m.team2_p1, m.team2_p2) : null;
@@ -774,6 +824,52 @@ export function limitTeamStandingsToTopN(
   });
 
   return calculateTeamStandings(players, keptMatches, sets);
+}
+
+/**
+ * Whether set `setNumber` could have been played at all.
+ *
+ * A best-of-three ends the moment somebody has two sets; a third one
+ * cannot exist. The score entry used to allow it anyway, and the extra
+ * set then counted towards the set and point ratios that decide ties.
+ *
+ * Deliberately asks about the sets *before* this one and nothing else, so
+ * correcting an earlier set frees or blocks the later ones as it should:
+ * change a 21:15 to 15:21 and the third set becomes playable again.
+ */
+export function isSetPlayable(
+  setNumber: number,
+  matchSets: GameSet[],
+  setsToWin: number,
+  pointsPerSet: number,
+  cap?: number | null,
+): boolean {
+  const earlier = matchSets.filter((s) => s.set_number < setNumber);
+  return determineMatchWinner(earlier, setsToWin, pointsPerSet, cap) === null;
+}
+
+/**
+ * The sets that count: everything up to and including the one that
+ * decided the match.
+ *
+ * Anything after it was never playable, whatever is stored -- and a
+ * stored one would otherwise inflate the loser's points and the winner's
+ * set ratio. Used by the standings so an old, wrongly entered match does
+ * not keep skewing a table.
+ */
+export function playedSets(
+  matchSets: GameSet[],
+  setsToWin: number,
+  pointsPerSet: number,
+  cap?: number | null,
+): GameSet[] {
+  const ordered = [...matchSets].sort((a, b) => a.set_number - b.set_number);
+  const out: GameSet[] = [];
+  for (const set of ordered) {
+    if (determineMatchWinner(out, setsToWin, pointsPerSet, cap) !== null) break;
+    out.push(set);
+  }
+  return out;
 }
 
 export function determineMatchWinner(

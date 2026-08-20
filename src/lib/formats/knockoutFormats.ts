@@ -29,6 +29,7 @@ import {
   rankAcrossGroups,
   limitStandingsToTopN,
   limitTeamStandingsToTopN,
+  scoringOf,
 } from "../scoring";
 import {
   nextDoubleEliminationRounds,
@@ -288,7 +289,9 @@ export function buildKnockoutFromGroups(ctx: FormatContext): MatchSpec[] {
       tables.push({
         data,
         players,
-        standings: calculateTeamStandings(players, data.matches, data.sets),
+        standings: calculateTeamStandings(players, data.matches, data.sets, {
+          scoring: scoringOf(ctx.tournament),
+        }),
       });
     }
 
@@ -348,7 +351,12 @@ export function buildKnockoutFromGroups(ctx: FormatContext): MatchSpec[] {
   for (let g = 1; g <= numGroups; g++) {
     const data = groupData(ctx, g);
     const players = ctx.players.filter((p) => data.playerIds.has(p.id));
-    tables.push({ data, standings: calculateStandings(players, data.matches, data.sets) });
+    tables.push({
+      data,
+      standings: calculateStandings(players, data.matches, data.sets, {
+        scoring: scoringOf(ctx.tournament),
+      }),
+    });
   }
 
   const smallest = Math.min(...tables.map((t) => t.standings.length));

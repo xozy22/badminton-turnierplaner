@@ -13,7 +13,7 @@ import type {
 import { playerDisplayName } from "../../lib/types";
 import { formatLabel, modeLabel } from "../../lib/i18n/labels";
 import { formatDate } from "../../lib/datetime";
-import { isSetComplete, getScoringDescription, calculateStandings, calculateTeamStandings } from "../../lib/scoring";
+import { isSetComplete, getScoringDescription, calculateStandings, calculateTeamStandings , scoringOf} from "../../lib/scoring";
 import { calculateHighlights } from "../../lib/highlights";
 import type { PrintColors } from "../../lib/theme";
 import { PRINT_COLORS } from "../../lib/theme";
@@ -492,7 +492,9 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
             const isDoubles = tournament.mode !== "singles";
 
             if (isDoubles) {
-              const teamStandings = calculateTeamStandings(gPlayers, gMatches, gSets);
+              const teamStandings = calculateTeamStandings(gPlayers, gMatches, gSets, {
+                scoring: scoringOf(tournament),
+              });
               return (
                 <div key={groupNum} style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
@@ -527,7 +529,9 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
               );
             }
 
-            const gStandings = calculateStandings(gPlayers, gMatches, gSets);
+            const gStandings = calculateStandings(gPlayers, gMatches, gSets, {
+              scoring: scoringOf(tournament),
+            });
             return (
               <div key={groupNum} style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>

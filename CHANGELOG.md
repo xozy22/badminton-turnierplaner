@@ -24,6 +24,21 @@ Alle nennenswerten Änderungen an BOSS, neueste zuerst. Das Format folgt
 Ein Durchgang durch `REVIEW-BACKLOG.md`, 75 Punkte in sechs Phasen. Die
 Kurzfassung dessen, was sich für Nutzer ändert:
 
+### Behoben
+
+- **Ein vierter Satz bei „Best of 3" ließ sich eintragen.** Nach 21:10 und
+  21:15 steht es 2:0 und das Spiel ist vorbei — trotzdem nahm das dritte
+  Satzfeld noch ein Ergebnis an, wenn man mit Tabulator oder Maus weiterging
+  statt mit Enter. Der zusätzliche Satz floss in Satz- und Punktbilanz ein,
+  und genau die entscheiden bei Punktgleichheit in einer Gruppe.
+
+  Nicht mehr erreichbare Satzfelder sind jetzt gesperrt, unabhängig davon,
+  wie man durch die Eingabe navigiert. Wird ein früherer Satz korrigiert,
+  werden sie wieder frei. Bereits gespeicherte Sätze dieser Art bleiben
+  sichtbar, sind rot als „konnte nicht gespielt werden" gekennzeichnet und
+  bleiben bearbeitbar, damit man sie leeren kann — die Tabelle zählt sie ab
+  sofort nicht mehr mit.
+
 ### Planung
 
 - **„Wie lange dauert das?"** Bei der Spielerauswahl steht jetzt, wie viele
