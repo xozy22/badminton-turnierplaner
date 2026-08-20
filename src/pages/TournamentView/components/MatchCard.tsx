@@ -242,7 +242,7 @@ export default function MatchCard({
               ) : null}
               {match.court && (
                 <CourtTimer
-                  assignedAt={match.court_assigned_at}
+                  startedAt={match.started_at}
                   completed={match.status === "completed"}
                 />
               )}

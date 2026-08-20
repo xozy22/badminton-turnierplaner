@@ -796,6 +796,63 @@ for (const backend of BACKENDS) {
       expect(stored.completed_at).toBeNull();
     });
 
+    it("does not restart a match moved to another court", async () => {
+      // The reported fault: the timer jumped back to zero on a court
+      // change. Less visibly, started_at was rewritten too, and that is
+      // what the schedule forecast measures match durations from.
+      const { tournamentId, match } = await oneMatch();
+
+      await updateMatchCourt(match.id, 1);
+      const [first] = await getAllMatchesByTournament(tournamentId);
+      const startedAt = first.started_at;
+      expect(startedAt).toBeTruthy();
+
+      await updateMatchCourt(match.id, 2);
+      const [moved] = await getAllMatchesByTournament(tournamentId);
+
+      expect(moved.court).toBe(2);
+      expect(moved.started_at, "the match began once").toBe(startedAt);
+    });
+
+    it("records the new court assignment time on a move", async () => {
+      // court_assigned_at means "landed on this court", so it does move.
+      // Session occupancy resolves conflicts by whichever is newest.
+      const { tournamentId, match } = await oneMatch();
+
+      await updateMatchCourt(match.id, 1);
+      const [first] = await getAllMatchesByTournament(tournamentId);
+
+      await new Promise((r) => setTimeout(r, 1100));
+      await updateMatchCourt(match.id, 2);
+      const [moved] = await getAllMatchesByTournament(tournamentId);
+
+      expect(moved.court_assigned_at).not.toBe(first.court_assigned_at);
+    });
+
+    it("clears both timestamps when taken off court", async () => {
+      // It had not started after all.
+      const { tournamentId, match } = await oneMatch();
+      await updateMatchCourt(match.id, 1);
+
+      await updateMatchCourt(match.id, null);
+      const [stored] = await getAllMatchesByTournament(tournamentId);
+
+      expect(stored.court).toBeNull();
+      expect(stored.started_at).toBeNull();
+      expect(stored.court_assigned_at).toBeNull();
+    });
+
+    it("starts the clock again after it was taken off and put back", async () => {
+      const { tournamentId, match } = await oneMatch();
+      await updateMatchCourt(match.id, 1);
+      await updateMatchCourt(match.id, null);
+
+      await updateMatchCourt(match.id, 1);
+      const [stored] = await getAllMatchesByTournament(tournamentId);
+
+      expect(stored.started_at).toBeTruthy();
+    });
+
     it("assigns and clears a court", async () => {
       const { tournamentId, match } = await oneMatch();
 

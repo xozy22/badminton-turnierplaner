@@ -26,6 +26,16 @@ Kurzfassung dessen, was sich für Nutzer ändert:
 
 ### Behoben
 
+- **Der Feldwechsel setzte die laufende Zeit zurück.** Wurde ein Spiel von
+  einem Feld auf ein anderes gelegt, sprang die Uhr auf null — obwohl
+  weitergespielt wurde. Ursache: Beide Zeitstempel des Spiels wurden beim
+  Wechsel neu geschrieben, auch der Beginn. Damit war zusätzlich die
+  gemessene Spieldauer zu kurz, aus der die neue Abendprognose rechnet.
+
+  Die beiden bedeuten jetzt, was ihre Namen sagen: Der Beginn bleibt, die
+  Feldzuweisung wird neu gesetzt. Wird ein Spiel ganz vom Feld genommen,
+  fällt beides weg — dann hatte es noch nicht begonnen.
+
 - **Ein vierter Satz bei „Best of 3" ließ sich eintragen.** Nach 21:10 und
   21:15 steht es 2:0 und das Spiel ist vorbei — trotzdem nahm das dritte
   Satzfeld noch ein Ergebnis an, wenn man mit Tabulator oder Maus weiterging

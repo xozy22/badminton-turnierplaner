@@ -305,7 +305,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
             {getCourtLabel(courtNum)}
           </span>
           {match && (
-            <CourtTimer assignedAt={match.court_assigned_at} />
+            <CourtTimer startedAt={match.started_at} />
           )}
         </div>
 

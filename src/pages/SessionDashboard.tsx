@@ -292,7 +292,7 @@ export default function SessionDashboard() {
                               #{localCourt}
                             </span>
                             {m && (
-                              <CourtTimer assignedAt={m.court_assigned_at} />
+                              <CourtTimer startedAt={m.started_at} />
                             )}
                           </div>
                           {free ? (

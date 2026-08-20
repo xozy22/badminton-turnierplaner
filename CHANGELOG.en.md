@@ -21,6 +21,16 @@ the application shows when its language is set to English.
 
 ### Fixed
 
+- **Moving a match to another court restarted its clock.** The timer jumped
+  back to zero although play carried on. Both of the match's timestamps were
+  rewritten on a move, including the one marking its start -- which also made
+  the measured duration too short, and that is what the new schedule forecast
+  counts with.
+
+  They now mean what their names say: the start stays, the court assignment
+  is rewritten. Taking a match off court clears both -- it had not started
+  after all.
+
 - **A fourth set could be entered in a best-of-three.** After 21:10 and
   21:15 the match is over at two sets to none, yet the third set field still
   accepted a score when you moved on with Tab or the mouse instead of Enter.

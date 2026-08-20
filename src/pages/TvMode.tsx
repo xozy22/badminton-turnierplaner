@@ -596,7 +596,7 @@ export default function TvMode() {
             )}
           </div>
           <span className="text-sm font-mono font-bold text-warning-text">
-            <Icon name="clock" /> {formatTimer(match.court_assigned_at)}
+            <Icon name="clock" /> {formatTimer(match.started_at)}
           </span>
         </div>
 

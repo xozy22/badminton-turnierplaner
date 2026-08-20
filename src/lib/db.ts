@@ -1754,12 +1754,37 @@ export async function deleteRoundsAtomically(
   await notifyDataChanged({ kind: "schedule", tournamentId });
 }
 
+/**
+ * Puts a match on a court, takes it off one, or moves it to another.
+ *
+ * The two timestamps mean different things and are kept apart:
+ *
+ * - `court_assigned_at` is when it landed on *this* court, so it is
+ *   rewritten on every move. Session court occupancy resolves conflicts
+ *   by whichever assignment is newest, and needs it to be.
+ * - `started_at` is when the match began, so a move leaves it alone. It
+ *   used to be rewritten too, which restarted the visible timer and --
+ *   less visibly -- shortened the measured duration that the schedule
+ *   forecast is built on.
+ *
+ * Taking a match off court clears both: it had not started after all.
+ */
 export async function updateMatchCourt(matchId: number, court: number | null): Promise<void> {
-  const assignedAt = court ? nowIso() : null;
-  const startedAt = court ? nowIso() : null;
+  const now = nowIso();
   if (isTauri()) {
     const d = await getTauriDb();
-    await d.execute("UPDATE matches SET court = $1, court_assigned_at = $2, started_at = $3 WHERE id = $4", [court, assignedAt, startedAt, matchId]);
+    if (court === null) {
+      await d.execute(
+        "UPDATE matches SET court = NULL, court_assigned_at = NULL, started_at = NULL WHERE id = $1",
+        [matchId],
+      );
+    } else {
+      // COALESCE keeps the first start: a move is not a new beginning.
+      await d.execute(
+        "UPDATE matches SET court = $1, court_assigned_at = $2, started_at = COALESCE(started_at, $3) WHERE id = $4",
+        [court, now, now, matchId],
+      );
+    }
     await notifyDataChanged({ kind: "match" });
     return;
   }
@@ -1767,8 +1792,8 @@ export async function updateMatchCourt(matchId: number, court: number | null): P
   const m = store.matches.find((m) => m.id === matchId);
   if (m) {
     m.court = court;
-    m.court_assigned_at = assignedAt;
-    m.started_at = startedAt;
+    m.court_assigned_at = court ? now : null;
+    m.started_at = court ? m.started_at ?? now : null;
   }
   saveStore(store);
   await notifyDataChanged({ kind: "match" });

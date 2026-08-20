@@ -19,9 +19,17 @@ import type { Match } from "./types";
 export const MIN_SAMPLE = 5;
 
 /**
- * A match longer than this was not played that long -- somebody forgot to
- * enter the result and it sat open until the next session. Counting it
- * would push every estimate up.
+ * A match longer than this was not played that long. Two ways that
+ * happens, and both are somebody's afternoon rather than a rally:
+ *
+ * - the result was entered late, so the match sat open in between;
+ * - the match was reopened to fix a typo and closed again, which writes
+ *   a fresh `completed_at` while `started_at` still holds the original
+ *   start.
+ *
+ * The second is the reason for taking the median rather than the mean:
+ * a correction an hour later stays under this ceiling and would still
+ * drag an average up. It cannot move a middle value.
  */
 const IMPLAUSIBLE_MINUTES = 180;
 
