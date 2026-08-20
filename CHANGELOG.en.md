@@ -36,8 +36,10 @@ the application shows when its language is set to English.
   holding them and its running clock, and stand apart from the free ones.
 - **The tournament switcher in the session bar was too small to hit.** Two
   pixels of height, and the name cut at 18 characters -- where two
-  tournaments from the same evening often differ. Now a proper target with
-  the full name.
+  tournaments from the same evening often differ. It now has a row of its
+  own below the session name: sharing the first line left about 220 pixels
+  per button, and "Vereinsmeisterschaft Damen Einzel B" differs from its
+  neighbour only past that point. They wrap rather than shrink.
 
 - **A match's playing time is settled when it finishes.** It used to be
   worked out from the start and end times whenever it was needed, which

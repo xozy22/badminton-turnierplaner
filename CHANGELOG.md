@@ -43,8 +43,11 @@ Kurzfassung dessen, was sich für Nutzer ändert:
   das sie hält, samt laufender Uhr, und heben sich sichtbar von den freien ab.
 - **Die Turnier-Umschalter in der Session-Leiste waren zu schmal.** Zwei
   Pixel Höhe zum Treffen, und der Name nach 18 Zeichen abgeschnitten — bei
-  zwei Turnieren desselben Abends stand der Unterschied oft dahinter. Jetzt
-  mit ordentlicher Klickfläche und vollem Namen.
+  zwei Turnieren desselben Abends stand der Unterschied oft dahinter. Sie
+  stehen jetzt in einer eigenen Zeile unter dem Session-Namen: In der ersten
+  Zeile blieben rund 220 Pixel je Knopf, und „Vereinsmeisterschaft Damen
+  Einzel B" unterscheidet sich von seinem Nachbarn erst hinter dieser
+  Grenze. Untereinander umbrechen statt zusammenschrumpfen.
 
 - **Die Spielzeit wird beim Abschluss festgehalten.** Sie wurde bisher bei
   jedem Bedarf aus Beginn und Ende neu gerechnet. Das ging schief, sobald
