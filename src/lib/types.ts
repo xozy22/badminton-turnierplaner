@@ -284,6 +284,19 @@ export interface Match {
   outcome: MatchOutcome;
   started_at: string | null;
   completed_at: string | null;
+  /**
+   * Seconds the match was played, settled when it first finished.
+   *
+   * Not derived from the two timestamps on demand: reopening a finished
+   * match to correct a typo writes a fresh `completed_at` against the
+   * original `started_at`, so a half-hour match would read as however
+   * long ago it was played. A correction changes the score, not the time
+   * people spent on court.
+   *
+   * Null for matches finished before migration 22, and for anything
+   * awarded without play.
+   */
+  duration_seconds: number | null;
 }
 
 export interface GameSet {

@@ -26,6 +26,19 @@ Kurzfassung dessen, was sich für Nutzer ändert:
 
 ### Behoben
 
+- **Die Spielzeit wird beim Abschluss festgehalten.** Sie wurde bisher bei
+  jedem Bedarf aus Beginn und Ende neu gerechnet. Das ging schief, sobald
+  jemand ein fertiges Spiel wieder öffnete, um einen Tippfehler zu
+  korrigieren: Der Abschluss schrieb ein neues Ende gegen den alten Beginn,
+  und ein Spiel von 26 Minuten las sich als 146 Minuten, wenn die Korrektur
+  zwei Stunden später kam. Eine Korrektur ändert das Ergebnis, nicht die
+  Zeit auf dem Feld.
+
+  Statistik und Abendprognose rechnen jetzt mit derselben festgehaltenen
+  Zeit. Spiele von vor dieser Fassung werden weiterhin aus den Zeitstempeln
+  gemessen — für alle richtig außer für die, die wieder geöffnet wurden, und
+  die lassen sich im Nachhinein nicht mehr erkennen.
+
 - **Der Feldwechsel setzte die laufende Zeit zurück.** Wurde ein Spiel von
   einem Feld auf ein anderes gelegt, sprang die Uhr auf null — obwohl
   weitergespielt wurde. Ursache: Beide Zeitstempel des Spiels wurden beim

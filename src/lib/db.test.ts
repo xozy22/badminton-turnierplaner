@@ -796,6 +796,79 @@ for (const backend of BACKENDS) {
       expect(stored.completed_at).toBeNull();
     });
 
+    it("settles the playing time when the match first finishes", async () => {
+      const { tournamentId, match } = await oneMatch();
+      await updateMatchCourt(match.id, 1);
+      await new Promise((r) => setTimeout(r, 1100));
+
+      await updateMatchResult(match.id, 1);
+      const [stored] = await getAllMatchesByTournament(tournamentId);
+
+      expect(stored.duration_seconds).toBeGreaterThan(0);
+    });
+
+    it("keeps the playing time when a finished match is corrected", async () => {
+      // Reopening to fix a typo and closing again writes a fresh
+      // completed_at against the original started_at. The time people
+      // spent on court did not change because somebody mistyped a score.
+      const { tournamentId, match } = await oneMatch();
+      await updateMatchCourt(match.id, 1);
+      await new Promise((r) => setTimeout(r, 1100));
+      await updateMatchResult(match.id, 1);
+
+      const [first] = await getAllMatchesByTournament(tournamentId);
+      const played = first.duration_seconds;
+
+      await reopenMatch(match.id);
+      await new Promise((r) => setTimeout(r, 1100));
+      await updateMatchResult(match.id, 2);
+
+      const [corrected] = await getAllMatchesByTournament(tournamentId);
+      expect(corrected.winner_team).toBe(2);
+      expect(corrected.duration_seconds, "the match was played once").toBe(played);
+    });
+
+    it("records no playing time for a match that never went on court", async () => {
+      // No court means no start, so there is nothing to measure between.
+      const ids = await seedPlayers(2);
+      const tournamentId = await seedTournament(ids);
+      await createSchedule(tournamentId, [
+        { roundNumber: 1, matches: [{ team1_p1: ids[0], team2_p1: ids[1] }] },
+      ]);
+      const [match] = await getAllMatchesByTournament(tournamentId);
+
+      await updateMatchResult(match.id, 1);
+      const [stored] = await getAllMatchesByTournament(tournamentId);
+
+      expect(stored.started_at).toBeNull();
+      expect(stored.duration_seconds).toBeNull();
+    });
+
+    it("records no playing time for a match finished within the second", async () => {
+      // Assigned and closed straight away: that is not an observation of
+      // a match taking no time, it is no observation at all.
+      const { tournamentId, match } = await oneMatch();
+
+      await updateMatchResult(match.id, 1);
+      const [stored] = await getAllMatchesByTournament(tournamentId);
+
+      expect(stored.duration_seconds).toBeNull();
+    });
+
+    it("forgets the playing time when the match is taken off court", async () => {
+      // Off court means it had not started, so there is nothing played.
+      const { tournamentId, match } = await oneMatch();
+      await updateMatchCourt(match.id, 1);
+      await new Promise((r) => setTimeout(r, 1100));
+      await updateMatchResult(match.id, 1);
+
+      await updateMatchCourt(match.id, null);
+      const [stored] = await getAllMatchesByTournament(tournamentId);
+
+      expect(stored.duration_seconds).toBeNull();
+      expect(stored.started_at).toBeNull();
+    });
+
     it("does not restart a match moved to another court", async () => {
       // The reported fault: the timer jumped back to zero on a court
       // change. Less visibly, started_at was rewritten too, and that is

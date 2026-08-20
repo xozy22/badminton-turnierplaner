@@ -19,17 +19,13 @@ import type { Match } from "./types";
 export const MIN_SAMPLE = 5;
 
 /**
- * A match longer than this was not played that long. Two ways that
- * happens, and both are somebody's afternoon rather than a rally:
+ * A match longer than this was not played that long -- the result was
+ * entered late and the match sat open in between. That is somebody's
+ * afternoon, not a rally.
  *
- * - the result was entered late, so the match sat open in between;
- * - the match was reopened to fix a typo and closed again, which writes
- *   a fresh `completed_at` while `started_at` still holds the original
- *   start.
- *
- * The second is the reason for taking the median rather than the mean:
- * a correction an hour later stays under this ceiling and would still
- * drag an average up. It cannot move a middle value.
+ * Only reachable for matches finished before migration 22, which are the
+ * ones still measured from their timestamps. Anything since then carries
+ * the time it was actually played.
  */
 const IMPLAUSIBLE_MINUTES = 180;
 
@@ -43,21 +39,40 @@ export interface DurationBasis {
 }
 
 /**
- * Minutes each completed match took, from going on court to finishing.
+ * Minutes one match was played, or null when it cannot be told.
+ *
+ * Prefers the stored `duration_seconds`, settled when the match first
+ * finished. Matches from before migration 22 have none and fall back to
+ * the difference between the two timestamps -- right for all of them
+ * except the ones that were reopened, and there is no way to tell those
+ * apart after the fact.
+ */
+export function minutesOf(m: Match): number | null {
+  if (m.duration_seconds != null) {
+    return m.duration_seconds > 0 ? m.duration_seconds / 60 : null;
+  }
+  if (!m.started_at || !m.completed_at) return null;
+  const start = dbDateToMillis(m.started_at);
+  const end = dbDateToMillis(m.completed_at);
+  if (start === null || end === null) return null;
+  return (end - start) / 60000;
+}
+
+/**
+ * Minutes each completed match took.
  *
  * Byes are skipped -- they are completed the moment they are created and
- * would otherwise contribute a stream of zeroes.
+ * would otherwise contribute a stream of zeroes. So is anything awarded
+ * without play: a walkover took no time on court.
  */
 export function matchDurations(matches: Match[]): number[] {
   const out: number[] = [];
   for (const m of matches) {
     if (m.status !== "completed") continue;
     if (m.team2_p1 === null) continue;
-    if (!m.started_at || !m.completed_at) continue;
-    const start = dbDateToMillis(m.started_at);
-    const end = dbDateToMillis(m.completed_at);
-    if (start === null || end === null) continue;
-    const minutes = (end - start) / 60000;
+    if (m.walkover === 1) continue;
+    const minutes = minutesOf(m);
+    if (minutes === null) continue;
     if (minutes <= 0 || minutes > IMPLAUSIBLE_MINUTES) continue;
     out.push(minutes);
   }

@@ -17,7 +17,7 @@ import type {
   FeeItem,
 } from "./types";
 import { playerDisplayName } from "./types";
-import { nowIso, byNewest } from "./datetime";
+import { nowIso, byNewest , dbDateToMillis} from "./datetime";
 import { notifyDataChanged } from "./changeEvents";
 
 // DB row type for type safety
@@ -142,7 +142,7 @@ const REQUIRED_SCHEMA: Record<string, string[]> = {
   matches: [
     "id", "round_id", "team1_p1", "team1_p2", "team2_p1", "team2_p2",
     "winner_team", "status", "walkover", "outcome", "court", "court_assigned_at",
-    "started_at", "completed_at",
+    "started_at", "completed_at", "duration_seconds",
   ],
   sets: ["id", "match_id", "set_number", "team1_score", "team2_score"],
   sessions: ["id", "venue_id", "name", "started_at", "ended_at", "status"],
@@ -1443,6 +1443,7 @@ export async function createMatch(
     outcome: null,
     started_at: startedAt,
     completed_at: null,
+    duration_seconds: null,
   });
   saveStore(store);
   return id;
@@ -1775,7 +1776,7 @@ export async function updateMatchCourt(matchId: number, court: number | null): P
     const d = await getTauriDb();
     if (court === null) {
       await d.execute(
-        "UPDATE matches SET court = NULL, court_assigned_at = NULL, started_at = NULL WHERE id = $1",
+        "UPDATE matches SET court = NULL, court_assigned_at = NULL, started_at = NULL, duration_seconds = NULL WHERE id = $1",
         [matchId],
       );
     } else {
@@ -1794,6 +1795,7 @@ export async function updateMatchCourt(matchId: number, court: number | null): P
     m.court = court;
     m.court_assigned_at = court ? now : null;
     m.started_at = court ? m.started_at ?? now : null;
+    if (!court) m.duration_seconds = null;
   }
   saveStore(store);
   await notifyDataChanged({ kind: "match" });
@@ -1841,8 +1843,27 @@ export async function updateMatchResult(matchId: number, winnerTeam: 1 | 2 | nul
   const completedAt = nowIso();
   if (isTauri()) {
     const d = await getTauriDb();
+    // COALESCE settles the playing time on the first finish and leaves it
+    // alone afterwards: reopening to fix a typo must not turn the wait for
+    // the correction into playing time.
     await d.execute(
-      "UPDATE matches SET winner_team = $1, status = 'completed', completed_at = $2 WHERE id = $3",
+      `UPDATE matches
+         SET winner_team = $1,
+             status = 'completed',
+             completed_at = $2,
+             duration_seconds = COALESCE(
+               duration_seconds,
+               CASE WHEN started_at IS NULL THEN NULL
+                    -- NULLIF: a match assigned and finished inside the same
+                    -- second was not measured, it just happened too fast to
+                    -- see. Zero would read as a real observation of nothing.
+                    ELSE NULLIF(
+                      CAST(strftime('%s', $2) - strftime('%s', started_at) AS INTEGER),
+                      0
+                    )
+               END
+             )
+       WHERE id = $3`,
       [winnerTeam, completedAt, matchId]
     );
     await notifyDataChanged({ kind: "match" });
@@ -1854,6 +1875,13 @@ export async function updateMatchResult(matchId: number, winnerTeam: 1 | 2 | nul
     m.winner_team = winnerTeam;
     m.status = "completed";
     m.completed_at = completedAt;
+    if (m.duration_seconds == null && m.started_at) {
+      const start = dbDateToMillis(m.started_at);
+      const end = dbDateToMillis(completedAt);
+      if (start !== null && end !== null && end > start) {
+        m.duration_seconds = Math.round((end - start) / 1000);
+      }
+    }
   }
   saveStore(store);
   await notifyDataChanged({ kind: "match" });

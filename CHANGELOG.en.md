@@ -21,6 +21,18 @@ the application shows when its language is set to English.
 
 ### Fixed
 
+- **A match's playing time is settled when it finishes.** It used to be
+  worked out from the start and end times whenever it was needed, which
+  broke as soon as somebody reopened a finished match to fix a typo: closing
+  it again wrote a fresh end against the original start, so a 26-minute
+  match read as 146 minutes when the correction came two hours later. A
+  correction changes the score, not the time spent on court.
+
+  The statistics page and the schedule forecast now read the same settled
+  time. Matches from before this release are still measured from their
+  timestamps -- right for all of them except the ones that were reopened,
+  and those cannot be told apart after the fact.
+
 - **Moving a match to another court restarted its clock.** The timer jumped
   back to zero although play carried on. Both of the match's timestamps were
   rewritten on a move, including the one marking its start -- which also made

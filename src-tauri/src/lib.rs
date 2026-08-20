@@ -27,7 +27,7 @@ const BACKUP_KEEP: usize = 5;
 /// Wird gegen die Migrationsliste geprueft (`debug_assert` in `run`), damit
 /// die Konstante nicht stillschweigend veraltet, wenn eine Migration
 /// hinzukommt.
-const CURRENT_SCHEMA_VERSION: i64 = 21;
+const CURRENT_SCHEMA_VERSION: i64 = 22;
 
 /// Datum und Uhrzeit als `YYYY-MM-DD_HHMM`, aus Unix-Sekunden.
 ///
@@ -1369,6 +1369,29 @@ pub fn run() {
                 );
 
                 CREATE INDEX idx_fee_items_tournament ON tournament_fee_items(tournament_id);
+            ",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 22,
+            description: "hold a match's playing time instead of recomputing it",
+            // The duration was worked out from `completed_at` minus
+            // `started_at` every time it was needed. That holds until
+            // somebody reopens a finished match to fix a typo: closing it
+            // again writes a fresh `completed_at` against the original
+            // `started_at`, and a match played for half an hour reads as
+            // however long ago it happened to be.
+            //
+            // The playing time is now settled when the match first
+            // finishes and left alone afterwards. Corrections change the
+            // score, not how long people were on court.
+            //
+            // NULL for everything that came before: those matches are
+            // still measured the old way, which is right for all of them
+            // except the ones that were reopened -- and there is no way
+            // to tell those apart after the fact.
+            sql: "
+                ALTER TABLE matches ADD COLUMN duration_seconds INTEGER;
             ",
             kind: MigrationKind::Up,
         },

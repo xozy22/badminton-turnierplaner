@@ -567,3 +567,82 @@ describe("migration 21 — entries, waiting list and money", () => {
     db.close();
   });
 });
+
+describe("migration 22 — a match's playing time", () => {
+  function fresh(): SqliteDb {
+    const db = new DatabaseSync!(":memory:");
+    db.exec("PRAGMA foreign_keys = ON");
+    for (const m of migrations) db.exec(m.sql);
+    return db;
+  }
+
+  function upTo(version: number): SqliteDb {
+    const db = new DatabaseSync!(":memory:");
+    db.exec("PRAGMA foreign_keys = ON");
+    for (const m of migrations) {
+      if (m.version > version) break;
+      db.exec(m.sql);
+    }
+    return db;
+  }
+
+  function seed(db: SqliteDb): void {
+    db.prepare("INSERT INTO players (id, name, gender) VALUES (1, 'A', 'm')").run();
+    db.prepare("INSERT INTO players (id, name, gender) VALUES (2, 'B', 'm')").run();
+    db.prepare("INSERT INTO tournaments (id, name, mode, format) VALUES (1, 'T', 'singles', 'round_robin')").run();
+    db.prepare("INSERT INTO rounds (id, tournament_id, round_number) VALUES (1, 1, 1)").run();
+  }
+
+  it("adds the column", () => {
+    const db = fresh();
+    const cols = db
+      .prepare("PRAGMA table_info(matches)")
+      .all()
+      .map((c: unknown) => (c as { name: string }).name);
+    expect(cols).toContain("duration_seconds");
+    db.close();
+  });
+
+  it("leaves older matches without one", () => {
+    // They are still measured from their timestamps, which is right for
+    // all of them except the ones that were reopened -- and those cannot
+    // be told apart after the fact.
+    const db = upTo(21);
+    seed(db);
+    db.prepare(
+      "INSERT INTO matches (id, round_id, team1_p1, team2_p1, winner_team, status, started_at, completed_at) " +
+        "VALUES (1, 1, 1, 2, 1, 'completed', '2026-08-01 18:00:00', '2026-08-01 18:30:00')",
+    ).run();
+
+    for (const m of migrations) {
+      if (m.version === 22) db.exec(m.sql);
+    }
+
+    const [row] = db.prepare("SELECT duration_seconds FROM matches WHERE id = 1").all() as {
+      duration_seconds: number | null;
+    }[];
+    expect(row.duration_seconds).toBeNull();
+    db.close();
+  });
+
+  it("computes seconds the way the write path does", () => {
+    // The same strftime arithmetic updateMatchResult uses, checked
+    // against real SQLite rather than assumed.
+    const db = fresh();
+    seed(db);
+    db.prepare(
+      "INSERT INTO matches (id, round_id, team1_p1, team2_p1, status, started_at) " +
+        "VALUES (1, 1, 1, 2, 'active', '2026-08-01T18:00:00.000Z')",
+    ).run();
+
+    db.prepare(
+      "UPDATE matches SET duration_seconds = CAST(strftime('%s', $done) - strftime('%s', started_at) AS INTEGER) WHERE id = 1",
+    ).run({ done: "2026-08-01T18:27:30.000Z" });
+
+    const [row] = db.prepare("SELECT duration_seconds FROM matches WHERE id = 1").all() as {
+      duration_seconds: number;
+    }[];
+    expect(row.duration_seconds).toBe(27 * 60 + 30);
+    db.close();
+  });
+});

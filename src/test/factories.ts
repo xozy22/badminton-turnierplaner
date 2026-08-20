@@ -56,6 +56,7 @@ export function makeMatch(overrides: Partial<Match> = {}): Match {
     outcome: null,
     started_at: null,
     completed_at: null,
+    duration_seconds: null,
     ...overrides,
   };
 }
