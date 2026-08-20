@@ -13,6 +13,7 @@
 // tournament each belongs to.
 
 import { useMemo } from "react";
+import { getForeignCourtOccupancy } from "../../../lib/sessionContext";
 import { getMatchConflicts, getRunningPlayerCourts } from "../../../lib/courtConflicts";
 import type { ConflictPlayer } from "../../../lib/courtConflicts";
 import {
@@ -76,6 +77,23 @@ export function useCourtDerivations({
     }
     return occupied;
   }, [matchesByRound, sessionCtx.courtOccupancy, tournament?.session_id]);
+
+  /**
+   * Courts held by the *other* tournaments of the session, with enough to
+   * say so on the court card.
+   *
+   * globalOccupiedCourts folds ours and theirs into one set, which is
+   * right for "can this take a match" and useless for "why not". This one
+   * keeps them apart: a court of ours is drawn with its match, a court
+   * next door with the name of whoever has it.
+   */
+  const foreignCourts = useMemo(() => {
+    if (tournament?.session_id == null) return new Map();
+    return getForeignCourtOccupancy(sessionCtx.courtOccupancy, tournament.id);
+    // `tournament` whole, not two of its fields: the compiler infers the
+    // object and gives up optimising the file when the declared list is
+    // narrower than what it works out for itself.
+  }, [sessionCtx.courtOccupancy, tournament]);
 
   // Player-court conflict map. Built from allMatches so it spans every round
   // currently in memory — important once early-drawn future rounds are also
@@ -208,6 +226,7 @@ export function useCourtDerivations({
   return {
     getGroupData,
     globalOccupiedCourts,
+    foreignCourts,
     runningPlayerCourts,
     conflictedMatches,
     thirdPlaceRound,

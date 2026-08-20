@@ -26,6 +26,17 @@ Kurzfassung dessen, was sich für Nutzer ändert:
 
 ### Behoben
 
+- **Belegte Felder des Nachbarturniers sehen jetzt belegt aus.** In einer
+  Session teilen sich mehrere Turniere die Halle. Ein Feld, auf dem nebenan
+  gespielt wurde, stand in der Feldübersicht trotzdem als „Frei — Match
+  hierher ziehen" — das Ablegen wurde zwar abgewiesen, aber ohne dass vorher
+  etwas darauf hindeutete. Solche Felder tragen jetzt den Namen des Turniers,
+  das sie hält, samt laufender Uhr, und heben sich sichtbar von den freien ab.
+- **Die Turnier-Umschalter in der Session-Leiste waren zu schmal.** Zwei
+  Pixel Höhe zum Treffen, und der Name nach 18 Zeichen abgeschnitten — bei
+  zwei Turnieren desselben Abends stand der Unterschied oft dahinter. Jetzt
+  mit ordentlicher Klickfläche und vollem Namen.
+
 - **Die Spielzeit wird beim Abschluss festgehalten.** Sie wurde bisher bei
   jedem Bedarf aus Beginn und Ende neu gerechnet. Das ging schief, sobald
   jemand ein fertiges Spiel wieder öffnete, um einen Tippfehler zu

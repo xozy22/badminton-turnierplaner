@@ -60,18 +60,24 @@ export default function SessionBar({
           · {sessionTournamentCount} <Icon name="trophy" />
         </span>
         {sessionSiblings.length > 0 && (
-          <div className="flex items-center gap-1 flex-wrap ml-2">
-            <span className={`text-2xs uppercase tracking-wide ${theme.textMuted} mr-1`}>
+          <div className="ml-2 flex flex-wrap items-center gap-1.5">
+            <span className={`mr-1 text-2xs uppercase tracking-wide ${theme.textMuted}`}>
               {t.session_switcher_label}:
             </span>
             {sessionSiblings.map((sib) => (
               <button
                 key={sib.id}
                 onClick={() => navigate(`/tournaments/${sib.id}`)}
-                className={`text-xs font-medium border ${theme.inputBorder} ${theme.cardHoverBorder} ${theme.textSecondary} px-2 py-0.5 rounded-full transition-all`}
+                // Was px-2 py-0.5 with the name cut at 18 characters: two
+                // pixels of height to aim at, and two tournaments from the
+                // same evening often differ only past the cut.
+                className={`flex max-w-56 items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-all ${theme.inputBorder} ${theme.cardHoverBorder} ${theme.textSecondary} hover:bg-surface-sunken`}
                 title={sib.name}
               >
-                {sib.name.length > 18 ? sib.name.slice(0, 18) + "…" : sib.name}
+                <span aria-hidden="true" className="shrink-0 text-muted">
+                  <Icon name="trophy" size={11} />
+                </span>
+                <span className="truncate">{sib.name}</span>
               </button>
             ))}
           </div>

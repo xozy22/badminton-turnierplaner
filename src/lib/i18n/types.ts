@@ -611,6 +611,8 @@ export interface Translations {
   forecast_open_ended: string;
   set_unreachable: string;
   set_unreachable_stray: string;
+  court_taken_by_sibling: string;
+  court_taken_by_sibling_title: string;
   seeding_description: string;
   seeding_move_up: string;
   seeding_move_down: string;

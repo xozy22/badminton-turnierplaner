@@ -592,6 +592,8 @@ export const en: Translations = {
   forecast_open_ended: "This format runs for as long as you like -- there is no fixed number of matches.",
   set_unreachable: "Not needed",
   set_unreachable_stray: "This set could not have been played -- please clear it.",
+  court_taken_by_sibling: "Other tournament",
+  court_taken_by_sibling_title: "In use by {tournament} -- same venue",
   seeding_description: "Select which players are seeded and arrange them by strength (Rank 1 = strongest player). Unseeded players will be drawn randomly.",
   seeding_move_up: "Move up",
   seeding_move_down: "Move down",

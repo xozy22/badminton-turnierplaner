@@ -35,8 +35,16 @@ interface Props {
    * busy" badge with a tooltip listing the conflicting players + courts.
    */
   conflictedMatches?: Map<number, ConflictPlayer[]>;
-  /** Court numbers held by other tournaments in the same session. */
-  occupiedByOthers?: Iterable<number>;
+  /**
+   * Courts held by other tournaments sharing the venue, keyed by court
+   * number.
+   *
+   * Used to be a bare list of numbers, which was enough to refuse a drop
+   * but not to explain one: the court still drew itself as free, so the
+   * refusal came out of nowhere. The name and the start time are what
+   * make it legible.
+   */
+  occupiedByOthers?: Map<number, { tournamentName: string; startedAt: string | null }>;
   /**
    * Map<groupNumber, remainingMatches>. When provided together with
    * `roundToGroup`, the unassigned queue is sorted descending by the
@@ -72,7 +80,7 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
   /** Court numbers that cannot take a match, ours and the neighbours'. */
   const blockedCourts = useMemo(() => {
     const blocked = new Set<number>(courtAssignments.keys());
-    for (const c of occupiedByOthers ?? []) blocked.add(c);
+    for (const c of occupiedByOthers?.keys() ?? []) blocked.add(c);
     return blocked;
   }, [courtAssignments, occupiedByOthers]);
 
@@ -267,7 +275,9 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
   // Render a single court card
   const renderCourt = (courtNum: number) => {
     const match = courtAssignments.get(courtNum);
-    const isFree = !match;
+    // Held by a sibling tournament: not ours to fill, and not free either.
+    const foreign = !match ? occupiedByOthers?.get(courtNum) : undefined;
+    const isFree = !match && !foreign;
 
     return (
       <div
@@ -286,10 +296,14 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
           e.preventDefault();
           setContextMenu({ x: e.clientX, y: e.clientY, match });
         }}
-        className={`rounded-lg border-2 border-dashed p-4 transition-all duration-200 min-h-[100px] relative overflow-hidden ${
-          isFree
-            ? `${theme.cardBorder} ${theme.cardBg} opacity-70 hover:opacity-100`
-            : `${theme.courtBorder} ${theme.cardBg} shadow-sm cursor-pointer`
+        className={`rounded-lg border-2 p-4 transition-all duration-200 min-h-[100px] relative overflow-hidden ${
+          foreign
+            ? // Solid rather than dashed: dashes say "drop here", and this
+              // is the one court where that is not on offer.
+              "border-line-strong bg-surface-sunken cursor-not-allowed"
+            : isFree
+              ? `border-dashed ${theme.cardBorder} ${theme.cardBg} opacity-70 hover:opacity-100`
+              : `border-dashed ${theme.courtBorder} ${theme.cardBg} shadow-sm cursor-pointer`
         }`}
         style={{
           backgroundImage: `url("${courtBgSvg}")`,
@@ -298,7 +312,13 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
           backgroundSize: 'auto 85%',
           opacity: undefined,
         }}
-        title={match ? t.court_double_click_jump : undefined}
+        title={
+          foreign
+            ? fill(t.court_taken_by_sibling_title, { tournament: foreign.tournamentName })
+            : match
+              ? t.court_double_click_jump
+              : undefined
+        }
       >
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-bold text-warning-text bg-warning-subtle px-2 py-0.5 rounded-sm">
@@ -307,9 +327,19 @@ export default function CourtOverview({ courts, matches, activeRoundMatches, fut
           {match && (
             <CourtTimer startedAt={match.started_at} />
           )}
+          {foreign && <CourtTimer startedAt={foreign.startedAt} />}
         </div>
 
-        {match ? (
+        {foreign ? (
+          <div className="text-xs">
+            <div className="mb-1 flex items-center gap-1 text-2xs font-semibold uppercase tracking-wide text-muted">
+              <Icon name="link" size={11} /> {t.court_taken_by_sibling}
+            </div>
+            <div className="truncate font-semibold text-secondary" title={foreign.tournamentName}>
+              {foreign.tournamentName}
+            </div>
+          </div>
+        ) : match ? (
           <div className="text-xs">
             <div className={`font-semibold ${theme.textPrimary} truncate`}>
               {renderTeam(match.team1_p1, match.team1_p2, match)}

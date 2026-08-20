@@ -592,6 +592,8 @@ export const de: Translations = {
   forecast_open_ended: "Dieses Format läuft, solange ihr wollt — es gibt keine feste Spielzahl.",
   set_unreachable: "Nicht mehr nötig",
   set_unreachable_stray: "Dieser Satz konnte nicht gespielt werden — bitte leeren.",
+  court_taken_by_sibling: "Anderes Turnier",
+  court_taken_by_sibling_title: "Belegt durch {tournament} — gleiche Sportstätte",
   seeding_description: "Wähle die gesetzten Spieler aus und ordne sie nach Stärke (Platz 1 = stärkster Spieler). Nicht gesetzte Spieler werden zufällig zugelost.",
   seeding_move_up: "Nach oben",
   seeding_move_down: "Nach unten",

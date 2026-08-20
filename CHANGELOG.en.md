@@ -21,6 +21,16 @@ the application shows when its language is set to English.
 
 ### Fixed
 
+- **Courts in use by a neighbouring tournament now look it.** Tournaments in
+  a session share the hall, but a court being played on next door still read
+  "Free -- drag a match here". The drop was refused, with nothing beforehand
+  to suggest it would be. Those courts now carry the name of the tournament
+  holding them and its running clock, and stand apart from the free ones.
+- **The tournament switcher in the session bar was too small to hit.** Two
+  pixels of height, and the name cut at 18 characters -- where two
+  tournaments from the same evening often differ. Now a proper target with
+  the full name.
+
 - **A match's playing time is settled when it finishes.** It used to be
   worked out from the start and end times whenever it was needed, which
   broke as soon as somebody reopened a finished match to fix a typo: closing

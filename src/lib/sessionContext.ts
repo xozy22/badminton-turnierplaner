@@ -92,6 +92,36 @@ export function getSessionCourtOccupancy(matches: SessionMatch[]): Map<number, S
   return map;
 }
 
+/** What a court card needs to say who has a court next door. */
+export interface ForeignCourt {
+  tournamentName: string;
+  /** When that match started, so the card can show its clock. */
+  startedAt: string | null;
+}
+
+/**
+ * The courts held by every tournament in the session *except* this one.
+ *
+ * The court overview already refused a drop onto a court in use next
+ * door, but drew it as free -- so the refusal arrived without a reason.
+ * Separating the neighbours' courts from our own is what lets the card
+ * name whoever has it.
+ */
+export function getForeignCourtOccupancy(
+  occupancy: Map<number, SessionMatch>,
+  ownTournamentId: number,
+): Map<number, ForeignCourt> {
+  const map = new Map<number, ForeignCourt>();
+  for (const [court, match] of occupancy) {
+    if (match.tournament_id === ownTournamentId) continue;
+    map.set(court, {
+      tournamentName: match.tournament_name,
+      startedAt: match.started_at,
+    });
+  }
+  return map;
+}
+
 /**
  * Map<playerId, { matchId, court, tournamentId }> for active/assigned
  * matches across the session. Used by the cross-tournament player

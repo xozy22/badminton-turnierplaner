@@ -8,7 +8,11 @@
 // only part of the session feature without tests (REVIEW-BACKLOG.md).
 
 import { describe, it, expect } from "vitest";
-import { getSessionCourtOccupancy, getSessionPlayerCourts } from "./sessionContext";
+import {
+  getSessionCourtOccupancy,
+  getSessionPlayerCourts,
+  getForeignCourtOccupancy,
+} from "./sessionContext";
 import type { SessionMatch } from "./sessionContext";
 
 let nextId = 1;
@@ -134,5 +138,49 @@ describe("getSessionPlayerCourts", () => {
       m({ court: 2, status: "active", team1_p1: 9, team2_p1: 11 }),
     ]);
     expect(map.get(9)!.court).toBe(1);
+  });
+});
+
+describe("getForeignCourtOccupancy", () => {
+  it("keeps only the courts held next door", () => {
+    // Ours is drawn with its match; theirs needs a name, because the
+    // court overview used to draw it as free and then refuse the drop.
+    const occupancy = new Map([
+      [1, m({ tournament_id: 1, tournament_name: "Turnier A", court: 1 })],
+      [2, m({ tournament_id: 2, tournament_name: "Turnier B", court: 2 })],
+    ]);
+
+    const foreign = getForeignCourtOccupancy(occupancy, 1);
+
+    expect([...foreign.keys()]).toEqual([2]);
+    expect(foreign.get(2)?.tournamentName).toBe("Turnier B");
+  });
+
+  it("carries the start time so the card can show a clock", () => {
+    const occupancy = new Map([
+      [3, m({ tournament_id: 2, court: 3, started_at: "2026-08-20T18:00:00.000Z" })],
+    ]);
+
+    expect(getForeignCourtOccupancy(occupancy, 1).get(3)?.startedAt).toBe(
+      "2026-08-20T18:00:00.000Z",
+    );
+  });
+
+  it("is empty when the session holds only this tournament", () => {
+    const occupancy = new Map([[1, m({ tournament_id: 1, court: 1 })]]);
+    expect(getForeignCourtOccupancy(occupancy, 1).size).toBe(0);
+  });
+
+  it("keeps several neighbours apart", () => {
+    const occupancy = new Map([
+      [1, m({ tournament_id: 2, tournament_name: "B", court: 1 })],
+      [2, m({ tournament_id: 3, tournament_name: "C", court: 2 })],
+      [3, m({ tournament_id: 1, tournament_name: "A", court: 3 })],
+    ]);
+
+    const foreign = getForeignCourtOccupancy(occupancy, 1);
+    expect(foreign.get(1)?.tournamentName).toBe("B");
+    expect(foreign.get(2)?.tournamentName).toBe("C");
+    expect(foreign.has(3)).toBe(false);
   });
 });
