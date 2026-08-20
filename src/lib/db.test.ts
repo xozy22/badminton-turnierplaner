@@ -161,7 +161,24 @@ for (const backend of BACKENDS) {
     afterAll(() => backend.teardown());
     beforeEach(() => backend.clear());
 
-  describe("players", () => {
+  /**
+ * Runs `body` with the clock stopped, so a test can move time forward
+ * exactly instead of sleeping through it.
+ *
+ * Only `Date` is faked: the timers themselves stay real, or awaiting
+ * anything inside would hang. `at("18:26:00")` sets the wall clock to
+ * that time on a fixed day.
+ */
+async function withClock(body: (at: (time: string) => void) => Promise<void>): Promise<void> {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    await body((time) => vi.setSystemTime(new Date(`2026-08-20T${time}.000Z`)));
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
+describe("players", () => {
     it("creates and reads back a player", async () => {
       await createPlayer("Anna", "Meier", "f", "1990-05-04", "TSV");
       const players = await getPlayers();
@@ -797,35 +814,42 @@ for (const backend of BACKENDS) {
     });
 
     it("settles the playing time when the match first finishes", async () => {
-      const { tournamentId, match } = await oneMatch();
-      await updateMatchCourt(match.id, 1);
-      await new Promise((r) => setTimeout(r, 1100));
+      // The whole thing under one clock: oneMatch() puts the match on a
+      // court straight away, which is where started_at comes from.
+      let tournamentId = 0;
+      await withClock(async (at) => {
+        at("18:00:00");
+        const created = await oneMatch();
+        tournamentId = created.tournamentId;
+        at("18:26:00");
+        await updateMatchResult(created.match.id, 1);
+      });
 
-      await updateMatchResult(match.id, 1);
       const [stored] = await getAllMatchesByTournament(tournamentId);
-
-      expect(stored.duration_seconds).toBeGreaterThan(0);
+      expect(stored.duration_seconds).toBe(26 * 60);
     });
 
     it("keeps the playing time when a finished match is corrected", async () => {
       // Reopening to fix a typo and closing again writes a fresh
       // completed_at against the original started_at. The time people
       // spent on court did not change because somebody mistyped a score.
-      const { tournamentId, match } = await oneMatch();
-      await updateMatchCourt(match.id, 1);
-      await new Promise((r) => setTimeout(r, 1100));
-      await updateMatchResult(match.id, 1);
-
-      const [first] = await getAllMatchesByTournament(tournamentId);
-      const played = first.duration_seconds;
-
-      await reopenMatch(match.id);
-      await new Promise((r) => setTimeout(r, 1100));
-      await updateMatchResult(match.id, 2);
+      let tournamentId = 0;
+      await withClock(async (at) => {
+        at("18:00:00");
+        const created = await oneMatch();
+        tournamentId = created.tournamentId;
+        at("18:26:00");
+        await updateMatchResult(created.match.id, 1);
+        // Two hours later somebody notices the score was mistyped.
+        at("20:30:00");
+        await reopenMatch(created.match.id);
+        at("20:31:00");
+        await updateMatchResult(created.match.id, 2);
+      });
 
       const [corrected] = await getAllMatchesByTournament(tournamentId);
       expect(corrected.winner_team).toBe(2);
-      expect(corrected.duration_seconds, "the match was played once").toBe(played);
+      expect(corrected.duration_seconds, "the match was played once").toBe(26 * 60);
     });
 
     it("records no playing time for a match that never went on court", async () => {
@@ -857,12 +881,17 @@ for (const backend of BACKENDS) {
 
     it("forgets the playing time when the match is taken off court", async () => {
       // Off court means it had not started, so there is nothing played.
-      const { tournamentId, match } = await oneMatch();
-      await updateMatchCourt(match.id, 1);
-      await new Promise((r) => setTimeout(r, 1100));
-      await updateMatchResult(match.id, 1);
-
-      await updateMatchCourt(match.id, null);
+      let tournamentId = 0;
+      let matchId = 0;
+      await withClock(async (at) => {
+        at("18:00:00");
+        const created = await oneMatch();
+        tournamentId = created.tournamentId;
+        matchId = created.match.id;
+        at("18:26:00");
+        await updateMatchResult(matchId, 1);
+      });
+      await updateMatchCourt(matchId, null);
       const [stored] = await getAllMatchesByTournament(tournamentId);
 
       expect(stored.duration_seconds).toBeNull();
@@ -892,14 +921,17 @@ for (const backend of BACKENDS) {
       // Session occupancy resolves conflicts by whichever is newest.
       const { tournamentId, match } = await oneMatch();
 
-      await updateMatchCourt(match.id, 1);
-      const [first] = await getAllMatchesByTournament(tournamentId);
-
-      await new Promise((r) => setTimeout(r, 1100));
-      await updateMatchCourt(match.id, 2);
+      let first: Awaited<ReturnType<typeof getAllMatchesByTournament>>[number];
+      await withClock(async (at) => {
+        at("18:00:00");
+        await updateMatchCourt(match.id, 1);
+        [first] = await getAllMatchesByTournament(tournamentId);
+        at("18:12:00");
+        await updateMatchCourt(match.id, 2);
+      });
       const [moved] = await getAllMatchesByTournament(tournamentId);
 
-      expect(moved.court_assigned_at).not.toBe(first.court_assigned_at);
+      expect(moved.court_assigned_at).not.toBe(first!.court_assigned_at);
     });
 
     it("clears both timestamps when taken off court", async () => {

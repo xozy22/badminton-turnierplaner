@@ -75,6 +75,12 @@ dem BTP der Landesverbände — in [FEATURE-BACKLOG.md](FEATURE-BACKLOG.md).
 
 ## Arbeitsweise
 
+- **Zeit in Tests wird gestellt, nicht abgewartet.** `vi.useFakeTimers({
+  toFake: ["Date"] })` und `vi.setSystemTime()` — das Muster steht in
+  `db.test.ts` als `withClock()`. Fünf `setTimeout(1100)` hatten die Suite
+  von 1,8 auf 12 Sekunden verlängert, und einer davon fiel unter Last
+  gelegentlich um. Gestellte Zeit ist schneller und erlaubt genaue
+  Zusicherungen statt „größer als null".
 - **Vor dem Behaupten prüfen.** Wenn eine Aussage über das Verhalten des
   Programms getroffen wird, gehört ein Beleg dazu — ein Test, eine Messung,
   ein Blick in die laufende Anwendung. Mehrere Fehler in diesem Projekt
@@ -95,9 +101,16 @@ dem BTP der Landesverbände — in [FEATURE-BACKLOG.md](FEATURE-BACKLOG.md).
 > Arbeitssitzung lang wurde „Typen sauber" gemeldet, während ein echter
 > Fehler in `livePublish.ts` unentdeckt blieb.
 
+> **`pnpm test` ist nicht, was die CI ausführt.** Dort läuft
+> `pnpm test:coverage`, und das prüft zusätzlich Abdeckungsschwellen — eine
+> Ratsche, die verhindert, dass die Abdeckung sinkt. Eine Sitzung lang war
+> lokal alles grün, während die CI an genau dieser Stelle fehlschlug.
+> **Vor dem Push `pnpm test:coverage` laufen lassen.**
+
 ```bash
 pnpm dev            # Entwicklungsserver
-pnpm test           # Tests, beide Backends
+pnpm test           # Tests, beide Backends (ohne Abdeckungsprüfung)
+pnpm test:coverage  # dasselbe mit Schwellen — das läuft in der CI
 pnpm build          # Typprüfung (tsc -b) und Bündelung
 pnpm check:i18n     # Übersetzungsschlüssel
 pnpm check:emoji    # Emojis in der Oberfläche
