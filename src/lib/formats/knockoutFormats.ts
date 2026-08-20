@@ -4,6 +4,7 @@
 // plus knockout, and double elimination.
 
 import type { FormatEngine, FormatContext, FormatPlan } from "./types";
+import { about, doubleEliminationMatches, entrantCount, exactly, knockoutMatches, roundRobinMatches } from "./estimate";
 import {
   roundsOfPhase,
   roundComplete,
@@ -171,6 +172,14 @@ function knockoutAdvance(
 
 export const eliminationEngine: FormatEngine = {
   id: "elimination",
+  // Everybody but the winner loses once. The third-place match is one
+  // more, when it is played at all.
+  estimate: (setup) => {
+    const entrants = entrantCount(setup);
+    const bronze = setup.thirdPlace && entrants >= 4 ? 1 : 0;
+    return exactly(knockoutMatches(entrants) + bronze);
+  },
+
   display: {
     hasBracket: true,
     hasGroupPhase: false,
@@ -391,6 +400,31 @@ export function buildKnockoutFromGroups(ctx: FormatContext): MatchSpec[] {
 
 export const groupKoEngine: FormatEngine = {
   id: "group_ko",
+  // Group stage plus the bracket the qualifiers play. Approximate: the
+  // groups rarely divide evenly, so the last group is a player short and
+  // its round robin is smaller.
+  estimate: (setup) => {
+    const entrants = entrantCount(setup);
+    const groups = Math.max(1, setup.numGroups);
+    const perGroup = Math.floor(entrants / groups);
+    const remainder = entrants % groups;
+    const groupMatches =
+      roundRobinMatches(perGroup) * (groups - remainder) +
+      roundRobinMatches(perGroup + 1) * remainder;
+
+    // Through knockoutSizes, because qualify_per_group means two things:
+    // a power of two >= 4 is the whole KO field, anything else is the
+    // per-group count. Reading it as "per group" here would have put
+    // eight into a bracket meant for four.
+    const { koSize } = knockoutSizes({
+      num_groups: setup.numGroups,
+      qualify_per_group: setup.qualifyPerGroup,
+    });
+    const qualifiers = Math.min(entrants, koSize);
+    const bronze = setup.thirdPlace && qualifiers >= 4 ? 1 : 0;
+    return about(groupMatches + knockoutMatches(qualifiers) + bronze);
+  },
+
   display: {
     hasBracket: true,
     hasGroupPhase: true,
@@ -506,6 +540,11 @@ export function doubleEliminationState(ctx: FormatContext): BracketMatchState[] 
 
 export const doubleEliminationEngine: FormatEngine = {
   id: "double_elimination",
+  // Everybody but the winner has to lose twice. The grand final is
+  // played once or twice depending on who wins it, so this is never
+  // exact.
+  estimate: (setup) => about(doubleEliminationMatches(entrantCount(setup))),
+
   display: {
     hasBracket: true,
     hasGroupPhase: false,

@@ -600,6 +600,15 @@ export interface Translations {
   fee_items_open: string;
   fee_items_paid_label: string;
   fee_items_delete_label: string;
+  common_hours_short: string;
+  common_minutes_short: string;
+  forecast_matches: string;
+  forecast_matches_about: string;
+  forecast_duration: string;
+  forecast_basis_measured: string;
+  forecast_basis_guess: string;
+  forecast_courts: string;
+  forecast_open_ended: string;
   seeding_description: string;
   seeding_move_up: string;
   seeding_move_down: string;

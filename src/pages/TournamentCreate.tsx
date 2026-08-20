@@ -19,12 +19,15 @@ import {
   updateTournamentPhase,
   setTournamentSeeds,
   updatePlannedRounds,
+  getAllMatchesWithTournament,
 } from "../lib/db";
 import { getSessions, attachTournamentToSession, detachTournamentFromSession } from "../lib/sessions";
 import type { Player, TournamentMode, TournamentFormat, Sportstaette, HallConfig } from "../lib/types";
 import { parseHallConfig, hallConfigTotalCourts, playerDisplayName } from "../lib/types";
 import { formFixedDoubleTeams, formFixedMixedTeams, recommendedSwissRounds } from "../lib/draw";
 import { validateTournamentSetup, canStart } from "../lib/tournamentValidation";
+import SchedulePreview from "../components/tournament/SchedulePreview";
+import { matchDuration, type DurationBasis } from "../lib/duration";
 import type { ValidationIssue } from "../lib/tournamentValidation";
 import { SCORING_MODES, getScoringModeId, type ScoringModeId } from "../lib/scoring";
 import { useTheme } from "../lib/ThemeContext";
@@ -119,6 +122,29 @@ export default function TournamentCreate() {
   const [manualTeams, setManualTeams] = useState<[number, number][]>([]);
   const [firstPick, setFirstPick] = useState<number | null>(null);
   const [createStep, setCreateStep] = useState<"settings" | "players" | "teams" | "seeding" | "create">("settings");
+
+  // Every completed match there has ever been, for the duration forecast
+  // (FEATURE-BACKLOG.md H8). Loaded once: it does not change while the
+  // wizard is open, and it is only ever read as a whole.
+  const [durationBasis, setDurationBasis] = useState<DurationBasis | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const history = await getAllMatchesWithTournament();
+      if (cancelled) return;
+      setDurationBasis(
+        matchDuration(history, { pointsPerSet, setsToWin }),
+      );
+    })().catch((err) => {
+      // Without a basis the forecast simply does not appear; it is not
+      // worth interrupting the wizard over.
+      console.debug("schedule forecast: no history available:", err);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pointsPerSet, setsToWin]);
 
   // Filter state
   const [search, setSearch] = useState("");
@@ -1338,6 +1364,26 @@ export default function TournamentCreate() {
                       <span className="text-2xs opacity-60"><Icon name="x" /></span>
                     </span>
                   ))}
+                </div>
+              )}
+
+              {/* How long this will take, given who is selected so far */}
+              {durationBasis && (
+                <div className="mb-3">
+                  <SchedulePreview
+                    format={format}
+                    setup={{
+                      playerCount: selectedPlayerIds.size,
+                      mode,
+                      numGroups: format === "group_ko" ? numGroups : 0,
+                      qualifyPerGroup: format === "group_ko" ? qualifyPerGroup : 0,
+                      plannedRounds: plannedRounds,
+                      thirdPlace: enableThirdPlace,
+                      courts,
+                    }}
+                    basis={durationBasis}
+                    theme={theme}
+                  />
                 </div>
               )}
 

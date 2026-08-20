@@ -8,6 +8,7 @@
 // structure; these do not.
 
 import type { FormatEngine, FormatContext, FormatPlan } from "./types";
+import { entrantCount, exactly, openEnded, roundBasedMatches, roundRobinMatches } from "./estimate";
 import {
   roundComplete,
   roundsOfPhase,
@@ -73,6 +74,9 @@ function phaseData(ctx: FormatContext, phase: string | null) {
 
 export const roundRobinEngine: FormatEngine = {
   id: "round_robin",
+  // The whole schedule exists from the start, so this is exact.
+  estimate: (setup) => exactly(roundRobinMatches(entrantCount(setup))),
+
   display: {
     hasBracket: false,
     hasGroupPhase: false,
@@ -109,6 +113,11 @@ export const roundRobinEngine: FormatEngine = {
 
 export const randomDoublesEngine: FormatEngine = {
   id: "random_doubles",
+  // No round count is asked for anywhere -- the wizard only offers one
+  // for Swiss, Monrad and Waterfall, and this engine never stops on its
+  // own. A number here would be invented.
+  estimate: () => openEnded,
+
   display: {
     hasBracket: false,
     hasGroupPhase: false,
@@ -244,6 +253,11 @@ function swissLikeProgress(ctx: FormatContext) {
 
 export const swissEngine: FormatEngine = {
   id: "swiss",
+  // Everybody is paired every round; an odd player gets a bye, which is
+  // not a match anyone plays.
+  estimate: (setup) =>
+    exactly(roundBasedMatches(setup.playerCount, setup.plannedRounds, 2, 0)),
+
   display: {
     hasBracket: false,
     hasGroupPhase: false,
@@ -261,6 +275,10 @@ export const swissEngine: FormatEngine = {
 
 export const monradEngine: FormatEngine = {
   id: "monrad",
+  // Same shape as Swiss: the pairing rule differs, the count does not.
+  estimate: (setup) =>
+    exactly(roundBasedMatches(setup.playerCount, setup.plannedRounds, 2, 0)),
+
   display: {
     hasBracket: false,
     hasGroupPhase: false,
@@ -280,6 +298,10 @@ export const monradEngine: FormatEngine = {
 
 export const kingOfCourtEngine: FormatEngine = {
   id: "king_of_court",
+  // One match at a time, drawn from a queue, for as long as people want
+  // to keep playing. There is no number to give.
+  estimate: () => openEnded,
+
   display: {
     hasBracket: false,
     hasGroupPhase: false,
@@ -392,6 +414,13 @@ function waterfallRestCounts(ctx: FormatContext): Map<number, number> {
 
 export const waterfallEngine: FormatEngine = {
   id: "waterfall",
+  // Unlike Swiss, this one draws only as many matches as there are
+  // courts -- the rest of the ladder sits the round out.
+  estimate: (setup) =>
+    exactly(
+      roundBasedMatches(setup.playerCount, setup.plannedRounds, 2, setup.courts),
+    ),
+
   display: {
     hasBracket: false,
     hasGroupPhase: false,

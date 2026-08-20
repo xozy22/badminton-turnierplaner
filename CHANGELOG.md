@@ -24,6 +24,17 @@ Alle nennenswerten Änderungen an BOSS, neueste zuerst. Das Format folgt
 Ein Durchgang durch `REVIEW-BACKLOG.md`, 75 Punkte in sechs Phasen. Die
 Kurzfassung dessen, was sich für Nutzer ändert:
 
+### Planung
+
+- **„Wie lange dauert das?"** Bei der Spielerauswahl steht jetzt, wie viele
+  Spiele das gewählte Format ergibt und wie lange sie dauern werden — auf so
+  vielen Feldern, wie die Halle hat. Gerechnet wird mit den **eigenen**
+  Spielzeiten: BOSS misst seit jeher, wie lange ein Spiel wirklich dauert.
+  Solange zu wenige gemessen sind, steht eine grobe Schätzung da, und die
+  Anzeige sagt, dass es eine ist. Formate ohne festes Ende — King of the
+  Court, zufällige Doppel — bekommen keine Zahl, sondern den Hinweis, dass sie
+  laufen, solange man mag.
+
 ### Meldungen, Auslosung und Ausdruck
 
 Sechs weitere Punkte aus dem BTP-Vergleich.

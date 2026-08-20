@@ -413,6 +413,55 @@ Dann allerdings ist es Pflicht und nicht Kür.
 
 ---
 
+## G · Aus dem Programm selbst
+
+Nicht aus dem BTP-Handbuch, sondern aus dem, was beim Arbeiten am Code
+auffiel.
+
+### G8 — Wie lange dauert der Abend? ✔ erledigt (2026-08-20)
+**Nutzen:** hoch · **Aufwand:** S
+
+Die Frage vor jedem Vereinsabend: „Wir haben die Halle bis 22 Uhr, sind zu
+elft und haben drei Felder — welches Format passt?" Sie wurde mit Erfahrung
+beantwortet und oft daneben.
+
+**BOSS konnte sie längst beantworten**, besser als jedes fremde Werkzeug: Es
+misst seit jeher, wie lange ein Spiel dauert — `started_at` bis
+`completed_at` —, und die Statistikseite zeigt den Wert an. Nur hat ihn nie
+jemand zum Planen benutzt.
+
+**Umgesetzt.** Zwei Teile:
+
+*Die Spielanzahl.* Jede Format-Engine beantwortet jetzt `estimate(setup)`.
+Pflichtfeld, nicht optional — so zählt der Compiler beim nächsten neuen
+Format alle neun Stellen auf, statt eine zu übersehen. Freilose werden nicht
+gezählt: Die Frage ist, wie lange etwas dauert, und ein Freilos dauert nicht.
+
+*Die Spieldauer.* `lib/duration.ts` liest die Dauern aus allen
+abgeschlossenen Spielen — über Turniere hinweg, weil ein Verein in seinem
+Tempo spielt und ein Abend keine Stichprobe ist. Genommen wird der **Median**,
+nicht der Durchschnitt: Ein Spiel, das jemand über Mittag offen ließ, zieht
+einen Mittelwert um Minuten je Spiel hoch. Alles über drei Stunden fliegt
+ganz heraus — das ist kein Badmintonspiel, das ist eine vergessene Eingabe.
+
+Unter fünf gemessenen Spielen greift ein grober Vorgabewert, und die Anzeige
+sagt das auch. Danach steht dort „gerechnet mit 20 Min. je Spiel, gemessen an
+10 bisherigen Spielen".
+
+**Belegt statt gerechnet.** Elf Testfälle spielen ein Turnier tatsächlich
+durch und vergleichen die Schätzung mit den entstandenen Spielen. Genau das
+hat einen Fehler gefunden: `qualify_per_group` bedeutet zweierlei — eine
+Zweierpotenz ab 4 ist die *Gesamtgröße* des K.-o.-Feldes, alles andere die
+Zahl je Gruppe. Die Schätzung las es als „je Gruppe" und setzte acht in einen
+Baum für vier. Jetzt geht sie durch `knockoutSizes`, wie Gruppentabelle und
+Ausdruck auch.
+
+**Was offen bleibt:** King of the Court und zufällige Doppel bekommen keine
+Zahl, sondern den Satz, dass sie laufen, solange man mag. Eine erfundene Zahl
+auf einem Planungsbildschirm wäre schlechter als keine.
+
+---
+
 ## Empfehlung
 
 Wenn nur drei Punkte umgesetzt werden:

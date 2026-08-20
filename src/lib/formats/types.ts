@@ -23,6 +23,7 @@ import type {
   GameSet,
 } from "../types";
 import type { RoundSpec } from "../db";
+import type { EstimateSetup, MatchEstimate } from "./estimate";
 
 /**
  * Per-format state that does not fit the match tables — currently only the
@@ -117,6 +118,16 @@ export interface FormatEngine {
    * whose length is not known in advance.
    */
   progress?(ctx: FormatContext): { current: number; total: number } | null;
+  /**
+   * How many matches this format will produce for a given setup, before
+   * any of them exist -- so the wizard can say how long an evening will
+   * take (FEATURE-BACKLOG.md H8).
+   *
+   * Required rather than optional: a new format must answer the question,
+   * even if the answer is {@link openEnded}. Byes are not counted; they
+   * take no time.
+   */
+  estimate(setup: EstimateSetup): MatchEstimate;
 }
 
 /** Rounds of a phase, oldest first. */

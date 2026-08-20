@@ -19,6 +19,16 @@ the application shows when its language is set to English.
 
 ## [Unreleased]
 
+### Planning
+
+- **"How long will this take?"** The player selection now says how many
+  matches the chosen format produces and how long they will run, across as
+  many courts as the hall has. It counts with **your own** match times: BOSS
+  has always measured how long a match really takes. While too few have been
+  measured it shows a rough guess and says so. Formats with no end of their
+  own -- King of the Court, random doubles -- get no number, just a note that
+  they run for as long as you like.
+
 ### Entries, the draw and printing
 
 Six more points from the BTP comparison.

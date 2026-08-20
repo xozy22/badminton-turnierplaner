@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { engineFor, FORMAT_ENGINES } from "./index";
 import { knockoutSizes } from "./knockoutFormats";
 import type { FormatContext } from "./types";
+import type { EstimateSetup } from "./estimate";
 import { makePlayers, makeMatch, resetIds } from "../../test/factories";
 import type { Tournament, Round, Match, TournamentFormat, TournamentStatus } from "../types";
 
@@ -653,6 +654,116 @@ describe("full run", () => {
     expect(steps).toBe(10);
     expect(ctx.rounds.length).toBe(11);
   });
+
+describe("match estimate (FEATURE-BACKLOG.md H8)", () => {
+  /**
+   * The setup an engine is asked about, filled from a tournament so the
+   * estimate and the run see the same numbers.
+   */
+  const setupOf = (t: Tournament, playerCount: number): EstimateSetup => ({
+    playerCount,
+    mode: t.mode,
+    numGroups: t.num_groups,
+    qualifyPerGroup: t.qualify_per_group,
+    plannedRounds: t.planned_rounds ?? 5,
+    thirdPlace: t.enable_third_place === 1,
+    courts: t.courts,
+  });
+
+  /** Matches somebody actually played: byes take no time. */
+  const playedCount = (ctx: FormatContext) =>
+    ctx.allMatches.filter((m) => m.team2_p1 !== null).length;
+
+  const cases: [TournamentFormat, Partial<Tournament>, number][] = [
+    ["round_robin", {}, 6],
+    ["round_robin", {}, 11],
+    ["round_robin", { mode: "doubles" }, 8],
+    ["elimination", {}, 8],
+    ["elimination", {}, 5],
+    ["elimination", { enable_third_place: 1 }, 8],
+    ["swiss", { planned_rounds: 3 }, 8],
+    ["swiss", { planned_rounds: 4 }, 9],
+    ["monrad", { planned_rounds: 3 }, 8],
+    ["waterfall", { planned_rounds: 3, courts: 2 }, 8],
+    ["waterfall", { planned_rounds: 2, courts: 3 }, 11],
+  ];
+
+  it.each(cases)(
+    "%s with %o and %i players is counted exactly",
+    (format, extra, playerCount) => {
+      const tournament = makeTournament({ format, ...extra });
+      const estimate = engineFor(format).estimate(setupOf(tournament, playerCount));
+      const { ctx, started } = playThrough(format, extra, playerCount, 25);
+
+      expect(started, `${format} could not be started`).toBe(true);
+      expect(estimate.matches, `${format} gave no estimate`).not.toBeNull();
+      expect(playedCount(ctx), `${format} with ${playerCount} players`).toBe(
+        estimate.matches,
+      );
+    },
+  );
+
+  const approximateCases: [TournamentFormat, Partial<Tournament>, number][] = [
+    ["group_ko", { num_groups: 2, qualify_per_group: 4 }, 8],
+    ["group_ko", { num_groups: 3, qualify_per_group: 2 }, 11],
+    ["double_elimination", {}, 8],
+    ["double_elimination", {}, 6],
+  ];
+
+  it.each(approximateCases)(
+    "%s with %o and %i players is close",
+    (format, extra, playerCount) => {
+      // These depend on how the play goes: a group that does not divide
+      // evenly, a grand final played once or twice. Within a fifth is
+      // close enough to plan an evening around.
+      const tournament = makeTournament({ format, ...extra });
+      const estimate = engineFor(format).estimate(setupOf(tournament, playerCount));
+      const { ctx, started } = playThrough(format, extra, playerCount, 30);
+
+      expect(started).toBe(true);
+      const actual = playedCount(ctx);
+      const off = Math.abs(actual - estimate.matches!) / Math.max(1, actual);
+      expect(
+        off,
+        `${format}: estimated ${estimate.matches}, played ${actual}`,
+      ).toBeLessThanOrEqual(0.2);
+    },
+  );
+
+  it("gives no number for a format that does not end", () => {
+    // King of the Court and random doubles run until somebody says stop.
+    // A number would be invented, and an invented number on a planning
+    // screen is worse than none.
+    for (const format of ["king_of_court", "random_doubles"] as TournamentFormat[]) {
+      const estimate = engineFor(format).estimate(
+        setupOf(makeTournament({ format }), 8),
+      );
+      expect(estimate.matches, format).toBeNull();
+    }
+  });
+
+  it("marks the formats whose count depends on the play", () => {
+    const approximate = (["group_ko", "double_elimination"] as TournamentFormat[]).map(
+      (f) => engineFor(f).estimate(setupOf(makeTournament({ format: f }), 8)).approximate,
+    );
+    expect(approximate).toEqual([true, true]);
+
+    const exact = (["round_robin", "elimination", "swiss"] as TournamentFormat[]).map(
+      (f) => engineFor(f).estimate(setupOf(makeTournament({ format: f }), 8)).approximate,
+    );
+    expect(exact).toEqual([false, false, false]);
+  });
+
+  it("counts nobody as no matches", () => {
+    // The wizard asks before anyone is selected.
+    for (const format of Object.keys(FORMAT_ENGINES) as TournamentFormat[]) {
+      const estimate = engineFor(format).estimate(
+        setupOf(makeTournament({ format }), 0),
+      );
+      expect(estimate.matches ?? 0, format).toBe(0);
+    }
+  });
+});
 });
 
 describe("knockoutSizes — what qualify_per_group actually means", () => {
