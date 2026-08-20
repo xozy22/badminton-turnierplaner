@@ -21,6 +21,14 @@ the application shows when its language is set to English.
 
 ### Fixed
 
+- **The management tab could be scrolled past the end of the page.** A strip
+  of bare background appeared below it and the sidebar moved with the
+  scroll, which it should never do. The cause was one screen-reader-only
+  element in the fee section: it is absolutely positioned, and with no
+  positioned ancestor it laid itself out against the whole document,
+  stretching the page beyond the window. The content area now provides that
+  ancestor, so nothing inside a page can do this again.
+
 - **Courts in use by a neighbouring tournament now look it.** Tournaments in
   a session share the hall, but a court being played on next door still read
   "Free -- drag a match here". The drop was refused, with nothing beforehand

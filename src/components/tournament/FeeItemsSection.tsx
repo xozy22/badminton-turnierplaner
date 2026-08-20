@@ -75,10 +75,14 @@ export default function FeeItemsSection({
 
       {/* When the entry fee falls due (E3) */}
       <fieldset className={`border-b ${theme.cardBorder} px-5 py-3`}>
-        <legend className="sr-only">{t.fee_due_legend}</legend>
-        <div className="text-2xs font-semibold uppercase tracking-wide text-muted">
+        {/* The legend itself, not a hidden one beside a visible copy.
+            `sr-only` is absolutely positioned, and with no positioned
+            ancestor it laid itself out against the document -- which
+            stretched the page past the viewport and let the whole layout
+            scroll, sidebar included. It also read the label out twice. */}
+        <legend className="p-0 text-2xs font-semibold uppercase tracking-wide text-muted">
           {t.fee_due_legend}
-        </div>
+        </legend>
         <div className="mt-2 flex flex-wrap gap-2">
           {(
             [

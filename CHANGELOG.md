@@ -26,6 +26,15 @@ Kurzfassung dessen, was sich für Nutzer ändert:
 
 ### Behoben
 
+- **Im Verwaltungstab ließ sich über die Seite hinausscrollen.** Unten
+  erschien ein Streifen blanker Hintergrund, und das Seitenmenü wanderte
+  mit — obwohl es stehen bleiben sollte. Ursache war ein einzelnes, für
+  Screenreader gedachtes Element in der Gebührenverwaltung: Es ist absolut
+  positioniert und richtete sich mangels positioniertem Elternteil am
+  gesamten Dokument aus, was die Seite über die Fensterhöhe hinaus streckte.
+  Der Inhaltsbereich hat jetzt einen eigenen Bezugspunkt, sodass so etwas
+  dort nicht mehr passieren kann.
+
 - **Belegte Felder des Nachbarturniers sehen jetzt belegt aus.** In einer
   Session teilen sich mehrere Turniere die Halle. Ein Feld, auf dem nebenan
   gespielt wurde, stand in der Feldübersicht trotzdem als „Frei — Match
