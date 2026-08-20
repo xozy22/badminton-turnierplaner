@@ -1,4 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import { formatLabel, formatOptions, modeOptions } from "../lib/i18n/labels";
+import { formatMoney } from "../lib/datetime";
+import Icon from "../components/ui/Icon";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   getPlayers,
@@ -15,14 +18,20 @@ import {
   getSportstaetten,
   updateTournamentPhase,
   setTournamentSeeds,
+  updatePlannedRounds,
+  getAllMatchesWithTournament,
 } from "../lib/db";
 import { getSessions, attachTournamentToSession, detachTournamentFromSession } from "../lib/sessions";
 import type { Player, TournamentMode, TournamentFormat, Sportstaette, HallConfig } from "../lib/types";
 import { parseHallConfig, hallConfigTotalCourts, playerDisplayName } from "../lib/types";
 import { formFixedDoubleTeams, formFixedMixedTeams, recommendedSwissRounds } from "../lib/draw";
+import { validateTournamentSetup, canStart } from "../lib/tournamentValidation";
+import SchedulePreview from "../components/tournament/SchedulePreview";
+import { matchDuration, type DurationBasis } from "../lib/duration";
+import type { ValidationIssue } from "../lib/tournamentValidation";
 import { SCORING_MODES, getScoringModeId, type ScoringModeId } from "../lib/scoring";
 import { useTheme } from "../lib/ThemeContext";
-import { useT } from "../lib/I18nContext";
+import { useT, useLocale } from "../lib/I18nContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { useAsyncAction } from "../lib/useAsyncAction";
 import TeamPairingStep from "../components/tournament/TeamPairingStep";
@@ -41,6 +50,7 @@ type GenderFilter = "all" | "m" | "f";
 export default function TournamentCreate() {
   const { theme } = useTheme();
   const { t } = useT();
+  const locale = useLocale();
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
   const isEditMode = !!editId;
@@ -54,19 +64,18 @@ export default function TournamentCreate() {
   const generateName = (m: TournamentMode, f: TournamentFormat) => {
     const now = new Date();
     const d = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
-    const modeLabels: Record<TournamentMode, string> = { singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed };
-    const fmtLabels: Record<TournamentFormat, string> = {
-      round_robin: t.format_round_robin, elimination: t.format_elimination,
-      random_doubles: t.format_random_doubles, group_ko: t.format_group_ko,
-      swiss: t.format_swiss, double_elimination: t.format_double_elimination,
-      monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall,
-    };
+    const modeLabels = Object.fromEntries(modeOptions(t)) as Record<TournamentMode, string>;
+    const fmtLabels: Record<TournamentFormat, string> = Object.fromEntries(formatOptions(t)) as Record<TournamentFormat, string>;
     return `${d} - ${modeLabels[m]} - ${fmtLabels[f]}`;
   };
 
   const [mode, setMode] = useState<TournamentMode>("doubles");
   const [format, setFormat] = useState<TournamentFormat>("random_doubles");
   const [name, setName] = useState(() => generateName("doubles", "random_doubles"));
+  // When it is played, as opposed to when the row is written. Defaults to
+  // today, because most tournaments are set up on the day (A1).
+  const [playDate, setPlayDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [startTime, setStartTime] = useState("");
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
   const [scoringMode, setScoringMode] = useState<ScoringModeId>("21_ext");
   const scoringPreset = SCORING_MODES.find((m) => m.id === scoringMode)!;
@@ -89,6 +98,8 @@ export default function TournamentCreate() {
   const [sessions, setSessions] = useState<{ id: number; name: string; venue_id: number | null; status: string }[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<number | "">("");
   const [numGroups, setNumGroups] = useState(2);
+  // Number of rounds for the formats that run a fixed count.
+  const [plannedRounds, setPlannedRounds] = useState(5);
   const [qualifyPerGroup, setQualifyPerGroup] = useState(8);
   const [useEntryFee, setUseEntryFee] = useState(false);
   const [entryFeeSingle, setEntryFeeSingle] = useState<string>("5");
@@ -112,6 +123,29 @@ export default function TournamentCreate() {
   const [firstPick, setFirstPick] = useState<number | null>(null);
   const [createStep, setCreateStep] = useState<"settings" | "players" | "teams" | "seeding" | "create">("settings");
 
+  // Every completed match there has ever been, for the duration forecast
+  // (FEATURE-BACKLOG.md H8). Loaded once: it does not change while the
+  // wizard is open, and it is only ever read as a whole.
+  const [durationBasis, setDurationBasis] = useState<DurationBasis | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const history = await getAllMatchesWithTournament();
+      if (cancelled) return;
+      setDurationBasis(
+        matchDuration(history, { pointsPerSet, setsToWin }),
+      );
+    })().catch((err) => {
+      // Without a basis the forecast simply does not appear; it is not
+      // worth interrupting the wizard over.
+      console.debug("schedule forecast: no history available:", err);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pointsPerSet, setsToWin]);
+
   // Filter state
   const [search, setSearch] = useState("");
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
@@ -130,17 +164,22 @@ export default function TournamentCreate() {
       try {
         await updateTournament(
           id, finalName, mode, format, setsToWin, pointsPerSet, courts,
-          (format === "group_ko" || format === "swiss" || format === "monrad" || format === "waterfall") ? numGroups : 0,
+          format === "group_ko" ? numGroups : 0,
           format === "group_ko" ? qualifyPerGroup : 0,
           feeSingle, feeDouble, cap, rest,
-          enableThirdPlace && (format === "elimination" || format === "group_ko" || format === "double_elimination")
+          enableThirdPlace && (format === "elimination" || format === "group_ko" || format === "double_elimination"),
+          { playDate: playDate || null, startTime: startTime || null }
+        );
+        await updatePlannedRounds(
+          id,
+          format === "swiss" || format === "monrad" || format === "waterfall" ? plannedRounds : null,
         );
       } catch (err) {
         console.error("Auto-save error:", err);
       }
     }, 1000);
     return () => clearTimeout(timer);
-  }, [isEditMode, editLoaded, editId, name, mode, format, setsToWin, pointsPerSet, cap, courts, numGroups, qualifyPerGroup, useEntryFee, entryFeeSingle, entryFeeDouble, useMinRest, minRestMinutes, enableThirdPlace]);
+  }, [isEditMode, editLoaded, editId, name, mode, format, setsToWin, pointsPerSet, cap, courts, numGroups, plannedRounds, qualifyPerGroup, useEntryFee, entryFeeSingle, entryFeeDouble, useMinRest, minRestMinutes, enableThirdPlace, playDate, startTime]);
 
   // Auto-save player selection when it changes
   useEffect(() => {
@@ -232,6 +271,9 @@ export default function TournamentCreate() {
         setSelectedHallIndices(new Set([0]));
       }
       setNumGroups(td.num_groups || 2);
+      // Swiss / Monrad / Waterfall keep their round count in its own
+      // column; older drafts may still carry it in num_groups.
+      setPlannedRounds(td.planned_rounds || td.num_groups || 5);
       setQualifyPerGroup(td.qualify_per_group || 8);
       if (td.entry_fee_single > 0 || td.entry_fee_double > 0) {
         setUseEntryFee(true);
@@ -243,6 +285,10 @@ export default function TournamentCreate() {
         setMinRestMinutes(String(td.min_rest_minutes));
       }
       setEnableThirdPlace(td.enable_third_place === 1);
+      // Tournaments from before v19 have neither; leave the fields empty
+      // rather than inventing a date for them.
+      if (td.play_date) setPlayDate(td.play_date);
+      if (td.start_time) setStartTime(td.start_time);
       setSelectedPlayerIds(new Set(tp.map((p) => p.id)));
 
       // Restore seeding state from persisted seed_rank (per migration v10)
@@ -352,10 +398,11 @@ export default function TournamentCreate() {
       id = Number(editId);
       await updateTournament(
         id, finalName, mode, format, setsToWin, pointsPerSet, courts,
-        (format === "group_ko" || format === "swiss" || format === "monrad" || format === "waterfall") ? numGroups : 0,
+        format === "group_ko" ? numGroups : 0,
         format === "group_ko" ? qualifyPerGroup : 0,
         feeSingle, feeDouble, cap, rest,
-        ttp
+        ttp,
+        { playDate: playDate || null, startTime: startTime || null }
       );
       // Sync players: remove those no longer selected, add new ones
       const existingPlayers = await getTournamentPlayers(id);
@@ -373,10 +420,11 @@ export default function TournamentCreate() {
     } else {
       id = await createTournament(
         finalName, mode, format, setsToWin, pointsPerSet, courts,
-        (format === "group_ko" || format === "swiss" || format === "monrad" || format === "waterfall") ? numGroups : 0,
+        format === "group_ko" ? numGroups : 0,
         format === "group_ko" ? qualifyPerGroup : 0,
         feeSingle, feeDouble, cap, rest,
-        ttp
+        ttp,
+        { playDate: playDate || null, startTime: startTime || null }
       );
       for (const pid of selectedPlayerIds) {
         await addPlayerToTournament(id, pid);
@@ -419,6 +467,12 @@ export default function TournamentCreate() {
     } else {
       await setTournamentSeeds(id, []);
     }
+
+    // Rounds for the formats that run a fixed count (B7).
+    await updatePlannedRounds(
+      id,
+      format === "swiss" || format === "monrad" || format === "waterfall" ? plannedRounds : null,
+    );
 
     // Persist hall config + venue
     await updateHallConfig(id, selectedHalls.length > 0 ? selectedHalls : null);
@@ -502,6 +556,7 @@ export default function TournamentCreate() {
   };
 
   const minPlayers = mode === "singles" ? 2 : 4;
+
   const formatsWithoutTeamPairing: TournamentFormat[] = ["random_doubles", "swiss", "monrad", "king_of_court", "waterfall"];
   const needsTeamPairing = (mode === "doubles" || mode === "mixed") && !formatsWithoutTeamPairing.includes(format);
 
@@ -515,6 +570,36 @@ export default function TournamentCreate() {
   const poolPlayers = useMemo(() => {
     return players.filter((p) => selectedPlayerIds.has(p.id) && !pairedIds.has(p.id));
   }, [players, selectedPlayerIds, pairedIds]);
+
+  /**
+   * Format-specific checks (REVIEW-BACKLOG.md B13). Errors block the start,
+   * warnings are shown but do not stand in the way.
+   */
+  // Cheap enough to run on every render — a handful of array passes over the
+  // selected players, and memoizing it around a Set dependency buys nothing.
+  const validationIssues: ValidationIssue[] = validateTournamentSetup({
+    mode,
+    format,
+    genders: [...selectedPlayerIds]
+      .map((id) => players.find((p) => p.id === id)?.gender)
+      .filter((g): g is "m" | "f" => g === "m" || g === "f"),
+    numGroups,
+    koSize: qualifyPerGroup,
+    plannedRounds,
+    courts,
+    teamCount: needsTeamPairing ? manualTeams.length : undefined,
+  });
+  const validationErrors = validationIssues.filter((i) => i.level === "error");
+  const validationWarnings = validationIssues.filter((i) => i.level === "warning");
+
+  /** Fills {placeholders} in a validation message. */
+  const formatIssue = (issue: ValidationIssue): string => {
+    let text = (t as unknown as Record<string, string>)[issue.key] ?? issue.key;
+    for (const [key, value] of Object.entries(issue.params ?? {})) {
+      text = text.replace(`{${key}}`, String(value));
+    }
+    return text;
+  };
 
   const handlePoolClick = (playerId: number) => {
     if (firstPick === null) {
@@ -554,6 +639,8 @@ export default function TournamentCreate() {
   }, [selectedPlayerIds, editLoaded, isEditMode]);
 
   const settingsValid = name.trim().length > 0;
+
+
   const playersValid = selectedPlayerIds.size >= minPlayers;
   const teamsValid = !needsTeamPairing || (manualTeams.length > 0 && poolPlayers.length < 2);
 
@@ -566,11 +653,11 @@ export default function TournamentCreate() {
   const seedingValid = true;
 
   const steps = [
-    { key: "settings" as const, label: t.tournament_step_settings, icon: "⚙️", valid: settingsValid },
-    { key: "players" as const, label: t.tournament_step_players, icon: "👥", valid: playersValid },
-    ...(needsTeamPairing ? [{ key: "teams" as const, label: t.tournament_step_teams, icon: "🤝", valid: teamsValid }] : []),
-    ...(showSeedingStep ? [{ key: "seeding" as const, label: t.tournament_step_seeding, icon: "🎯", valid: seedingValid }] : []),
-    { key: "create" as const, label: t.tournament_step_create, icon: "🏆", valid: false },
+    { key: "settings" as const, label: t.tournament_step_settings, icon: "settings" as const, valid: settingsValid },
+    { key: "players" as const, label: t.tournament_step_players, icon: "users" as const, valid: playersValid },
+    ...(needsTeamPairing ? [{ key: "teams" as const, label: t.tournament_step_teams, icon: "handshake" as const, valid: teamsValid }] : []),
+    ...(showSeedingStep ? [{ key: "seeding" as const, label: t.tournament_step_seeding, icon: "target" as const, valid: seedingValid }] : []),
+    { key: "create" as const, label: t.tournament_step_create, icon: "trophy" as const, valid: false },
   ];
 
   const currentStepIdx = steps.findIndex((s) => s.key === createStep);
@@ -597,10 +684,10 @@ export default function TournamentCreate() {
                 : `${theme.textMuted} hover:${theme.textPrimary} hover:bg-black/[0.03]`
             }`}
           >
-            <span className="mr-1.5">{step.icon}</span>
+            <Icon name={step.icon} className="mr-1.5" />
             {step.label}
             {step.valid && createStep !== step.key && (
-              <span className="ml-1.5 text-green-500">✓</span>
+              <span className="ml-1.5 text-success-text"><Icon name="check" /></span>
             )}
             {createStep === step.key ? (
               <span className={`absolute bottom-0 left-0 right-0 h-[3px] ${theme.primaryBg} rounded-t-full`} />
@@ -615,7 +702,7 @@ export default function TournamentCreate() {
         {/* Step: Settings */}
         {createStep === "settings" && (
           <>
-            <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5`}>
+            <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5`}>
               <div className="space-y-4">
                 <div>
                   <label className={`block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`}>
@@ -627,18 +714,54 @@ export default function TournamentCreate() {
                       value={name}
                       onChange={(e) => { setName(e.target.value); setNameManuallyEdited(true); }}
                       maxLength={200}
-                      className={`flex-1 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`flex-1 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                       placeholder={t.tournament_name_placeholder}
                     />
                     {nameManuallyEdited && (
                       <button
                         onClick={() => { setName(generateName(mode, format)); setNameManuallyEdited(false); }}
-                        className={`${theme.textMuted} hover:text-emerald-600 px-3 py-2.5 rounded-xl border ${theme.inputBorder} ${theme.cardHoverBorder} transition-all text-sm`}
+                        className={`${theme.textMuted} hover:text-success-text px-3 py-2.5 rounded-md border ${theme.inputBorder} ${theme.cardHoverBorder} transition-all text-sm`}
                         title={t.tournament_restore_suggestion}
                       >
-                        ↻
+                        <Icon name="refresh" />
                       </button>
                     )}
+                  </div>
+                </div>
+
+                {/* When it is played. The date defaults to today; the time
+                    is optional, because a club evening does not always have
+                    one worth writing down (FEATURE-BACKLOG.md A1). */}
+                <div className="flex flex-wrap gap-4">
+                  <div className="grow">
+                    <label
+                      htmlFor="tournament-play-date"
+                      className={`block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`}
+                    >
+                      {t.tournament_play_date}
+                    </label>
+                    <input
+                      id="tournament-play-date"
+                      type="date"
+                      value={playDate}
+                      onChange={(e) => setPlayDate(e.target.value)}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                    />
+                  </div>
+                  <div className="w-40">
+                    <label
+                      htmlFor="tournament-start-time"
+                      className={`block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`}
+                    >
+                      {t.tournament_start_time}
+                    </label>
+                    <input
+                      id="tournament-start-time"
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                    />
                   </div>
                 </div>
 
@@ -658,9 +781,9 @@ export default function TournamentCreate() {
                           setName(generateName(newMode, newFormat));
                         }
                       }}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
-                      {Object.entries({ singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed }).map(([k, v]) => (
+                      {modeOptions(t).map(([k, v]) => (
                         <option key={k} value={k}>
                           {v}
                         </option>
@@ -673,7 +796,7 @@ export default function TournamentCreate() {
                       <button
                         type="button"
                         onClick={() => setShowFormatInfo(true)}
-                        className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] leading-none ${theme.inputBg} border ${theme.inputBorder} ${theme.textMuted} hover:${theme.textSecondary} transition-colors`}
+                        className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-2xs leading-none ${theme.inputBg} border ${theme.inputBorder} ${theme.textMuted} hover:${theme.textSecondary} transition-colors`}
                         title={t.format_info_title}
                       >
                         i
@@ -685,18 +808,16 @@ export default function TournamentCreate() {
                         const newFormat = e.target.value as TournamentFormat;
                         setFormat(newFormat);
                         setManualTeams([]); setFirstPick(null);
-                        if (newFormat === "swiss" || newFormat === "monrad" || newFormat === "waterfall") setNumGroups(recommendedSwissRounds(selectedPlayerIds.size));
+                        if (newFormat === "swiss" || newFormat === "monrad" || newFormat === "waterfall") setPlannedRounds(recommendedSwissRounds(selectedPlayerIds.size));
                         if (!nameManuallyEdited) setName(generateName(mode, newFormat));
                       }}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
-                      {VALID_FORMATS[mode].map((f) => {
-                        const fmtLabels: Record<string, string> = { round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall };
-                        return (
+                      {VALID_FORMATS[mode].map((f) => (
                         <option key={f} value={f}>
-                          {fmtLabels[f]}
+                          {formatLabel(t, f)}
                         </option>
-                      );})}
+                      ))}
                     </select>
                     <p className={`text-xs ${theme.textMuted} mt-1.5`}>
                       {format === "round_robin" ? t.format_desc_round_robin
@@ -721,7 +842,7 @@ export default function TournamentCreate() {
                     <select
                       value={scoringMode}
                       onChange={(e) => setScoringMode(e.target.value as ScoringModeId)}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
                       {SCORING_MODES.map((m) => (
                         <option key={m.id} value={m.id}>{t[`scoring_mode_${m.id}` as keyof typeof t] as string}</option>
@@ -735,7 +856,7 @@ export default function TournamentCreate() {
                     <select
                       value={setsToWin}
                       onChange={(e) => setSetsToWin(Number(e.target.value))}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
                       <option value={1}>{t.best_of_1}</option>
                       <option value={2}>{t.best_of_3}</option>
@@ -769,7 +890,7 @@ export default function TournamentCreate() {
                         }
                       }}
                       required
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${selectedVenueId === "" ? "border-rose-300" : theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${selectedVenueId === "" ? "border-danger" : theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
                       <option value="">{t.tournament_venue_pick_placeholder}</option>
                       {sportstaetten.map((s) => (
@@ -779,22 +900,22 @@ export default function TournamentCreate() {
                       ))}
                     </select>
                     {selectedVenueId === "" && (
-                      <p className="text-xs text-rose-600 mt-1 font-medium">
-                        ⚠ {t.tournament_venue_required}
+                      <p className="text-xs text-danger-text mt-1 font-medium">
+                        <Icon name="alert" /> {t.tournament_venue_required}
                       </p>
                     )}
                     {sportstaetten.length === 0 && (
-                      <div className={`mt-2 ${theme.cardBg} border border-amber-200 rounded-xl px-3 py-2 text-xs ${theme.textSecondary}`}>
-                        <p className="font-medium text-amber-700 mb-1">
-                          ⚠ {t.tournament_venue_no_venues_title}
+                      <div className={`mt-2 ${theme.cardBg} border border-warning rounded-md px-3 py-2 text-xs ${theme.textSecondary}`}>
+                        <p className="font-medium text-warning-text mb-1">
+                          <Icon name="alert" /> {t.tournament_venue_no_venues_title}
                         </p>
                         <p>{t.tournament_venue_no_venues_message}</p>
                         <button
                           type="button"
                           onClick={() => navigate("/sportstaetten")}
-                          className={`mt-2 ${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-lg text-xs font-semibold transition-all`}
+                          className={`mt-2 ${theme.primaryBg} ${theme.primaryHoverBg} ${theme.primaryText} px-3 py-1.5 rounded-sm text-xs font-semibold transition-all`}
                         >
-                          {t.tournament_venue_create_first} →
+                          {t.tournament_venue_create_first} <Icon name="arrowRight" />
                         </button>
                       </div>
                     )}
@@ -804,12 +925,12 @@ export default function TournamentCreate() {
                   {sessions.length > 0 && (
                     <div>
                       <label className={`block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`}>
-                        🔗 {t.tournament_create_session_label}
+                        <Icon name="link" /> {t.tournament_create_session_label}
                       </label>
                       <select
                         value={selectedSessionId}
                         onChange={(e) => setSelectedSessionId(e.target.value ? Number(e.target.value) : "")}
-                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                       >
                         <option value="">{t.tournament_create_session_none}</option>
                         {sessions
@@ -837,7 +958,7 @@ export default function TournamentCreate() {
                       {t.tournament_halls_courts}
                     </label>
                     {hallConfig.length > 0 && (
-                      <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-xl px-3 py-2 space-y-1`}>
+                      <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-md px-3 py-2 space-y-1`}>
                         {/* Checkbox is only meaningful when the venue has 2+
                             halls — picking a subset of the available halls
                             for this tournament. With a single hall the
@@ -871,7 +992,7 @@ export default function TournamentCreate() {
                             </label>
                           ) : (
                             <div key={idx} className={`text-sm ${theme.textPrimary} flex items-center gap-2`}>
-                              <span>🏟</span>
+                              <span><Icon name="building" /></span>
                               <span>
                                 {hall.name} ({hall.courts} {hall.courts === 1 ? t.common_field : t.common_fields})
                               </span>
@@ -919,7 +1040,7 @@ export default function TournamentCreate() {
                       <select
                         value={numGroups}
                         onChange={(e) => setNumGroups(Number(e.target.value))}
-                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                       >
                         {[2, 3, 4, 5, 6, 7, 8].map((n) => (
                           <option key={n} value={n}>
@@ -942,7 +1063,7 @@ export default function TournamentCreate() {
                             <select
                               value={koSize}
                               onChange={(e) => setQualifyPerGroup(Number(e.target.value))}
-                              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                             >
                               {possibleSizes.map((n) => (
                                 <option key={n} value={n}>
@@ -969,9 +1090,9 @@ export default function TournamentCreate() {
                       {t.tournament_swiss_rounds}
                     </label>
                     <select
-                      value={numGroups || recommendedSwissRounds(selectedPlayerIds.size)}
-                      onChange={(e) => setNumGroups(Number(e.target.value))}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      value={plannedRounds || recommendedSwissRounds(selectedPlayerIds.size)}
+                      onChange={(e) => setPlannedRounds(Number(e.target.value))}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                     >
                       {[3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                         <option key={n} value={n}>{n}</option>
@@ -988,7 +1109,7 @@ export default function TournamentCreate() {
             {/* Seeding Toggle - for elimination and double_elimination */}
             {(format === "elimination" || format === "double_elimination" ||
               (format === "group_ko" && mode === "singles")) && (
-              <div className={`flex items-center gap-3 p-3 rounded-xl border ${theme.cardBorder} ${useSeeding ? theme.selectedBg : ''}`}>
+              <div className={`flex items-center gap-3 p-3 rounded-md border ${theme.cardBorder} ${useSeeding ? theme.selectedBg : ''}`}>
                 <input
                   type="checkbox"
                   checked={useSeeding}
@@ -1006,7 +1127,7 @@ export default function TournamentCreate() {
                   className="rounded accent-emerald-600"
                 />
                 <div>
-                  <span className={`text-sm font-medium ${theme.textPrimary}`}>🎯 {t.tournament_seeding_enable}</span>
+                  <span className={`text-sm font-medium ${theme.textPrimary}`}><Icon name="target" /> {t.tournament_seeding_enable}</span>
                   <p className={`text-xs ${theme.textMuted}`}>{t.tournament_seeding_hint}</p>
                 </div>
               </div>
@@ -1014,7 +1135,7 @@ export default function TournamentCreate() {
 
             {/* Third-place playoff toggle - any KO format */}
             {(format === "elimination" || format === "group_ko" || format === "double_elimination") && (
-              <div className={`flex items-center gap-3 p-3 rounded-xl border ${theme.cardBorder} ${enableThirdPlace ? theme.selectedBg : ''}`}>
+              <div className={`flex items-center gap-3 p-3 rounded-md border ${theme.cardBorder} ${enableThirdPlace ? theme.selectedBg : ''}`}>
                 <input
                   type="checkbox"
                   checked={enableThirdPlace}
@@ -1022,14 +1143,14 @@ export default function TournamentCreate() {
                   className="rounded accent-emerald-600"
                 />
                 <div>
-                  <span className={`text-sm font-medium ${theme.textPrimary}`}>🥉 {t.tournament_enable_third_place}</span>
+                  <span className={`text-sm font-medium ${theme.textPrimary}`}><Icon name="medal" /> {t.tournament_enable_third_place}</span>
                   <p className={`text-xs ${theme.textMuted}`}>{t.tournament_enable_third_place_hint}</p>
                 </div>
               </div>
             )}
 
             {/* Minimum Rest Time Toggle + Field */}
-            <div className={`flex items-start gap-3 p-3 rounded-xl border ${theme.cardBorder} ${useMinRest ? theme.selectedBg : ''}`}>
+            <div className={`flex items-start gap-3 p-3 rounded-md border ${theme.cardBorder} ${useMinRest ? theme.selectedBg : ''}`}>
               <input
                 type="checkbox"
                 checked={useMinRest}
@@ -1037,7 +1158,7 @@ export default function TournamentCreate() {
                 className="rounded accent-emerald-600 mt-1"
               />
               <div className="flex-1">
-                <span className={`text-sm font-medium ${theme.textPrimary}`}>⏱️ {t.tournament_min_rest_enable}</span>
+                <span className={`text-sm font-medium ${theme.textPrimary}`}><Icon name="clock" /> {t.tournament_min_rest_enable}</span>
                 <p className={`text-xs ${theme.textMuted}`}>{t.tournament_min_rest_hint}</p>
                 {useMinRest && (
                   <div className="mt-3">
@@ -1048,7 +1169,7 @@ export default function TournamentCreate() {
                       type="number"
                       value={minRestMinutes}
                       onChange={(e) => setMinRestMinutes(e.target.value)}
-                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                      className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                       min={0}
                       max={120}
                       step="1"
@@ -1059,7 +1180,7 @@ export default function TournamentCreate() {
             </div>
 
             {/* Entry Fee Toggle + Fields */}
-            <div className={`flex items-start gap-3 p-3 rounded-xl border ${theme.cardBorder} ${useEntryFee ? theme.selectedBg : ''}`}>
+            <div className={`flex items-start gap-3 p-3 rounded-md border ${theme.cardBorder} ${useEntryFee ? theme.selectedBg : ''}`}>
               <input
                 type="checkbox"
                 checked={useEntryFee}
@@ -1067,7 +1188,7 @@ export default function TournamentCreate() {
                 className="rounded accent-emerald-600 mt-1"
               />
               <div className="flex-1">
-                <span className={`text-sm font-medium ${theme.textPrimary}`}>💰 {t.tournament_entry_fee_enable}</span>
+                <span className={`text-sm font-medium ${theme.textPrimary}`}><span aria-hidden="true"><Icon name="coins" /></span> {t.tournament_entry_fee_enable}</span>
                 <p className={`text-xs ${theme.textMuted}`}>{(() => {
                   const fixedFmts: TournamentFormat[] = ["elimination", "group_ko", "double_elimination"];
                   const isFixed = mode !== "singles" && fixedFmts.includes(format);
@@ -1091,7 +1212,7 @@ export default function TournamentCreate() {
                         type="number"
                         value={mode === "singles" ? entryFeeSingle : entryFeeDouble}
                         onChange={(e) => mode === "singles" ? setEntryFeeSingle(e.target.value) : setEntryFeeDouble(e.target.value)}
-                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                        className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                         min={0}
                         max={10000}
                         step="0.5"
@@ -1108,9 +1229,18 @@ export default function TournamentCreate() {
                 onClick={() => setCreateStep(nextStep)}
                 disabled={selectedVenueId === ""}
                 title={selectedVenueId === "" ? t.tournament_venue_required : undefined}
-                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-lg ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all font-medium text-sm mt-2 disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {t.tournament_continue_to.replace("{icon}", steps.find((s) => s.key === nextStep)?.icon || "").replace("{label}", steps.find((s) => s.key === nextStep)?.label || "")} →
+                {(() => {
+                  const next = steps.find((s) => s.key === nextStep);
+                  return (
+                    <>
+                      {next && <Icon name={next.icon} className="mr-1.5" />}
+                      {t.tournament_continue_to.replace("{label}", next?.label || "")}{" "}
+                      <Icon name="arrowRight" />
+                    </>
+                  );
+                })()}
               </button>
             )}
           </>
@@ -1119,7 +1249,7 @@ export default function TournamentCreate() {
         {/* Step: Players */}
         {createStep === "players" && (
           <>
-            <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5`}>
+            <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5`}>
               {/* Header */}
               <div className="flex justify-between items-center mb-3">
                 <h2 className={`font-semibold ${theme.textPrimary}`}>
@@ -1131,9 +1261,9 @@ export default function TournamentCreate() {
                 <div className="flex gap-2 items-center">
                   <button
                     onClick={() => setShowExcelImport(true)}
-                    className={`${theme.primaryBg} text-white text-xs px-3 py-1.5 rounded-lg ${theme.primaryHoverBg} transition-colors font-medium`}
+                    className={`${theme.primaryBg} text-white text-xs px-3 py-1.5 rounded-sm ${theme.primaryHoverBg} transition-colors font-medium`}
                   >
-                    📥 {t.common_import}
+                    <Icon name="download" /> {t.common_import}
                   </button>
                   <button
                     onClick={selectAllFiltered}
@@ -1143,7 +1273,7 @@ export default function TournamentCreate() {
                   </button>
                   <button
                     onClick={selectNoneFiltered}
-                    className="text-gray-400 hover:text-gray-600 text-sm"
+                    className="text-muted hover:text-secondary text-sm"
                   >
                     {genderFilter !== "all" || clubFilter !== "all" || search ? t.tournament_deselect_filtered : t.tournament_deselect_all}
                   </button>
@@ -1159,21 +1289,21 @@ export default function TournamentCreate() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder={t.players_search_placeholder}
-                    className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl pl-9 pr-4 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+                    className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md pl-9 pr-4 py-2 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                    🔍
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm">
+                    <Icon name="search" />
                   </span>
                   {search && (
                     <button
                       onClick={() => setSearch("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-secondary text-xs"
                     >
-                      ✕
+                      <Icon name="x" />
                     </button>
                   )}
                 </div>
-                <div className={`flex rounded-xl border ${theme.inputBorder} overflow-hidden text-sm`}>
+                <div className={`flex rounded-md border ${theme.inputBorder} overflow-hidden text-sm`}>
                   {([
                     { value: "all", label: t.common_all },
                     { value: "m", label: t.players_filter_men },
@@ -1196,7 +1326,7 @@ export default function TournamentCreate() {
                   <select
                     value={clubFilter}
                     onChange={(e) => setClubFilter(e.target.value)}
-                    className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-3 py-2 text-sm ${theme.focusBorder} outline-none`}
+                    className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-3 py-2 text-sm ${theme.focusBorder} outline-none`}
                   >
                     <option value="all">{t.common_all}</option>
                     {availableClubs.map(c => (
@@ -1209,7 +1339,7 @@ export default function TournamentCreate() {
 
               {/* Info bar */}
               {(genderFilter !== "all" || clubFilter !== "all" || search) && (
-                <div className="text-xs text-gray-400 mb-2">
+                <div className="text-xs text-muted mb-2">
                   {t.tournament_players_shown.replace("{shown}", String(filteredPlayers.length)).replace("{total}", String(players.length))}
                   {filteredSelectedCount > 0 && (
                     <span className={`${theme.activeBadgeText} ml-1`}>
@@ -1227,27 +1357,47 @@ export default function TournamentCreate() {
                       key={p.id}
                       onClick={() => togglePlayer(p.id)}
                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-all hover:opacity-80 ${
-                        p.gender === "m" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+                        p.gender === "m" ? "bg-info-subtle text-info-text" : "bg-pink-100 text-pink-700"
                       }`}
                     >
                       {playerDisplayName(p)}
-                      <span className="text-[10px] opacity-60">✕</span>
+                      <span className="text-2xs opacity-60"><Icon name="x" /></span>
                     </span>
                   ))}
                 </div>
               )}
 
+              {/* How long this will take, given who is selected so far */}
+              {durationBasis && (
+                <div className="mb-3">
+                  <SchedulePreview
+                    format={format}
+                    setup={{
+                      playerCount: selectedPlayerIds.size,
+                      mode,
+                      numGroups: format === "group_ko" ? numGroups : 0,
+                      qualifyPerGroup: format === "group_ko" ? qualifyPerGroup : 0,
+                      plannedRounds: plannedRounds,
+                      thirdPlace: enableThirdPlace,
+                      courts,
+                    }}
+                    basis={durationBasis}
+                    theme={theme}
+                  />
+                </div>
+              )}
+
               {/* Player List */}
               {players.length === 0 ? (
-                <p className="text-gray-400 text-sm py-4">
+                <p className="text-muted text-sm py-4">
                   {t.tournament_no_players_yet}
                 </p>
               ) : filteredPlayers.length === 0 ? (
-                <p className="text-gray-400 text-sm py-4">
+                <p className="text-muted text-sm py-4">
                   {t.tournament_no_filter_results}
                 </p>
               ) : (
-                <div className={`max-h-72 overflow-y-auto rounded-xl border ${theme.cardBorder}`}>
+                <div className={`max-h-72 overflow-y-auto rounded-md border ${theme.cardBorder}`}>
                   {filteredPlayers.map((p, i) => (
                     <div
                       key={p.id}
@@ -1269,12 +1419,12 @@ export default function TournamentCreate() {
                       />
                       <span className={`font-medium ${theme.textPrimary} flex-1`}>{playerDisplayName(p)}</span>
                       {p.club && (
-                        <span className={`text-[10px] ${theme.textMuted} truncate max-w-[120px]`}>{p.club}</span>
+                        <span className={`text-2xs ${theme.textMuted} truncate max-w-[120px]`}>{p.club}</span>
                       )}
                       <span
-                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
+                        className={`text-2xs font-medium px-2 py-0.5 rounded-full shrink-0 ${
                           p.gender === "m"
-                            ? "bg-blue-50 text-blue-500"
+                            ? "bg-info-subtle text-phase-text"
                             : "bg-pink-50 text-pink-500"
                         }`}
                       >
@@ -1289,9 +1439,18 @@ export default function TournamentCreate() {
             {nextStep && (
               <button
                 onClick={() => setCreateStep(nextStep)}
-                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-2`}
+                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-lg ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all font-medium text-sm mt-2`}
               >
-                {t.tournament_continue_to.replace("{icon}", steps.find((s) => s.key === nextStep)?.icon || "").replace("{label}", steps.find((s) => s.key === nextStep)?.label || "")} →
+                {(() => {
+                  const next = steps.find((s) => s.key === nextStep);
+                  return (
+                    <>
+                      {next && <Icon name={next.icon} className="mr-1.5" />}
+                      {t.tournament_continue_to.replace("{label}", next?.label || "")}{" "}
+                      <Icon name="arrowRight" />
+                    </>
+                  );
+                })()}
               </button>
             )}
           </>
@@ -1316,9 +1475,18 @@ export default function TournamentCreate() {
             {nextStep && (
               <button
                 onClick={() => setCreateStep(nextStep)}
-                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-4`}
+                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-lg ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all font-medium text-sm mt-4`}
               >
-                {t.tournament_continue_to.replace("{icon}", steps.find((s) => s.key === nextStep)?.icon || "").replace("{label}", steps.find((s) => s.key === nextStep)?.label || "")} →
+                {(() => {
+                  const next = steps.find((s) => s.key === nextStep);
+                  return (
+                    <>
+                      {next && <Icon name={next.icon} className="mr-1.5" />}
+                      {t.tournament_continue_to.replace("{label}", next?.label || "")}{" "}
+                      <Icon name="arrowRight" />
+                    </>
+                  );
+                })()}
               </button>
             )}
           </>
@@ -1351,9 +1519,18 @@ export default function TournamentCreate() {
             {nextStep && (
               <button
                 onClick={() => setCreateStep(nextStep)}
-                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all font-medium text-sm mt-4`}
+                className={`w-full ${theme.primaryBg} text-white px-5 py-3 rounded-lg ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all font-medium text-sm mt-4`}
               >
-                {t.tournament_continue_to.replace("{icon}", steps.find((s) => s.key === nextStep)?.icon || "").replace("{label}", steps.find((s) => s.key === nextStep)?.label || "")} →
+                {(() => {
+                  const next = steps.find((s) => s.key === nextStep);
+                  return (
+                    <>
+                      {next && <Icon name={next.icon} className="mr-1.5" />}
+                      {t.tournament_continue_to.replace("{label}", next?.label || "")}{" "}
+                      <Icon name="arrowRight" />
+                    </>
+                  );
+                })()}
               </button>
             )}
           </>
@@ -1363,42 +1540,73 @@ export default function TournamentCreate() {
         {createStep === "create" && (
           <>
             {/* Summary */}
-            <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5`}>
+            <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5`}>
               <h2 className={`font-semibold ${theme.textPrimary} mb-3`}>{t.tournament_summary}</h2>
               <div className={`text-sm ${theme.textSecondary} space-y-1.5`}>
                 <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_name}</span> {name || "—"}</div>
-                <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_mode}</span> {({singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed} as Record<string, string>)[mode]} · {({round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall} as Record<string, string>)[format]}</div>
+                <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_mode}</span> {({singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed} as Record<string, string>)[mode]} · {(Object.fromEntries(formatOptions(t)) as Record<string, string>)[format]}</div>
                 {(format === "swiss" || format === "monrad" || format === "waterfall") && (
-                  <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_swiss_rounds}:</span> {numGroups}</div>
+                  <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_swiss_rounds}:</span> {plannedRounds}</div>
                 )}
                 <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_rules}</span> {t[`scoring_mode_${scoringMode}` as keyof typeof t] as string} · {setsToWin === 1 ? t.best_of_1 : setsToWin === 2 ? t.best_of_3 : t.best_of_5} · {courts} {courts === 1 ? t.common_field : t.common_fields}</div>
-                <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_players}</span> {t.common_selected.replace("{count}", String(selectedPlayerIds.size))} {selectedPlayerIds.size < minPlayers && <span className="text-orange-500">{t.tournament_min_players.replace("{count}", String(minPlayers))}</span>}</div>
+                <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_players}</span> {t.common_selected.replace("{count}", String(selectedPlayerIds.size))} {selectedPlayerIds.size < minPlayers && <span className="text-warning-text">{t.tournament_min_players.replace("{count}", String(minPlayers))}</span>}</div>
+
+                {/* Format-specific findings: errors block the start button,
+                    warnings are informational (REVIEW-BACKLOG.md B13). */}
+                {validationErrors.length > 0 && (
+                  <div className="mt-3 rounded-md border border-danger bg-danger-subtle px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-danger-text">
+                      {t.validation_errors_title}
+                    </div>
+                    <ul className="mt-1 space-y-0.5">
+                      {validationErrors.map((issue, i) => (
+                        <li key={`${issue.key}-${i}`} className="text-sm text-danger-text">
+                          · {formatIssue(issue)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {validationWarnings.length > 0 && (
+                  <div className="mt-3 rounded-md border border-warning bg-warning-subtle px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-warning-text">
+                      {t.validation_warnings_title}
+                    </div>
+                    <ul className="mt-1 space-y-0.5">
+                      {validationWarnings.map((issue, i) => (
+                        <li key={`${issue.key}-${i}`} className="text-sm text-warning-text">
+                          · {formatIssue(issue)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {needsTeamPairing && (
-                  <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_teams}</span> {manualTeams.length} {poolPlayers.length > 1 && <span className="text-orange-500">{t.tournament_teams_open.replace("{count}", String(poolPlayers.length))}</span>}</div>
+                  <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_teams}</span> {manualTeams.length} {poolPlayers.length > 1 && <span className="text-warning-text">{t.tournament_teams_open.replace("{count}", String(poolPlayers.length))}</span>}</div>
                 )}
                 <div><span className={`font-medium ${theme.textPrimary}`}>{t.tournament_summary_entry_fee}</span> {useEntryFee ? (() => {
                   const fixedFmts: TournamentFormat[] = ["elimination", "group_ko", "double_elimination"];
                   const isFixed = mode !== "singles" && fixedFmts.includes(format);
                   const amount = mode === "singles" ? entryFeeSingle : entryFeeDouble;
                   const label = isFixed ? t.tournament_entry_fee_per_team : t.tournament_entry_fee_per_person;
-                  return `${amount} EUR (${label.replace(" (EUR)", "")})`;
+                  return `${formatMoney(Number(amount), locale)} (${label.replace(" (EUR)", "")})`;
                 })() : "—"}</div>
-                <div><span className={`font-medium ${theme.textPrimary}`}>⏱️ {t.tournament_min_rest_label}:</span> {useMinRest && Number(minRestMinutes) > 0 ? `${Number(minRestMinutes) || 0} ${t.tournament_min_rest_unit}` : "—"}</div>
+                <div><span className={`font-medium ${theme.textPrimary}`}><Icon name="clock" /> {t.tournament_min_rest_label}:</span> {useMinRest && Number(minRestMinutes) > 0 ? `${Number(minRestMinutes) || 0} ${t.tournament_min_rest_unit}` : "—"}</div>
               </div>
             </div>
 
             {/* Create button */}
             <button
               onClick={handleCreate}
-              disabled={creating || selectedVenueId === "" || selectedPlayerIds.size < minPlayers || (needsTeamPairing && poolPlayers.length >= 2)}
+              disabled={creating || selectedVenueId === "" || selectedPlayerIds.size < minPlayers || !canStart(validationIssues) || (needsTeamPairing && poolPlayers.length >= 2)}
               title={selectedVenueId === "" ? t.tournament_venue_required : undefined}
-              className={`w-full ${theme.primaryBg} text-white px-5 py-3.5 rounded-2xl ${theme.primaryHoverBg} shadow-sm hover:shadow-lg transition-all disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none font-semibold text-base`}
+              className={`w-full ${theme.primaryBg} text-white px-5 py-3.5 rounded-lg ${theme.primaryHoverBg} shadow-sm hover:shadow-lg transition-all disabled:bg-line-strong disabled:text-muted disabled:cursor-not-allowed disabled:shadow-none font-semibold text-base`}
             >
               {creating
-                ? `⏳ ${t.common_saving}`
+                ? <><Icon name="hourglass" /> {t.common_saving}</>
                 : isEditMode
-                ? `💾 ${t.tournament_save_changes}`
-                : `🏆 ${t.tournament_create_button}`}
+                ? <><Icon name="save" /> {t.tournament_save_changes}</>
+                : <><Icon name="trophy" /> {t.tournament_create_button}</>}
               {!creating && selectedVenueId === "" && (
                 <span className="text-sm font-normal ml-2 opacity-70">
                   ({t.tournament_venue_required})

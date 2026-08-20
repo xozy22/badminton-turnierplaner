@@ -1,4 +1,6 @@
 import type { ThemeColors } from "../../lib/theme";
+import { formatOptions } from "../../lib/i18n/labels";
+import Modal, { ModalCancelButton } from "../ui/Modal";
 import type { TournamentFormat } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
 
@@ -78,17 +80,7 @@ export default function FormatInfoModal({
 }: FormatInfoModalProps) {
   const { t } = useT();
 
-  const formatNames: Record<TournamentFormat, string> = {
-    round_robin: t.format_round_robin,
-    elimination: t.format_elimination,
-    random_doubles: t.format_random_doubles,
-    group_ko: t.format_group_ko,
-    swiss: t.format_swiss,
-    double_elimination: t.format_double_elimination,
-    monrad: t.format_monrad,
-    king_of_court: t.format_king_of_court,
-    waterfall: t.format_waterfall,
-  };
+  const formatNames: Record<TournamentFormat, string> = Object.fromEntries(formatOptions(t)) as Record<TournamentFormat, string>;
 
   const formatDescs: Record<TournamentFormat, string> = {
     round_robin: t.format_desc_round_robin,
@@ -155,38 +147,18 @@ export default function FormatInfoModal({
   const detailParagraphs = formatDetails[format].split("\n\n").filter(Boolean);
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-      onClick={onClose}
+    <Modal
+      open
+      onClose={onClose}
+      size="lg"
+      title={formatNames[format]}
+      description={formatDescs[format]}
+      footer={<ModalCancelButton onClick={onClose}>{t.common_close}</ModalCancelButton>}
     >
-      <div
-        className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col border ${theme.cardBorder} mx-4 overflow-hidden`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className={`flex items-start justify-between p-6 pb-4 border-b ${theme.cardBorder} shrink-0`}>
-          <div>
-            <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
-              {formatNames[format]}
-            </h3>
-            <p className={`text-sm ${theme.textSecondary} mt-1`}>
-              {formatDescs[format]}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className={`${theme.textMuted} hover:opacity-70 transition-colors text-xl leading-none ml-4 mt-0.5`}
-            aria-label={t.common_close}
-          >
-            &times;
-          </button>
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 pt-4">
+      <div className="-mx-6 max-h-[60vh] overflow-y-auto px-6">
 
         {/* ASCII Diagram */}
-        <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-xl p-4 mb-4 overflow-x-auto`}>
+        <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-md p-4 mb-4 overflow-x-auto`}>
           <pre className={`text-xs ${theme.textSecondary} font-mono leading-relaxed whitespace-pre`}>
             {FORMAT_DIAGRAMS[format]}
           </pre>
@@ -202,7 +174,7 @@ export default function FormatInfoModal({
         </div>
 
         {/* Best suited for */}
-        <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-xl p-4 mb-4`}>
+        <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-md p-4 mb-4`}>
           <h4 className={`text-xs font-semibold ${theme.textPrimary} uppercase tracking-wide mb-1.5`}>
             {t.format_info_best_for}
           </h4>
@@ -213,46 +185,34 @@ export default function FormatInfoModal({
 
         {/* Pros and Cons */}
         <div className="grid grid-cols-2 gap-3 mb-5">
-          <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-xl p-4`}>
-            <h4 className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-2">
+          <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-md p-4`}>
+            <h4 className="text-xs font-semibold text-success-text uppercase tracking-wide mb-2">
               {t.format_info_pros}
             </h4>
             <ul className="space-y-1">
               {prosItems.map((item, i) => (
                 <li key={i} className={`text-sm ${theme.textSecondary} flex items-start gap-1.5`}>
-                  <span className="text-emerald-500 mt-0.5 shrink-0">+</span>
+                  <span className="text-success-text mt-0.5 shrink-0">+</span>
                   <span>{item}</span>
                 </li>
               ))}
             </ul>
           </div>
-          <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-xl p-4`}>
-            <h4 className="text-xs font-semibold text-rose-500 uppercase tracking-wide mb-2">
+          <div className={`${theme.inputBg} border ${theme.inputBorder} rounded-md p-4`}>
+            <h4 className="text-xs font-semibold text-danger-text uppercase tracking-wide mb-2">
               {t.format_info_cons}
             </h4>
             <ul className="space-y-1">
               {consItems.map((item, i) => (
                 <li key={i} className={`text-sm ${theme.textSecondary} flex items-start gap-1.5`}>
-                  <span className="text-rose-500 mt-0.5 shrink-0">-</span>
+                  <span className="text-danger-text mt-0.5 shrink-0">-</span>
                   <span>{item}</span>
                 </li>
               ))}
             </ul>
           </div>
         </div>
-
-        </div>
-
-        {/* Footer */}
-        <div className={`p-6 pt-4 border-t ${theme.cardBorder} shrink-0`}>
-          <button
-            onClick={onClose}
-            className={`w-full ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium`}
-          >
-            {t.common_close}
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

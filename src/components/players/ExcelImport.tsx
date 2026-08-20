@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import ExcelJS from "exceljs";
+import Icon from "../../components/ui/Icon";
+// Type-only: the library itself is fetched when a file is picked, so the
+// ~800 KB stay out of the start bundle (REVIEW-BACKLOG.md E1).
+import type ExcelJS from "exceljs";
 import { createPlayer, getPlayers } from "../../lib/db";
 import type { Gender, Player } from "../../lib/types";
 import { playerDisplayName } from "../../lib/types";
@@ -129,7 +132,8 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const arrayBuffer = evt.target?.result as ArrayBuffer;
-      const wb = new ExcelJS.Workbook();
+      const { default: ExcelJSRuntime } = await import("exceljs");
+      const wb = new ExcelJSRuntime.Workbook();
       await wb.xlsx.load(arrayBuffer);
       workbookRef.current = wb;
 
@@ -332,7 +336,7 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col border ${theme.cardBorder} overflow-hidden`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] flex flex-col border ${theme.cardBorder} overflow-hidden`}>
         {/* Header */}
         <div className="px-5 py-4 border-b flex justify-between items-center">
           <h2 className={`font-semibold text-lg ${theme.textPrimary}`}>{t.import_title}</h2>
@@ -358,12 +362,12 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
               }`}
             >
               <span
-                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-2xs ${
                   step === s
                     ? `${theme.primaryBg} text-white`
                     : i < ["upload", "mapping", "preview", "done"].indexOf(step)
-                    ? "bg-gray-500/70 text-white"
-                    : `bg-gray-500/20 ${theme.textMuted}`
+                    ? "bg-line-strong text-white"
+                    : `bg-surface-sunken ${theme.textMuted}`
                 }`}
               >
                 {i + 1}
@@ -536,11 +540,11 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                   <table className={`w-full text-xs border ${theme.cardBorder} ${theme.inputText}`}>
                     <thead>
                       <tr className={theme.headerGradient}>
-                        <th className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_first_name}</th>
-                        {lastNameCol && <th className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_last_name}</th>}
-                        <th className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_gender}</th>
-                        {birthDateCol && <th className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_birth_date}</th>}
-                        {clubCol && <th className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_club}</th>}
+                        <th scope="col" className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_first_name}</th>
+                        {lastNameCol && <th scope="col" className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_last_name}</th>}
+                        <th scope="col" className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_gender}</th>
+                        {birthDateCol && <th scope="col" className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_birth_date}</th>}
+                        {clubCol && <th scope="col" className={`px-2 py-1 text-left border ${theme.cardBorder}`}>{t.common_club}</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -587,17 +591,17 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                   .replace("{count}", String(previewRows.filter((r) => r.valid && !r.duplicate && !(r.fuzzyMatch && r.skipFuzzy)).length))
                   .replace("{total}", String(previewRows.length))}
                 {previewRows.some((r) => !r.valid) && (
-                  <span className="text-red-500 ml-1">
+                  <span className="text-danger-text ml-1">
                     ({previewRows.filter((r) => !r.valid).length} {t.import_no_name})
                   </span>
                 )}
                 {previewRows.some((r) => r.duplicate) && (
-                  <span className="text-orange-500 ml-1">
+                  <span className="text-warning-text ml-1">
                     ({previewRows.filter((r) => r.duplicate).length} {t.import_duplicate})
                   </span>
                 )}
                 {previewRows.some((r) => r.fuzzyMatch) && (
-                  <span className="text-amber-500 ml-1">
+                  <span className="text-warning-text ml-1">
                     ({t.import_fuzzy_count.replace("{count}", String(previewRows.filter((r) => r.fuzzyMatch).length))})
                   </span>
                 )}
@@ -606,13 +610,13 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                 <table className="w-full text-sm">
                   <thead className={`${theme.headerGradient} sticky top-0`}>
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs">#</th>
-                      <th className="px-3 py-2 text-left text-xs">{t.common_first_name}</th>
-                      {previewRows.some(r => r.lastName) && <th className="px-3 py-2 text-left text-xs">{t.common_last_name}</th>}
-                      <th className="px-3 py-2 text-left text-xs">{t.common_gender}</th>
-                      {previewRows.some(r => r.birthDate) && <th className="px-3 py-2 text-left text-xs">{t.common_birth_date}</th>}
-                      {previewRows.some(r => r.club) && <th className="px-3 py-2 text-left text-xs">{t.common_club}</th>}
-                      <th className="px-3 py-2 text-left text-xs">Status</th>
+                      <th scope="col" className="px-3 py-2 text-left text-xs">#</th>
+                      <th scope="col" className="px-3 py-2 text-left text-xs">{t.common_first_name}</th>
+                      {previewRows.some(r => r.lastName) && <th scope="col" className="px-3 py-2 text-left text-xs">{t.common_last_name}</th>}
+                      <th scope="col" className="px-3 py-2 text-left text-xs">{t.common_gender}</th>
+                      {previewRows.some(r => r.birthDate) && <th scope="col" className="px-3 py-2 text-left text-xs">{t.common_birth_date}</th>}
+                      {previewRows.some(r => r.club) && <th scope="col" className="px-3 py-2 text-left text-xs">{t.common_club}</th>}
+                      <th scope="col" className="px-3 py-2 text-left text-xs">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -621,11 +625,11 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                         key={i}
                         className={`border-t ${
                           !row.valid
-                            ? `bg-red-500/10 ${theme.textMuted}`
+                            ? `bg-danger/10 ${theme.textMuted}`
                             : row.duplicate
-                            ? `bg-orange-500/10 ${theme.textMuted}`
+                            ? `bg-warning-subtle ${theme.textMuted}`
                             : row.fuzzyMatch
-                            ? `bg-amber-500/10`
+                            ? `bg-warning/10`
                             : ""
                         }`}
                       >
@@ -633,7 +637,7 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                         <td className="px-3 py-1.5">
                           <div>{row.firstName || <em>{t.import_empty}</em>}</div>
                           {row.fuzzyMatch && (
-                            <div className="text-[10px] text-amber-500 mt-0.5">
+                            <div className="text-2xs text-warning-text mt-0.5">
                               {t.import_fuzzy_match.replace("{name}", row.fuzzyMatch)}
                             </div>
                           )}
@@ -652,7 +656,7 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                         )}
                         <td className="px-3 py-1.5">
                           {row.duplicate ? (
-                            <span className="text-orange-500 text-xs">
+                            <span className="text-warning-text text-xs">
                               {t.import_duplicate}
                             </span>
                           ) : row.fuzzyMatch ? (
@@ -664,16 +668,16 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
                               }}
                               className={`text-xs font-medium px-2 py-0.5 rounded-full transition-colors ${
                                 row.skipFuzzy
-                                  ? "bg-red-500/20 text-red-500"
-                                  : "bg-emerald-500/20 text-emerald-600"
+                                  ? "bg-danger/20 text-danger-text"
+                                  : "bg-success-subtle text-success-text"
                               }`}
                             >
                               {row.skipFuzzy ? t.import_fuzzy_skip : t.import_fuzzy_keep}
                             </button>
                           ) : row.valid ? (
-                            <span className="text-green-600 text-xs">OK</span>
+                            <span className="text-success-text text-xs">OK</span>
                           ) : (
-                            <span className="text-red-500 text-xs">
+                            <span className="text-danger-text text-xs">
                               {t.import_no_name}
                             </span>
                           )}
@@ -689,7 +693,7 @@ export default function ExcelImport({ onImportDone, onClose }: ExcelImportProps)
           {/* Step 4: Done */}
           {step === "done" && (
             <div className="text-center py-8">
-              <div className="text-4xl mb-3">✓</div>
+              <div className="text-4xl mb-3"><Icon name="check" /></div>
               <div className={`text-lg font-medium ${theme.activeBadgeText}`}>
                 {t.import_players_imported.replace("{count}", String(importCount))}
               </div>

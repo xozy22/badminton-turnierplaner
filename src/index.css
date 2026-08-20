@@ -1,19 +1,463 @@
 @import "tailwindcss";
 
+/* `dark:` follows the theme the user picked in the app, not the operating
+   system. Tailwind v4 defaults this variant to `prefers-color-scheme`, so
+   the nineteen `dark:` classes in the codebase were keyed to the OS: with a
+   dark system and the light app theme they painted dark colours onto light
+   surfaces, and with a light system the dark theme never got them
+   (REVIEW-BACKLOG.md F2). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ===========================================================================
+   Design tokens (REVIEW-BACKLOG.md F1)
+   ---------------------------------------------------------------------------
+   The app used to carry four hand-maintained tables of Tailwind class names,
+   one per theme, threaded through every component as `theme.cardBg`. Dark
+   mode was a fourth colour set rather than a variant, so every new component
+   had to be dressed four times — and regularly wasn't (F2).
+
+   Here each colour has one semantic name. `:root` holds the light surfaces
+   and the green accent; a theme overrides only what differs. Blue and orange
+   change six accent values and nothing else; dark swaps the surfaces and
+   keeps whichever accent is set.
+
+   Every text/background pair below is at or above WCAG AA (4.5:1) — the
+   table is in docs/contrast.md, and scripts/check-contrast.mjs re-checks it
+   (G3). Three pairs failed before: muted text in both light and dark, and
+   white on the green and orange primary buttons.
+   =========================================================================== */
+
 :root {
+  /* Surfaces */
+  --surface: #ffffff;
+  --surface-sunken: #f9fafb;
+  --surface-raised: #ffffff;
+  --surface-input: #ffffff;
+  --page-bg: linear-gradient(to bottom right, #ecfdf5, #f9fafb, #ffffff);
+
+  /* Lines */
+  --border: #f3f4f6;
+  --border-strong: #e5e7eb;
+
+  /* Text — ratios against --surface */
+  --text-primary: #111827;   /* 17.74:1 */
+  --text-secondary: #4b5563; /*  7.56:1 */
+  --text-muted: #6b7280;     /*  4.83:1 */
+
+  /* Accent. 700 rather than 600: white on emerald-600 is 3.77:1 and fails. */
+  --accent: #047857;         /* white on it: 5.48:1 */
+  --accent-hover: #065f46;
+  --accent-fg: #ffffff;
+  --accent-subtle: #ecfdf5;
+  --accent-subtle-fg: #065f46; /* 7.29:1 on --accent-subtle */
+  --accent-ring: #d1fae5;
+  --accent-border: #6ee7b7;
+  --accent-bright: #34d399;   /* for dark sidebars and TV */
+
+  /* Sidebar — dark in every theme, so its own set */
+  --sidebar-bg: linear-gradient(to bottom, #022c22, #022c22, #030712);
+  --sidebar-border: #065f4680;
+  --sidebar-text: #a7f3d0;    /* 11.81:1 on the gradient's darkest stop */
+  --sidebar-hover: #064e3b80;
+  --sidebar-accent: #34d399;
+  /* The active entry: its own pair, because the accent is not always
+     bright enough against the sidebar to mark anything. */
+  --sidebar-active: var(--accent);
+  --sidebar-active-fg: var(--accent-fg);
+
+  /* Status. Text variants are the readable ones for use on --surface. */
+  --danger: #b91c1c;
+  --danger-fg: #ffffff;
+  --danger-subtle: #fef2f2;
+  --danger-text: #991b1b;     /* 7.77:1 on white */
+  --warning: #b45309;
+  --warning-subtle: #fffbeb;
+  --warning-text: #92400e;    /* 7.15:1 on white */
+  --info: #1d4ed8;
+  --info-subtle: #eff6ff;
+  --info-text: #1e40af;       /* 8.01:1 on white */
+  --success: #047857;
+  --success-fg: #ffffff;      /* 6.36:1 on --success */
+  --success-subtle: #ecfdf5;
+  --success-text: #065f46;
+  --warning-fg: #ffffff;      /* 5.02:1 on --warning; amber-600 was 3.19:1 */
+  --info-fg: #ffffff;         /* 6.70:1 on --info */
+
+  /* The knockout phase has been violet throughout the app since long before
+     these tokens; keeping it as its own name means the KO controls stay
+     distinct from ordinary information, and a theme can still move it. */
+  --phase: #6d28d9;           /* white on it: 7.10:1 */
+  --phase-hover: #5b21b6;
+  --phase-fg: #ffffff;
+  --phase-subtle: #f5f3ff;
+  --phase-text: #5b21b6;      /* 8.49:1 on --phase-subtle */
+
+  /* Stat cards on the home page */
+  --stat-1: linear-gradient(to bottom right, #047857, #064e3b);
+  --stat-2: linear-gradient(to bottom right, #b45309, #78350f);
+  --stat-3: linear-gradient(to bottom right, #6d28d9, #4c1d95);
+
+  /* Header strips behind table headings */
+  --header-wash: linear-gradient(to right, #ecfdf5, transparent);
+  /* The TV display is always dark; only its accent follows the theme. */
+  --tv-bg: linear-gradient(to bottom, #030712, #022c22, #030712);
+
   --scrollbar-thumb: #a7f3d0;
   --scrollbar-thumb-hover: #6ee7b7;
+}
+
+[data-theme="blue"] {
+  --page-bg: linear-gradient(to bottom right, #eff6ff, #f9fafb, #ffffff);
+  --accent: #1d4ed8;         /* white on blue-600 already passes; 700 matches
+                                the other themes' weight */
+  --accent-hover: #1e40af;
+  --accent-subtle: #eff6ff;
+  --accent-subtle-fg: #1e40af; /* 8.01:1 */
+  --accent-ring: #dbeafe;
+  --accent-border: #93c5fd;
+  --accent-bright: #60a5fa;
+  --sidebar-bg: linear-gradient(to bottom, #172554, #172554, #030712);
+  --sidebar-border: #1e40af80;
+  --sidebar-text: #bfdbfe;
+  --sidebar-hover: #1e3a8a80;
+  --sidebar-accent: #60a5fa;
+  --stat-1: linear-gradient(to bottom right, #1d4ed8, #1e3a8a);
+  --header-wash: linear-gradient(to right, #eff6ff, transparent);
+  --tv-bg: linear-gradient(to bottom, #030712, #172554, #030712);
+  --scrollbar-thumb: #bfdbfe;
+  --scrollbar-thumb-hover: #93c5fd;
+}
+
+[data-theme="orange"] {
+  --page-bg: linear-gradient(to bottom right, #fff7ed, #f9fafb, #ffffff);
+  --accent: #c2410c;         /* white on orange-600 is 3.56:1 and fails */
+  --accent-hover: #9a3412;
+  --accent-subtle: #fff7ed;
+  --accent-subtle-fg: #9a3412; /* 6.88:1 */
+  --accent-ring: #ffedd5;
+  --accent-border: #fdba74;
+  --accent-bright: #fb923c;
+  --sidebar-bg: linear-gradient(to bottom, #431407, #431407, #030712);
+  --sidebar-border: #9a341280;
+  --sidebar-text: #fed7aa;
+  --sidebar-hover: #7c2d1280;
+  --sidebar-accent: #fb923c;
+  --stat-1: linear-gradient(to bottom right, #c2410c, #7c2d12);
+  --header-wash: linear-gradient(to right, #fff7ed, transparent);
+  --tv-bg: linear-gradient(to bottom, #030712, #431407, #030712);
+  --scrollbar-thumb: #fed7aa;
+  --scrollbar-thumb-hover: #fdba74;
+}
+
+/* ---------------------------------------------------------------------------
+   OSC-Edition — the club's own colours, taken from the variables its website
+   defines. Two readings of the same palette:
+
+     osc-night  the site's own arrangement, navy grounds and a yellow accent
+     osc-split  a navy sidebar over a light working area, where the yellow is
+                reserved for whatever is due next
+
+   The yellow decides the split. On navy it holds 13:1 and serves as text and
+   as a fill; on white it reaches 1.43:1 and cannot carry text at all — so the
+   light scheme accents in navy and lets the yellow appear only as a filled
+   marker with dark ink on it.
+   --------------------------------------------------------------------------- */
+
+[data-theme="osc-night"] {
+  --surface: #071129;
+  --surface-sunken: #040a1c;
+  --surface-raised: #0b1a3d;
+  --surface-input: #0b1a3d;
+  --page-bg: #040a1c;
+
+  --border: #8ba8e624;
+  --border-strong: #8ba8e647;
+
+  --text-primary: #eaf0ff;   /* 16.42:1 */
+  --text-secondary: #c3d0ec; /* 12.09:1 */
+  --text-muted: #8fa1c9;     /*  7.23:1 */
+
+  /* Dark ink on the accent, not white: white on this yellow is unreadable. */
+  --accent: #ffd400;
+  --accent-hover: #ffe14d;
+  --accent-fg: #131a00;      /* 12.48:1 on the accent */
+  --accent-subtle: #2a2200;
+  --accent-subtle-fg: #ffd400; /* 11.05:1 */
+  --accent-ring: #6b5a00;
+  --accent-border: #ffd400;
+  --accent-bright: #ffe14d;
+
+  --sidebar-bg: linear-gradient(to bottom, #071129, #040a1c, #000000);
+  --sidebar-border: #8ba8e647;
+  --sidebar-text: #8fa1c9;
+  --sidebar-hover: #12244f80;
+  --sidebar-accent: #ffd400;
+
+  --danger: #b91c1c;
+  --danger-fg: #ffffff;
+  --danger-subtle: #3a0d0d;
+  --danger-text: #ffa8a8;
+  --warning: #b45309;
+  --warning-fg: #ffffff;
+  --warning-subtle: #33240a;
+  --warning-text: #ffd98a;
+  --info: #1d4ed8;
+  --info-fg: #ffffff;
+  --info-subtle: #101f45;
+  --info-text: #a8c4ff;
+  --success: #047857;
+  --success-fg: #ffffff;
+  --success-subtle: #06251b;
+  --success-text: #86efac;
+
+  --phase: #6d28d9;
+  --phase-hover: #5b21b6;
+  --phase-fg: #ffffff;
+  --phase-subtle: #241146;
+  --phase-text: #c9b6ff;
+
+  --stat-1: #071129;
+  --stat-2: #071129;
+  --stat-3: #071129;
+  --header-wash: linear-gradient(to right, #0b1a3d, transparent);
+  --tv-bg: linear-gradient(to bottom, #040a1c, #071129, #040a1c);
+
+  --scrollbar-thumb: #12244f;
+  --scrollbar-thumb-hover: #1c3468;
+
+  color-scheme: dark;
+}
+
+[data-theme="osc-split"] {
+  --surface: #ffffff;
+  --surface-sunken: #f6f8fc;
+  --surface-raised: #ffffff;
+  --surface-input: #ffffff;
+  --page-bg: linear-gradient(to bottom right, #eef2fa, #f6f8fc, #ffffff);
+
+  --border: #e4eaf5;
+  --border-strong: #c9d4e8;
+
+  --text-primary: #0b1a3d;   /* 17.08:1 */
+  --text-secondary: #3d4d6f; /*  8.44:1 */
+  --text-muted: #5b6b8c;     /*  5.35:1 */
+
+  /* Navy accents; the yellow lives in --accent-subtle, which is what the
+     next-step bar and the badges paint with. */
+  --accent: #12244f;
+  --accent-hover: #071129;
+  --accent-fg: #ffffff;      /* 15.10:1 on the accent */
+  --accent-subtle: #fff8d6;
+  --accent-subtle-fg: #3b2f00; /* 12.34:1 */
+  --accent-ring: #ffeba3;
+  --accent-border: #ffd400;
+  --accent-bright: #ffd400;
+
+  --sidebar-bg: linear-gradient(to bottom, #071129, #040a1c, #000000);
+  --sidebar-border: #8ba8e647;
+  --sidebar-text: #8fa1c9;
+  --sidebar-hover: #12244f80;
+  --sidebar-accent: #ffd400;
+  --sidebar-active: #ffd400;
+  --sidebar-active-fg: #131a00;
+
+  --stat-1: #ffffff;
+  --stat-2: #ffffff;
+  --stat-3: #ffffff;
+  --header-wash: linear-gradient(to right, #eef2fa, transparent);
+  --tv-bg: linear-gradient(to bottom, #040a1c, #071129, #040a1c);
+
+  --scrollbar-thumb: #c9d4e8;
+  --scrollbar-thumb-hover: #8ba8e6;
+}
+
+/* Dark is a variant of the surfaces, not a colour set of its own: it leaves
+   the accent alone, which is what made the previous arrangement drift. */
+[data-theme="dark"] {
+  --surface: #111827;
+  --surface-sunken: #030712;
+  --surface-raised: #1f2937;
+  --surface-input: #1f2937;
+  --page-bg: #030712;
+
+  --border: #1f2937;
+  --border-strong: #374151;
+
+  --text-primary: #f3f4f6;   /* 16.12:1 */
+  --text-secondary: #d1d5db; /* 12.04:1 */
+  --text-muted: #9ca3af;     /*  6.99:1 — was gray-500 at 3.67:1 */
+
+  /* The accent is deliberately not overridden: emerald-600 reads nicely
+     against a dark surface but only carries 3.77:1 with white on it, and
+     the primary button is the one control that must not fail. emerald-700
+     keeps 5.48:1 for the label and still stands out at 3.23:1 against the
+     surface, which is above the 3:1 a filled control needs. */
+  --accent-subtle: #022c2280;
+  --accent-subtle-fg: #6ee7b7; /* 9.94:1 on --accent-subtle */
+  --accent-ring: #064e3b;
+  --accent-border: #34d399;
+
+  --sidebar-bg: linear-gradient(to bottom, #111827, #111827, #000000);
+  --sidebar-border: #37415180;
+  --sidebar-text: #9ca3af;
+  --sidebar-hover: #1f293780;
+
+  --danger-subtle: #450a0a;
+  --danger-text: #fca5a5;
+  --warning-subtle: #451a03;
+  --warning-text: #fcd34d;
+  --info-subtle: #172554;
+  --info-text: #93c5fd;
+  --success-subtle: #022c22;
+  --success-text: #6ee7b7;
+  --phase-subtle: #2e1065;
+  --phase-text: #c4b5fd;
+
+  --stat-1: linear-gradient(to bottom right, #065f46, #022c22);
+  --stat-2: linear-gradient(to bottom right, #92400e, #451a03);
+  --stat-3: linear-gradient(to bottom right, #5b21b6, #2e1065);
+  --header-wash: linear-gradient(to right, #1f2937, transparent);
+  --tv-bg: linear-gradient(to bottom, #030712, #111827, #030712);
+
+  --scrollbar-thumb: #374151;
+  --scrollbar-thumb-hover: #4b5563;
+
+  color-scheme: dark;
+}
+
+/* ---------------------------------------------------------------------------
+   Shape and type scale
+   ---------------------------------------------------------------------------
+   Five corner radii, five shadow steps and twelve font sizes were in use,
+   chosen per component with no rule about which meant what. Worse, 118 of
+   those sizes were absolute pixels: the app scales type by changing the root
+   font size, which moves `rem` values and leaves `px` untouched — so the
+   size setting reached only half the interface, and at XXS the small text
+   ended up nearly as large as the body text.
+
+   Each value has one job now:
+     radius   sm = controls · md = cards · lg = containers (round stays round)
+     shadow   sm = resting  · lg = floating (menu, dialog)
+     type     2xs is the smallest step, in rem like all the others
+   --------------------------------------------------------------------------- */
+@theme {
+  --radius-sm: 0.375rem;   /* 6px  — buttons, inputs, chips */
+  --radius-md: 0.625rem;   /* 10px — cards, menus */
+  --radius-lg: 1rem;       /* 16px — containers, dialogs */
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 4px 14px rgb(0 0 0 / 0.10);
+
+  /* Replaces the 8, 9, 10 and 11 pixel literals. Larger than three of them
+     on purpose — 8px is below what anyone should have to read, and it never
+     followed the size setting either. */
+  --text-2xs: 0.6875rem;   /* 11px */
+  --text-2xs--line-height: 1.4;
+}
+
+/* Makes the tokens available as Tailwind utilities: bg-surface, text-muted,
+   border-strong, ring-accent and so on. `inline` keeps them as var()
+   references, so a theme switch repaints without rebuilding any CSS. */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-input: var(--surface-input);
+
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-subtle-fg: var(--accent-subtle-fg);
+  --color-accent-ring: var(--accent-ring);
+  --color-accent-border: var(--accent-border);
+  --color-accent-bright: var(--accent-bright);
+
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-fg: var(--sidebar-active-fg);
+
+  --color-danger: var(--danger);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-text: var(--danger-text);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-text: var(--warning-text);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-text: var(--info-text);
+  --color-success: var(--success);
+  --color-success-fg: var(--success-fg);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-text: var(--success-text);
+  --color-warning-fg: var(--warning-fg);
+  --color-info-fg: var(--info-fg);
+  --color-phase: var(--phase);
+  --color-phase-hover: var(--phase-hover);
+  --color-phase-fg: var(--phase-fg);
+  --color-phase-subtle: var(--phase-subtle);
+  --color-phase-text: var(--phase-text);
+}
+
+/* Gradients cannot be expressed as a Tailwind colour, so they get utilities
+   of their own. */
+@utility bg-page {
+  background: var(--page-bg);
+}
+@utility bg-sidebar {
+  background: var(--sidebar-bg);
+}
+@utility bg-tv {
+  background: var(--tv-bg);
+}
+@utility bg-header-wash {
+  background: var(--header-wash);
+}
+@utility bg-stat-1 {
+  background: var(--stat-1);
+}
+@utility bg-stat-2 {
+  background: var(--stat-2);
+}
+@utility bg-stat-3 {
+  background: var(--stat-3);
+}
+@utility border-sidebar {
+  border-color: var(--sidebar-border);
+}
+@utility hover-sidebar {
+  &:hover {
+    background: var(--sidebar-hover);
+  }
 }
 
 body {
   margin: 0;
   font-family: inherit;
+  background: var(--surface-sunken);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   min-height: 100vh;
+}
+
+/* A visible focus ring everywhere, on the keyboard path only (G2). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* Custom scrollbar */
@@ -45,9 +489,16 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Dark mode global overrides */
-.dark-mode select,
-.dark-mode input[type="text"],
-.dark-mode input[type="number"] {
-  color-scheme: dark;
+/* Respect the system setting for reduced motion (G5). Animations are not
+   removed outright — a duration this short still lets a transition finish
+   its callbacks, which some components rely on. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

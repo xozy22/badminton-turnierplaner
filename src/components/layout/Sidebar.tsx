@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { useTheme } from "../../lib/ThemeContext";
+import Icon from "../ui/Icon";
+import ShortcutHelp from "../ui/ShortcutHelp";
 import { useT } from "../../lib/I18nContext";
-import { getCustomLogo } from "../../pages/Settings";
+import { getCustomLogo } from "../../pages/settings/LogoSettings";
 import { getAppSetting } from "../../lib/db";
 
 const COLLAPSED_KEY = "turnierplaner_sidebar_collapsed";
@@ -36,12 +38,12 @@ export default function Sidebar() {
   };
 
   const links = [
-    { to: "/", label: t.nav_home, icon: "🏠" },
-    { to: "/sportstaetten", label: t.nav_venues, icon: "🏟️" },
-    { to: "/players", label: t.nav_players, icon: "👥" },
-    { to: "/tournaments", label: t.nav_tournaments, icon: "🏆" },
-    { to: "/sessions", label: t.nav_sessions, icon: "🔗" },
-    { to: "/statistics", label: t.nav_statistics, icon: "📊" },
+    { to: "/", label: t.nav_home, icon: "home" as const },
+    { to: "/sportstaetten", label: t.nav_venues, icon: "building" as const },
+    { to: "/players", label: t.nav_players, icon: "users" as const },
+    { to: "/tournaments", label: t.nav_tournaments, icon: "trophy" as const },
+    { to: "/sessions", label: t.nav_sessions, icon: "link" as const },
+    { to: "/statistics", label: t.nav_statistics, icon: "chart" as const },
   ];
 
   return (
@@ -52,7 +54,7 @@ export default function Sidebar() {
       <div className={`${collapsed ? "p-3" : "p-5"} border-b ${theme.sidebarBorder}`}>
         {collapsed ? (
           <div className="text-2xl text-center flex justify-center">
-            <img src={customLogo || "/logo.png"} alt="Logo" className="w-14 h-14 object-contain" />
+            <img src={customLogo || "/logo.webp"} alt="Logo" className="w-14 h-14 object-contain" />
           </div>
         ) : customLogo ? (
           <div className="flex items-center gap-3">
@@ -61,14 +63,14 @@ export default function Sidebar() {
               <div className="text-base font-bold tracking-tight text-white">
                 BOSS
               </div>
-              <div className={`text-[8px] font-medium ${theme.sidebarAccent} tracking-wide uppercase leading-tight`}>
+              <div className={`text-2xs font-medium ${theme.sidebarAccent} tracking-wide uppercase leading-tight`}>
                 Badminton Operating<br/>and Scheduling System
               </div>
             </div>
           </div>
         ) : (
           <div className="flex justify-center">
-            <img src="/logo.png" alt="Logo" className="w-40 object-contain" />
+            <img src="/logo.webp" alt="Logo" className="w-40 object-contain" />
           </div>
         )}
       </div>
@@ -81,14 +83,14 @@ export default function Sidebar() {
             to={link.to}
             title={collapsed ? link.label : undefined}
             className={({ isActive }) =>
-              `flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-4"} py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              `flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-4"} py-2.5 rounded-sm text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? `${theme.sidebarActiveBg} text-white shadow-lg ${theme.sidebarActiveShadow}`
+                  ? `${theme.sidebarActiveBg} shadow-lg ${theme.sidebarActiveShadow}`
                   : `${theme.sidebarText} ${theme.sidebarHoverBg} hover:text-white`
               }`
             }
           >
-            <span className={collapsed ? "text-xl" : "text-lg"}>{link.icon}</span>
+            <Icon name={link.icon} size={collapsed ? 22 : 18} />
             {!collapsed && link.label}
           </NavLink>
         ))}
@@ -100,21 +102,23 @@ export default function Sidebar() {
           to="/settings"
           title={collapsed ? t.nav_settings : undefined}
           className={({ isActive }) =>
-            `flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-4"} py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+            `flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-4"} py-2.5 rounded-sm text-sm font-medium transition-all duration-200 ${
               isActive
-                ? `${theme.sidebarActiveBg} text-white shadow-lg ${theme.sidebarActiveShadow}`
+                ? `${theme.sidebarActiveBg} shadow-lg ${theme.sidebarActiveShadow}`
                 : `${theme.sidebarText} ${theme.sidebarHoverBg} hover:text-white`
             }`
           }
         >
-          <span className={collapsed ? "text-xl" : "text-lg"}>⚙️</span>
+          <Icon name="settings" size={collapsed ? 22 : 18} />
           {!collapsed && t.nav_settings}
         </NavLink>
+
+        {!collapsed && <ShortcutHelp />}
 
         {/* Collapse toggle */}
         <button
           onClick={toggle}
-          className={`w-full flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-4"} py-2 rounded-lg text-xs transition-all duration-200 ${theme.sidebarText} ${theme.sidebarHoverBg} hover:text-white`}
+          className={`w-full flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-4"} py-2 rounded-sm text-xs transition-all duration-200 ${theme.sidebarText} ${theme.sidebarHoverBg} hover:text-white`}
           title={collapsed ? t.nav_expand_sidebar : t.nav_collapse_sidebar}
         >
           <span className={`transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`}>
@@ -125,9 +129,9 @@ export default function Sidebar() {
 
         {/* Version */}
         {!collapsed && (
-          <div className={`text-[10px] ${theme.sidebarText} text-center pt-1 opacity-50 leading-relaxed`}>
+          <div className={`text-2xs ${theme.sidebarText} text-center pt-1 opacity-50 leading-relaxed`}>
             <div>v{__APP_VERSION__}</div>
-            <div className="mt-0.5">Idee und Umsetzung</div>
+            <div className="mt-0.5">{t.credits_by}</div>
             <div>Felix Blasshofer &amp; Dennis Kobiolka</div>
           </div>
         )}

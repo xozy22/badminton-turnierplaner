@@ -59,3 +59,17 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 export function useT() {
   return useContext(I18nContext);
 }
+
+/**
+ * BCP-47 locale for the chosen language, for Intl.DateTimeFormat and
+ * Intl.NumberFormat.
+ *
+ * en-GB rather than en-US on purpose: a tournament runs on a 24-hour
+ * clock, and "14:03" is what every screen in this app shows. en-US would
+ * turn that into "2:03 PM" and make the TV display and the printed sheet
+ * disagree with the court timers (REVIEW-BACKLOG.md H5).
+ */
+export function useLocale(): string {
+  const { lang } = useContext(I18nContext);
+  return lang === "de" ? "de-DE" : "en-GB";
+}

@@ -10,13 +10,21 @@
 // the v2.7.5 directory split.
 
 import React, { useRef } from "react";
+import Icon from "../../../components/ui/Icon";
 import type { ConflictPlayer } from "../../../lib/courtConflicts";
 import { CourtTimer } from "../../../components/courts/CourtTimer";
 import RestIndicator from "../../../components/players/RestIndicator";
-import { getMaxScore, isScoreValid, isSetComplete } from "../../../lib/scoring";
+import {
+  getMaxScore,
+  isScoreValid,
+  isSetComplete,
+  isSetPlayable,
+  playedSets,
+} from "../../../lib/scoring";
 import type { Match, GameSet } from "../../../lib/types";
 import type { ThemeColors } from "../../../lib/theme";
 import { useT } from "../../../lib/I18nContext";
+import { fill } from "../../../lib/i18n/format";
 
 export default function MatchCard({
   match,
@@ -34,6 +42,7 @@ export default function MatchCard({
   onCourtChange,
   onAnnounce,
   onReset,
+  onOutcome,
   isActive,
   theme,
   allMatches,
@@ -73,6 +82,8 @@ export default function MatchCard({
   onCourtChange: (matchId: number, court: number | null) => void;
   onAnnounce?: (court: number, team1: string, team2: string) => void;
   onReset: (matchId: number) => void;
+  /** Opens the "this match was not played" dialog. */
+  onOutcome?: (matchId: number) => void;
   isActive: boolean;
   theme: ThemeColors;
   allMatches: Match[];
@@ -110,9 +121,24 @@ export default function MatchCard({
   // JSX renderer that inlines RestIndicator after each player name. Only renders
   // clocks when the tournament is active AND has rest time configured AND the
   // match itself isn't completed yet (a completed match has no scheduling value).
+  // Null for a played match, so the ordinary "completed" badge stands.
+  const outcomeLabel =
+    match.outcome === "walkover"
+      ? t.outcome_badge_walkover
+      : match.outcome === "retired"
+        ? t.outcome_badge_retired
+        : match.outcome === "disqualified"
+          ? t.outcome_badge_disqualified
+          : match.outcome === "no_match"
+            ? t.outcome_badge_no_match
+            : null;
+
   const showRestIcons =
     isActive && minRestMinutes > 0 && match.status !== "completed";
-  const renderTeam = (p1: number, p2: number | null) => (
+  const renderTeam = (p1: number | null, p2: number | null) =>
+    p1 === null ? (
+      <span className="italic opacity-70">{t.common_bye}</span>
+    ) : (
     <>
       <span>{playerName(p1)}</span>
       {showRestIcons && (
@@ -125,7 +151,7 @@ export default function MatchCard({
       )}
       {p2 != null && (
         <>
-          <span className="mx-1 text-gray-400">/</span>
+          <span className="mx-1 text-muted">/</span>
           <span>{playerName(p2)}</span>
           {showRestIcons && (
             <RestIndicator
@@ -140,10 +166,12 @@ export default function MatchCard({
     </>
   );
 
-  // Count sets won for display
+  // Count sets won for display. Sets past the deciding one are left out,
+  // the same way the standings leave them out -- otherwise the card says
+  // 3:0 for a best-of-three while the table says 2:0.
   let team1SetsWon = 0;
   let team2SetsWon = 0;
-  for (const s of sets) {
+  for (const s of playedSets(sets, setsToWin, pointsPerSet, cap)) {
     if (isSetComplete(s, pointsPerSet, cap)) {
       if (s.team1_score > s.team2_score) team1SetsWon++;
       else team2SetsWon++;
@@ -173,9 +201,9 @@ export default function MatchCard({
           e.dataTransfer.effectAllowed = "move";
         }
       }}
-      className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} border-l-4 ${borderColor} p-5 mb-3 transition-all duration-200 ${
+      className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} border-l-4 ${borderColor} p-5 mb-3 transition-all duration-200 ${
         match.status === "completed" ? "opacity-80" : ""
-      } ${isDraggable ? "cursor-grab active:cursor-grabbing hover:shadow-md" : ""}`}
+      } ${isDraggable ? "cursor-grab active:cursor-grabbing hover:shadow-sm" : ""}`}
     >
       {/* Teams + Court */}
       <div className="flex justify-between items-center mb-4">
@@ -189,7 +217,7 @@ export default function MatchCard({
                   onChange={(e) =>
                     onCourtChange(match.id, e.target.value ? Number(e.target.value) : null)
                   }
-                  className="text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-amber-100 transition-colors"
+                  className="text-xs font-bold bg-warning-subtle text-warning-text border border-warning rounded-sm px-2 py-1 outline-none cursor-pointer hover:bg-warning-subtle transition-colors"
                   title={t.court_choose_court}
                 >
                   <option value="">{t.tournament_view_court_question}</option>
@@ -208,13 +236,13 @@ export default function MatchCard({
                   })()}
                 </select>
               ) : match.court ? (
-                <span className="text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-lg">
+                <span className="text-xs font-bold bg-warning-subtle text-warning-text border border-warning px-2.5 py-1 rounded-sm">
                   {t.common_field} {match.court}
                 </span>
               ) : null}
               {match.court && (
                 <CourtTimer
-                  assignedAt={match.court_assigned_at}
+                  startedAt={match.started_at}
                   completed={match.status === "completed"}
                 />
               )}
@@ -223,15 +251,15 @@ export default function MatchCard({
           <div>
             <span
               className={`font-semibold ${
-                match.winner_team === 1 ? "text-emerald-600" : theme.textPrimary
+                match.winner_team === 1 ? "text-success-text" : theme.textPrimary
               }`}
             >
               {renderTeam(match.team1_p1, match.team1_p2)}
             </span>
-            <span className="text-gray-300 mx-3 font-light">{t.common_vs}</span>
+            <span className="text-muted mx-3 font-light">{t.common_vs}</span>
             <span
               className={`font-semibold ${
-                match.winner_team === 2 ? "text-emerald-600" : theme.textPrimary
+                match.winner_team === 2 ? "text-success-text" : theme.textPrimary
               }`}
             >
               {renderTeam(match.team2_p1, match.team2_p2)}
@@ -240,32 +268,50 @@ export default function MatchCard({
         </div>
         <div className="flex items-center gap-2">
           {(team1SetsWon > 0 || team2SetsWon > 0) && (
-            <span className={`text-sm font-bold font-mono ${theme.cardBg} ${theme.textPrimary} border ${theme.cardBorder} px-2.5 py-1 rounded-lg`}>
+            <span className={`text-sm font-bold font-mono ${theme.cardBg} ${theme.textPrimary} border ${theme.cardBorder} px-2.5 py-1 rounded-sm`}>
               {team1SetsWon}:{team2SetsWon}
             </span>
           )}
-          {match.status === "completed" && (
-            <span className={`text-xs font-medium ${theme.activeBadgeBg} ${theme.activeBadgeText} px-2.5 py-1 rounded-full`}>
-              {t.tournament_view_match_completed}
-            </span>
-          )}
+          {match.status === "completed" &&
+            (outcomeLabel ? (
+              // "Completed" alone would read as a played match. Which of the
+              // four reasons applies is the whole point of recording one.
+              <span className="rounded-full bg-warning-subtle px-2.5 py-1 text-xs font-medium text-warning-text">
+                {outcomeLabel}
+              </span>
+            ) : (
+              <span className={`text-xs font-medium ${theme.activeBadgeBg} ${theme.activeBadgeText} px-2.5 py-1 rounded-full`}>
+                {t.tournament_view_match_completed}
+              </span>
+            ))}
           {isActive && match.status === "completed" && (
             <button
               onClick={() => onReset(match.id)}
-              className="text-xs text-amber-500 hover:text-amber-700 font-medium transition-colors"
+              className="text-xs text-warning-text hover:text-warning-text font-medium transition-colors"
               title={t.tournament_view_edit_results}
             >
               {t.tournament_view_edit_results}
             </button>
           )}
+          {/* A match that was not played at all. Byes are already decided. */}
+          {isActive && match.status !== "completed" && match.team2_p1 !== null && onOutcome && (
+            <button
+              onClick={() => onOutcome(match.id)}
+              className="text-xs font-medium text-muted transition-colors hover:text-warning-text"
+              title={t.outcome_title}
+            >
+              {t.outcome_button}
+            </button>
+          )}
+
           {/* Announce to TV */}
           {isActive && match.court && match.status !== "completed" && onAnnounce && (
             <button
               onClick={() => onAnnounce(match.court!, team1Label, team2Label)}
-              className="text-xs text-gray-400 hover:text-amber-600 font-medium transition-colors"
+              className="text-xs text-muted hover:text-warning-text font-medium transition-colors"
               title={t.tournament_view_announce_title}
             >
-              📢
+              <span aria-hidden="true"><Icon name="megaphone" /></span>
             </button>
           )}
         </div>
@@ -273,8 +319,8 @@ export default function MatchCard({
 
       {/* Not started hint */}
       {notStarted && (
-        <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 mb-3 inline-block">
-          ⏳ {t.tournament_view_assign_court_first}
+        <div className="text-xs text-warning-text bg-warning-subtle border border-warning rounded-sm px-3 py-1.5 mb-3 inline-block">
+          <Icon name="hourglass" /> {t.tournament_view_assign_court_first}
         </div>
       )}
 
@@ -293,6 +339,23 @@ export default function MatchCard({
           const complete = setData
             ? isSetComplete(setData, pointsPerSet, cap)
             : false;
+
+          // A best-of-three ends the moment somebody has two sets, so the
+          // third one cannot exist. Locking it is separate from finishing
+          // the match: finishing is deliberate and stays on Enter, while
+          // this is only a statement about what could have been played --
+          // which has to hold however the score was entered.
+          const reachable = isSetPlayable(setNum, sets, setsToWin, pointsPerSet, cap);
+          // Values already stored in an unreachable set are shown rather
+          // than hidden: they are in the database and are skewing a table
+          // until somebody clears them.
+          const strayScore = !reachable && (score1 > 0 || score2 > 0);
+
+          const setNote = strayScore
+            ? t.set_unreachable_stray
+            : !reachable && !inputsDisabled
+              ? t.set_unreachable
+              : null;
 
           const handleScoreKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, setNum: number, team: 1 | 2) => {
             const isEnter = e.key === "Enter";
@@ -349,10 +412,10 @@ export default function MatchCard({
 
           return (
             <div key={setNum} className="text-center">
-              <div className="text-[11px] font-medium text-gray-400 mb-1.5 uppercase tracking-wide">
+              <div className="text-2xs font-medium text-muted mb-1.5 uppercase tracking-wide">
                 {t.common_set} {setNum}
                 {complete && (
-                  <span className="text-emerald-500 ml-1">✓</span>
+                  <span className="text-success-text ml-1"><Icon name="check" /></span>
                 )}
               </div>
               <div className="flex gap-1.5 items-center">
@@ -373,16 +436,18 @@ export default function MatchCard({
                   onBlur={(e) => { releaseFocusedRef(e); onScoreBlur(match.id, setNum, 1); }}
                   onFocus={handleScoreFocus}
                   onKeyDown={(e) => handleScoreKeyDown(e, setNum, 1)}
-                  disabled={inputsDisabled}
-                  className={`w-14 h-10 border-2 rounded-xl text-center text-base font-mono font-bold ${theme.inputBg} ${theme.inputText} disabled:opacity-60 outline-none transition-all ${
+                  disabled={inputsDisabled || (!reachable && !strayScore)}
+                  aria-label={fill(t.score_input_label, { set: setNum, team: team1Label })}
+                  aria-invalid={!validation.valid}
+                  className={`w-14 h-10 border-2 rounded-md text-center text-base font-mono font-bold ${theme.inputBg} ${theme.inputText} disabled:opacity-60 outline-none transition-all ${
                     !validation.valid
-                      ? "border-rose-300 bg-rose-50 text-rose-600"
+                      ? "border-danger bg-danger-subtle text-danger-text"
                       : complete && score1 > score2
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                      ? "border-success bg-success-subtle text-success-text"
                       : `${theme.inputBorder} ${theme.focusBorder} focus:ring-2 ${theme.focusRing}`
                   }`}
                 />
-                <span className="text-gray-300 font-bold">:</span>
+                <span className="font-bold text-muted" aria-hidden="true">:</span>
                 <input
                   type="number"
                   min={0}
@@ -400,19 +465,30 @@ export default function MatchCard({
                   onBlur={(e) => { releaseFocusedRef(e); onScoreBlur(match.id, setNum, 2); }}
                   onFocus={handleScoreFocus}
                   onKeyDown={(e) => handleScoreKeyDown(e, setNum, 2)}
-                  disabled={inputsDisabled}
-                  className={`w-14 h-10 border-2 rounded-xl text-center text-base font-mono font-bold ${theme.inputBg} ${theme.inputText} disabled:opacity-60 outline-none transition-all ${
+                  disabled={inputsDisabled || (!reachable && !strayScore)}
+                  aria-label={fill(t.score_input_label, { set: setNum, team: team2Label })}
+                  aria-invalid={!validation.valid}
+                  className={`w-14 h-10 border-2 rounded-md text-center text-base font-mono font-bold ${theme.inputBg} ${theme.inputText} disabled:opacity-60 outline-none transition-all ${
                     !validation.valid
-                      ? "border-rose-300 bg-rose-50 text-rose-600"
+                      ? "border-danger bg-danger-subtle text-danger-text"
                       : complete && score2 > score1
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                      ? "border-success bg-success-subtle text-success-text"
                       : `${theme.inputBorder} ${theme.focusBorder} focus:ring-2 ${theme.focusRing}`
                   }`}
                 />
               </div>
               {!validation.valid && (
-                <div className="text-[10px] text-rose-500 mt-1 max-w-[130px]">
-                  {validation.error}
+                <div className="text-2xs text-danger-text mt-1 max-w-[130px]">
+                  {validation.error && fill(t[validation.error], validation.params)}
+                </div>
+              )}
+              {validation.valid && setNote && (
+                <div
+                  className={`mt-1 max-w-[130px] text-2xs ${
+                    strayScore ? "text-danger-text" : "text-muted"
+                  }`}
+                >
+                  {setNote}
                 </div>
               )}
             </div>

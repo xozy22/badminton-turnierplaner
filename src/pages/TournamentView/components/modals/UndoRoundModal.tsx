@@ -3,15 +3,16 @@
 // Rich-preview confirm dialog for the "Letzte Runde rückgängig" action.
 // Shows exactly what will be deleted (round label, match count, completed
 // count, set entries, matches still on courts) before the user commits.
-// Confirm button switches from amber to rose-red when result data is
-// about to be lost, raising the visual stakes appropriately.
+// The confirm button switches from the warning tone to the danger tone
+// when result data is about to be lost, raising the stakes visibly.
 //
 // The actual undo target is computed in TournamentView via getUndoTarget;
 // this modal is purely presentational over that pre-built data.
 
 import type { Round, TournamentPhase } from "../../../../lib/types";
-import type { ThemeColors } from "../../../../lib/theme";
+import Icon from "../../../../components/ui/Icon";
 import { useT } from "../../../../lib/I18nContext";
+import Modal, { ModalCancelButton, ModalConfirmButton } from "../../../../components/ui/Modal";
 
 export interface UndoTarget {
   rounds: Round[];
@@ -28,85 +29,76 @@ export interface UndoTarget {
 export default function UndoRoundModal({
   open,
   target,
-  theme,
   onCancel,
   onConfirm,
 }: {
   open: boolean;
   target: UndoTarget | null;
-  theme: ThemeColors;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
   const { t } = useT();
-  if (!open || !target) return null;
 
-  const dangerous = target.completedCount > 0 || target.activeOnCourtCount > 0;
-  const phaseHint = target.resetStatusToDraft
+  const dangerous = !!target && (target.completedCount > 0 || target.activeOnCourtCount > 0);
+  const phaseHint = target?.resetStatusToDraft
     ? t.tournament_view_undo_phase_to_draft
-    : target.isGroupKoBackToGroup
+    : target?.isGroupKoBackToGroup
     ? t.tournament_view_undo_phase_to_group
     : null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className={`${theme.cardBg} rounded-2xl shadow-2xl p-6 max-w-md w-full border ${theme.cardBorder}`}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="text-3xl">↩️</div>
-          <h3 className={`font-bold text-lg ${theme.textPrimary}`}>
-            {t.tournament_view_undo_round_title}
-          </h3>
-        </div>
-
-        <p className={`text-sm ${theme.textSecondary} mb-3`}>
-          {t.tournament_view_undo_target_label}
-        </p>
-
-        <div className={`rounded-xl border-2 ${dangerous ? "border-amber-300 bg-amber-50/50 dark:bg-amber-900/20" : `${theme.cardBorder} ${theme.cardBg}`} p-4 mb-4`}>
-          <div className={`font-semibold ${theme.textPrimary} mb-2`}>{target.label}</div>
-          <ul className={`text-sm space-y-1 ${theme.textSecondary}`}>
-            <li>• {t.tournament_view_undo_match_count.replace("{n}", String(target.matchCount))}</li>
-            {target.completedCount > 0 && (
-              <li className="text-amber-700 dark:text-amber-300 font-medium">
-                • {t.tournament_view_undo_completed_count.replace("{n}", String(target.completedCount))} ⚠
-              </li>
-            )}
-            {target.setCount > 0 && (
-              <li>• {t.tournament_view_undo_set_count.replace("{n}", String(target.setCount))}</li>
-            )}
-            {target.activeOnCourtCount > 0 && (
-              <li className="text-amber-700 dark:text-amber-300 font-medium">
-                • {t.tournament_view_undo_active_count.replace("{n}", String(target.activeOnCourtCount))} ⚠
-              </li>
-            )}
-          </ul>
-        </div>
-
-        {phaseHint && (
-          <p className={`text-xs ${theme.textMuted} mb-4 flex items-start gap-1.5`}>
-            <span>ⓘ</span><span>{phaseHint}</span>
-          </p>
-        )}
-
-        <div className="flex gap-3 justify-end">
-          <button
-            onClick={onCancel}
-            className={`px-4 py-2 rounded-xl text-sm ${theme.textSecondary} border ${theme.cardBorder} hover:opacity-80`}
-          >
-            {t.common_cancel}
-          </button>
-          <button
-            onClick={onConfirm}
-            className={`${
-              dangerous
-                ? "bg-rose-600 hover:bg-rose-700"
-                : "bg-amber-500 hover:bg-amber-600"
-            } text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors`}
-          >
+    <Modal
+      open={open && target !== null}
+      onClose={onCancel}
+      icon="undo"
+      title={t.tournament_view_undo_round_title}
+      description={t.tournament_view_undo_target_label}
+      closeOnBackdrop={!dangerous}
+      footer={
+        <>
+          <ModalCancelButton onClick={onCancel} />
+          <ModalConfirmButton onClick={onConfirm} tone={dangerous ? "danger" : "warning"}>
             {t.tournament_view_undo_confirm}
-          </button>
-        </div>
-      </div>
-    </div>
+          </ModalConfirmButton>
+        </>
+      }
+    >
+      {target && (
+        <>
+          <div
+            className={`rounded-md border-2 p-4 ${
+              dangerous ? "border-warning bg-warning-subtle/50" : "border-line bg-surface"
+            }`}
+          >
+            <div className="mb-2 font-semibold text-primary">{target.label}</div>
+            <ul className="space-y-1 text-sm text-secondary">
+              <li>• {t.tournament_view_undo_match_count.replace("{n}", String(target.matchCount))}</li>
+              {target.completedCount > 0 && (
+                <li className="font-medium text-warning-text">
+                  • {t.tournament_view_undo_completed_count.replace("{n}", String(target.completedCount))}{" "}
+                  <Icon name="alert" />
+                </li>
+              )}
+              {target.setCount > 0 && (
+                <li>• {t.tournament_view_undo_set_count.replace("{n}", String(target.setCount))}</li>
+              )}
+              {target.activeOnCourtCount > 0 && (
+                <li className="font-medium text-warning-text">
+                  • {t.tournament_view_undo_active_count.replace("{n}", String(target.activeOnCourtCount))}{" "}
+                  <Icon name="alert" />
+                </li>
+              )}
+            </ul>
+          </div>
+
+          {phaseHint && (
+            <p className="mt-4 flex items-start gap-1.5 text-xs text-muted">
+              <Icon name="alert" />
+              <span>{phaseHint}</span>
+            </p>
+          )}
+        </>
+      )}
+    </Modal>
   );
 }

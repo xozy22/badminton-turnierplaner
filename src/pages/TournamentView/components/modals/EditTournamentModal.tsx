@@ -8,6 +8,8 @@
 // settings are locked.
 
 import { useEffect, useState } from "react";
+import { formatOptions, modeOptions } from "../../../../lib/i18n/labels";
+import Modal, { ModalCancelButton, ModalConfirmButton } from "../../../../components/ui/Modal";
 import {
   SCORING_MODES,
   getScoringModeId,
@@ -73,23 +75,34 @@ export default function EditTournamentModal({
     }
   }, [mode, format]);
 
-  const inputClass = `w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`;
+  const inputClass = `w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`;
   const labelClass = `block text-xs font-medium ${theme.textSecondary} mb-1 uppercase tracking-wide`;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-lg p-6 border ${theme.cardBorder}`}>
-        <div className="flex justify-between items-center mb-5">
-          <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
-            ✏️ {t.edit_tournament_title}
-          </h3>
-          <button
-            onClick={onClose}
-            className={`${theme.textMuted} text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg transition-colors`}
+    <Modal
+      open
+      onClose={onClose}
+      size="lg"
+      icon="pencil"
+      title={t.edit_tournament_title}
+      footer={
+        <>
+          <ModalCancelButton onClick={onClose} />
+          <ModalConfirmButton
+            onClick={() =>
+              onSave({
+                name, mode, format, setsToWin, pointsPerSet, cap, courts, numGroups,
+                qualifyPerGroup,
+                entryFeeSingle: Number(entryFeeSingle) || 0,
+                entryFeeDouble: Number(entryFeeDouble) || 0,
+              })
+            }
           >
-            ✕
-          </button>
-        </div>
+            {t.common_save}
+          </ModalConfirmButton>
+        </>
+      }
+    >
 
         <div className="space-y-4">
           <div>
@@ -106,7 +119,7 @@ export default function EditTournamentModal({
             <div>
               <label className={labelClass}>{t.tournament_mode}</label>
               <select value={mode} onChange={(e) => setMode(e.target.value as TournamentMode)} className={inputClass}>
-                {Object.entries({ singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed }).map(([k, v]) => (
+                {modeOptions(t).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
               </select>
@@ -115,7 +128,7 @@ export default function EditTournamentModal({
               <label className={labelClass}>{t.tournament_format}</label>
               <select value={format} onChange={(e) => setFormat(e.target.value as TournamentFormat)} className={inputClass}>
                 {VALID_FORMATS[mode].map((f) => {
-                  const fmtLabels: Record<string, string> = { round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall };
+                  const fmtLabels: Record<string, string> = Object.fromEntries(formatOptions(t));
                   return <option key={f} value={f}>{fmtLabels[f]}</option>;
                 })}
               </select>
@@ -196,21 +209,6 @@ export default function EditTournamentModal({
           </div>
         </div>
 
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className={`flex-1 ${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium`}
-          >
-            {t.common_cancel}
-          </button>
-          <button
-            onClick={() => onSave({ name, mode, format, setsToWin, pointsPerSet, cap, courts, numGroups, qualifyPerGroup, entryFeeSingle: Number(entryFeeSingle) || 0, entryFeeDouble: Number(entryFeeDouble) || 0 })}
-            className={`flex-1 ${theme.primaryBg} text-white px-4 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm transition-all text-sm font-medium`}
-          >
-            {t.common_save}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

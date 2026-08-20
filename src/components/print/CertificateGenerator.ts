@@ -1,4 +1,6 @@
-import { jsPDF } from "jspdf";
+// jspdf loads with the certificate, not with the app (REVIEW-BACKLOG.md E1).
+import type { jsPDF as JsPdf } from "jspdf";
+import { formatDate } from "../../lib/datetime";
 import type { Tournament, StandingEntry } from "../../lib/types";
 import { playerDisplayName } from "../../lib/types";
 import type { Translations } from "../../lib/i18n/types";
@@ -12,7 +14,7 @@ const PAGE_W = 297;
 const PAGE_H = 210;
 
 function drawCornerOrnament(
-  doc: jsPDF,
+  doc: JsPdf,
   cx: number,
   cy: number,
   dx: number,
@@ -33,7 +35,7 @@ function drawCornerOrnament(
 }
 
 function drawDecorativeLine(
-  doc: jsPDF,
+  doc: JsPdf,
   y: number,
   width: number,
 ) {
@@ -50,7 +52,7 @@ function drawDecorativeLine(
 }
 
 function drawCertificatePage(
-  doc: jsPDF,
+  doc: JsPdf,
   place: number,
   playerName: string,
   tournament: Tournament,
@@ -160,7 +162,9 @@ function drawCertificatePage(
   y += 6;
 
   // Date
-  const dateStr = new Date(tournament.created_at).toLocaleDateString();
+  // Parsed through the shared helper: created_at may be SQLite's
+  // zoneless UTC, which `new Date()` would read as local time.
+  const dateStr = formatDate(tournament.created_at);
   doc.text(`${t.certificate_date}: ${dateStr}`, PAGE_W / 2, y, {
     align: "center",
   });
@@ -190,6 +194,7 @@ export async function generateCertificates(
   modeLabel: string,
   formatLabel: string,
 ): Promise<Uint8Array> {
+  const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({
     orientation: "landscape",
     unit: "mm",

@@ -14,6 +14,7 @@
 // from src/lib/groupProgress.ts.
 
 import { useT } from "../../lib/I18nContext";
+import Icon from "../../components/ui/Icon";
 import { useTheme } from "../../lib/ThemeContext";
 import type { GroupProgress, GroupRoundProgress } from "../../lib/groupProgress";
 
@@ -40,26 +41,26 @@ export default function GroupProgressBar({ progress }: Props) {
   const renderRoundPill = (rp: GroupRoundProgress) => {
     let pillClass: string;
     if (rp.isComplete) {
-      pillClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+      pillClass = "bg-success-subtle text-success-text border-success";
     } else if (rp.isPartial) {
-      pillClass = "bg-amber-50 text-amber-700 border-amber-200";
+      pillClass = "bg-warning-subtle text-warning-text border-warning";
     } else {
       pillClass = `${theme.cardBg} ${theme.textMuted} ${theme.cardBorder}`;
     }
     return (
       <span
         key={rp.roundId}
-        className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold border select-none ${pillClass}`}
+        className={`px-1.5 py-0.5 rounded-sm text-2xs font-bold border select-none ${pillClass}`}
       >
         {rp.label}
-        {rp.isComplete && <span className="ml-0.5">✓</span>}
+        {rp.isComplete && <span className="ml-0.5"><Icon name="check" /></span>}
       </span>
     );
   };
 
   return (
-    <div className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} p-3 mb-3`}>
-      <div className={`text-[11px] font-semibold ${theme.textSecondary} uppercase tracking-wide mb-2`}>
+    <div className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} p-3 mb-3`}>
+      <div className={`text-2xs font-semibold ${theme.textSecondary} uppercase tracking-wide mb-2`}>
         {t.group_progress_title}
       </div>
       <div
@@ -73,7 +74,7 @@ export default function GroupProgressBar({ progress }: Props) {
           return (
             <div key={p.group} className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className={`font-bold ${behind ? "text-rose-600" : theme.textPrimary}`}>
+                <span className={`font-bold ${behind ? "text-danger-text" : theme.textPrimary}`}>
                   {t.group_progress_label.replace("{n}", String(p.group))}
                   {behind && (
                     <span
@@ -81,12 +82,12 @@ export default function GroupProgressBar({ progress }: Props) {
                       title={t.group_progress_behind_tooltip}
                       aria-label={t.group_progress_behind_tooltip}
                     >
-                      ⚠
+                      <Icon name="alert" />
                     </span>
                   )}
-                  {done && <span className="ml-1 text-emerald-600">✓</span>}
+                  {done && <span className="ml-1 text-success-text"><Icon name="check" /></span>}
                 </span>
-                <span className={`text-[11px] font-mono ${theme.textMuted}`}>
+                <span className={`text-2xs font-mono ${theme.textMuted}`}>
                   {p.completed}/{p.total}
                 </span>
               </div>
@@ -94,11 +95,15 @@ export default function GroupProgressBar({ progress }: Props) {
                 <div
                   className={`h-full transition-all ${
                     done
-                      ? "bg-emerald-500"
+                      ? "bg-success"
                       : behind
-                      ? "bg-rose-400"
-                      : "bg-violet-500"
+                      ? "bg-danger"
+                      : "bg-phase"
                   }`}
+                  role="progressbar"
+                  aria-valuenow={pct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
                   style={{ width: `${pct}%` }}
                 />
               </div>

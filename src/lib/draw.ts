@@ -5,12 +5,29 @@ export function shufflePlayers<T>(arr: T[]): T[] {
   return shuffle(arr);
 }
 
+/**
+ * Uniform random integer in [0, maxExclusive).
+ *
+ * `random % max` is subtly biased towards the lower values whenever max is
+ * not a divisor of 2^32 — for a draw that decides who plays whom, "subtly
+ * biased" is an argument nobody should have to have. Rejection sampling
+ * discards the values in the incomplete final block instead.
+ */
+function randomInt(maxExclusive: number): number {
+  if (maxExclusive <= 1) return 0;
+  const limit = Math.floor(0x1_0000_0000 / maxExclusive) * maxExclusive;
+  const buf = new Uint32Array(1);
+  do {
+    crypto.getRandomValues(buf);
+  } while (buf[0] >= limit);
+  return buf[0] % maxExclusive;
+}
+
+/** Fisher-Yates shuffle on a copy of the input. */
 function shuffle<T>(array: T[]): T[] {
   const arr = [...array];
-  const randomValues = new Uint32Array(arr.length);
-  crypto.getRandomValues(randomValues);
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = randomValues[i] % (i + 1);
+    const j = randomInt(i + 1);
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
@@ -95,12 +112,19 @@ export function generateRoundRobinDoubles(
 // previousPairings: Set of "id1-id2" strings to avoid repeating partnerships.
 // matchCounts: Map of playerId -> number of matches played so far (for fair bye rotation)
 // pairingCounts: Map of "id1-id2" -> count of times paired (for weighted pairing avoidance)
+/** A drawn round plus the players who sit it out. */
+export interface DrawnRound {
+  matches: { team1_p1: number; team1_p2: number; team2_p1: number; team2_p2: number }[];
+  /** Everyone left over this round — up to three players in doubles. */
+  byePlayers: number[];
+}
+
 export function generateRandomDoublesRound(
   players: Player[],
   previousPairings: Set<string>,
   matchCounts?: Map<number, number>,
   pairingCounts?: Map<string, number>
-): { team1_p1: number; team1_p2: number; team2_p1: number; team2_p2: number; bye?: number }[] {
+): DrawnRound {
   const ids = shuffle(players.map((p) => p.id));
   const byePlayers: number[] = [];
 
@@ -130,13 +154,13 @@ export function generateRandomDoublesRound(
   }
 
   // Need at least 4 for one doubles match
-  if (active.length < 4) return [];
+  if (active.length < 4) return { matches: [], byePlayers: [...ids] };
 
   // Try to find pairings that haven't been used before (or least repeated)
   const bestPairing = findBestPairing(active, previousPairings, pairingCounts);
 
   // Group into matches (pairs of teams) — active.length is divisible by 4
-  const matches: { team1_p1: number; team1_p2: number; team2_p1: number; team2_p2: number; bye?: number }[] = [];
+  const matches: { team1_p1: number; team1_p2: number; team2_p1: number; team2_p2: number }[] = [];
   for (let i = 0; i < bestPairing.length - 1; i += 2) {
     matches.push({
       team1_p1: bestPairing[i][0],
@@ -146,11 +170,9 @@ export function generateRandomDoublesRound(
     });
   }
 
-  if (byePlayers.length > 0 && matches.length > 0) {
-    matches[0].bye = byePlayers[0]; // Store first bye player for reference
-  }
-
-  return matches;
+  // Up to three players sit out a doubles round. Reporting only the first
+  // of them (the old behaviour) meant the UI could not name them all.
+  return { matches, byePlayers };
 }
 
 function pairingKey(a: number, b: number): string {
@@ -205,86 +227,273 @@ function findBestPairing(
 }
 
 // --- Elimination (KO) ---
-// seeds: optional array of player IDs in seed order (best first).
-// If empty/undefined, players are shuffled randomly.
-export function generateEliminationBracket(
-  players: Player[],
-  seeds?: number[]
-): { team1_p1: number; team2_p1: number }[] {
-  const size = nextPowerOf2(players.length);
 
-  // Build ordered list: seeded players first, then rest shuffled
-  let ordered: (number | -1)[];
-  if (seeds && seeds.length > 0) {
-    // Place seeds into bracket positions using standard seeding placement
-    ordered = placeSeedsInBracket(seeds, players, size);
-  } else {
-    const shuffled = shuffle(players).map((p) => p.id);
-    ordered = [...shuffled];
-    while (ordered.length < size) ordered.push(-1);
+/**
+ * One first-round slot pairing. `team2_p1 === null` marks a bye: the
+ * participant in team 1 advances without playing.
+ */
+export interface BracketMatch {
+  team1_p1: number;
+  team1_p2: number | null;
+  team2_p1: number | null;
+  team2_p2: number | null;
+}
+
+// --- Seeding groups --------------------------------------------------------
+//
+// Regulations do not fix every seeded position individually. Seeds 1 and 2
+// are placed, but 3 and 4 share one group and are drawn between themselves,
+// as do 5 through 8, 9 through 16, and so on. Somebody ranked fourth should
+// not be handed the harder quarter of the bracket over somebody ranked
+// third when the two are that close (FEATURE-BACKLOG.md C1).
+//
+// BOSS treated the seeding list as a strict order, so the fourth entry
+// always got the same slot. The list still says who is seeded and roughly
+// how strongly; the draw now reads it in groups.
+
+/**
+ * The seeding groups for a field of `count` seeds, as index ranges into
+ * the seed list: [[0], [1], [2,3], [4..7], [8..15], ...].
+ *
+ * A trailing group is cut short when the list ends inside it -- five seeds
+ * give [[0], [1], [2,3], [4]], and that single entry is simply not drawn
+ * against anyone.
+ */
+export function seedGroups(count: number): number[][] {
+  const groups: number[][] = [];
+  let start = 0;
+  let size = 1;
+  while (start < count) {
+    const group: number[] = [];
+    for (let i = start; i < Math.min(start + size, count); i++) group.push(i);
+    groups.push(group);
+    start += size;
+    // 1, 1, 2, 4, 8, ... -- the first two are placed individually.
+    size = start < 2 ? 1 : start;
+  }
+  return groups;
+}
+
+/**
+ * Draws lots inside each seeding group, leaving the groups themselves in
+ * order. The entries of a group are interchangeable by definition, so this
+ * is the whole of it.
+ */
+function drawWithinSeedGroups<T>(seeded: T[]): T[] {
+  const out = [...seeded];
+  for (const group of seedGroups(seeded.length)) {
+    if (group.length < 2) continue;
+    const drawn = shuffle(group.map((i) => out[i]));
+    group.forEach((slot, k) => {
+      out[slot] = drawn[k];
+    });
+  }
+  return out;
+}
+
+// --- Club separation -------------------------------------------------------
+//
+// Tournament regulations ask for club-mates to be kept apart in the first
+// round, and a club tournament with several guest clubs wants the same. The
+// club is recorded per player and went unused (FEATURE-BACKLOG.md C2).
+//
+// It is a preference, not a rule: seeded positions are fixed, and a field
+// where one club supplies most of the entries cannot be separated at all.
+// So the draw is made as before and then improved by swapping unseeded
+// entries, accepting only swaps that reduce the number of club clashes.
+// Nothing is ever forced, and the result stays random among the draws that
+// separate equally well.
+
+/** Which club a player belongs to; null or empty when none is recorded. */
+export type ClubLookup = (playerId: number) => string | null;
+
+/**
+ * The clubs behind one entry. A doubles pair can bring two, and an entry
+ * with no club recorded brings none -- those never clash with anything,
+ * which is the right reading: an unknown club is not evidence of sameness.
+ */
+function clubsOf(entry: readonly (number | null)[], clubOf: ClubLookup): string[] {
+  const out: string[] = [];
+  for (const id of entry) {
+    if (id === null) continue;
+    const club = clubOf(id);
+    if (club && club.trim() !== "") out.push(club.trim().toLowerCase());
+  }
+  return out;
+}
+
+/** True when two entries share at least one club. */
+function shareClub(
+  a: readonly (number | null)[],
+  b: readonly (number | null)[],
+  clubOf: ClubLookup,
+): boolean {
+  const ca = clubsOf(a, clubOf);
+  if (ca.length === 0) return false;
+  const cb = new Set(clubsOf(b, clubOf));
+  return ca.some((c) => cb.has(c));
+}
+
+/**
+ * Swaps entries between positions until no swap reduces the clash count.
+ *
+ * `movable` lists the positions that may be touched -- everything else is
+ * seeded and stays where the seeding put it. `clashes` counts the clashes
+ * of a whole arrangement; the caller defines what "together" means, which
+ * is a first-round pairing for a bracket and a shared group for a group
+ * stage.
+ *
+ * Only strict improvements are accepted, so the loop always terminates:
+ * the clash count is a non-negative integer that falls with every step.
+ */
+function reduceClashes<T>(
+  slots: T[],
+  movable: number[],
+  clashes: (arrangement: T[]) => number,
+): void {
+  let current = clashes(slots);
+  // One pass per clash at most: each accepted swap removes at least one.
+  for (let guard = current; guard > 0 && current > 0; guard--) {
+    let improved = false;
+    // Random order, so equally good draws stay equally likely.
+    for (const i of shuffle(movable)) {
+      for (const j of shuffle(movable)) {
+        if (i === j) continue;
+        [slots[i], slots[j]] = [slots[j], slots[i]];
+        const after = clashes(slots);
+        if (after < current) {
+          current = after;
+          improved = true;
+          break;
+        }
+        [slots[i], slots[j]] = [slots[j], slots[i]];
+      }
+      if (improved) break;
+    }
+    if (!improved) return;
+  }
+}
+
+/** A participant in a knockout bracket: one player, or a doubles team. */
+type Participant = [number, number | null];
+
+/**
+ * Builds the first round of a knockout bracket.
+ *
+ * Participants are ordered (seeds first, unseeded shuffled) and placed on
+ * standard bracket positions, so the top seeds can only meet in the final.
+ * When the field is not a power of two, the missing slots become byes and
+ * are given to the highest seeds — the usual tournament convention.
+ *
+ * The returned list is in bracket order and contains every participant
+ * exactly once: matches to play plus byes. Winners of these entries, byes
+ * included, form the next round — which is why a bye is a first-class
+ * entry here rather than a skipped one (see REVIEW-BACKLOG.md A2).
+ */
+function buildBracket(
+  ordered: Participant[],
+  /** Entries at rank < this stay on their seeded slot. */
+  seededCount = 0,
+  clubOf?: ClubLookup,
+): BracketMatch[] {
+  const size = nextPowerOf2(ordered.length);
+
+  // `seedForSlot[i]` is the rank that belongs on slot i, zero-based. Read
+  // the other way round — "which slot does rank i go to" — the pairings
+  // come out inverted: the top seed would meet the middle of the field in
+  // round one instead of the bottom (REVIEW-BACKLOG.md A3).
+  const seedForSlot = generateSeedOrder(size);
+
+  // A slot whose rank is past the end of the field stays empty, and that
+  // empty slot is the bye for its neighbour. No separate bookkeeping is
+  // needed: the highest ranks are paired with the top seeds by
+  // construction, so the byes land where the convention wants them.
+  const slots: (Participant | null)[] = seedForSlot.map(
+    (rank) => ordered[rank] ?? null,
+  );
+
+  if (clubOf) {
+    // Only the unseeded slots may move, and an empty slot stays empty: it
+    // is the bye for the top seeds and moving it would hand the bye to
+    // somebody else.
+    const movable = slots
+      .map((entry, i) => ({ i, rank: seedForSlot[i], entry }))
+      .filter(({ rank, entry }) => entry !== null && rank >= seededCount)
+      .map(({ i }) => i);
+
+    reduceClashes(slots, movable, (arrangement) => {
+      let n = 0;
+      for (let i = 0; i < arrangement.length; i += 2) {
+        const a = arrangement[i];
+        const b = arrangement[i + 1];
+        if (a && b && shareClub(a, b, clubOf)) n++;
+      }
+      return n;
+    });
   }
 
-  const matches: { team1_p1: number; team2_p1: number }[] = [];
+  const matches: BracketMatch[] = [];
   for (let i = 0; i < size; i += 2) {
-    const p1 = ordered[i];
-    const p2 = ordered[i + 1];
-    if (p1 !== -1 && p2 !== -1) {
-      matches.push({ team1_p1: p1, team2_p1: p2 });
-    } else if (p1 !== -1) {
-      matches.push({ team1_p1: p1, team2_p1: -1 });
-    } else if (p2 !== -1) {
-      matches.push({ team1_p1: p2, team2_p1: -1 });
+    const a = slots[i];
+    const b = slots[i + 1];
+    if (a && b) {
+      matches.push({ team1_p1: a[0], team1_p2: a[1], team2_p1: b[0], team2_p2: b[1] });
+    } else if (a) {
+      matches.push({ team1_p1: a[0], team1_p2: a[1], team2_p1: null, team2_p2: null });
+    } else if (b) {
+      matches.push({ team1_p1: b[0], team1_p2: b[1], team2_p1: null, team2_p2: null });
     }
   }
-
   return matches;
 }
 
 /**
- * Standard-Seeding: Platziert gesetzte Spieler so im Bracket,
- * dass die besten sich erst im Finale treffen koennen.
- *
- * Seed 1 vs Seed N (letzter), Seed 2 vs Seed N-1, etc.
- * Ungesetzte Spieler fuellen die restlichen Plaetze zufaellig auf.
+ * Singles knockout bracket. `seeds` holds player ids in seed order (best
+ * first); everyone else is drawn at random.
  */
-function placeSeedsInBracket(
-  seeds: number[],
-  allPlayers: Player[],
-  bracketSize: number
-): (number | -1)[] {
-  // Standard seed positions for power-of-2 bracket
-  const positions = getSeedPositions(bracketSize);
-  const slots: (number | -1)[] = new Array(bracketSize).fill(-1);
+export function generateEliminationBracket(
+  players: Player[],
+  seeds?: number[]
+): BracketMatch[] {
+  const byId = new Map(players.map((p) => [p.id, p]));
+  const seeded = drawWithinSeedGroups(
+    (seeds ?? []).filter((id) => byId.has(id)),
+  );
+  const seededSet = new Set(seeded);
+  const unseeded = shuffle(players.filter((p) => !seededSet.has(p.id))).map((p) => p.id);
 
-  // Place seeded players at their positions
-  for (let i = 0; i < seeds.length && i < positions.length; i++) {
-    slots[positions[i]] = seeds[i];
-  }
-
-  // Fill remaining slots with unseeded players (shuffled)
-  const seededSet = new Set(seeds);
-  const unseeded = shuffle(
-    allPlayers.filter((p) => !seededSet.has(p.id))
-  ).map((p) => p.id);
-
-  let ui = 0;
-  for (let i = 0; i < bracketSize; i++) {
-    if (slots[i] === -1 && ui < unseeded.length) {
-      slots[i] = unseeded[ui++];
-    }
-  }
-
-  return slots;
+  const ordered: Participant[] = [...seeded, ...unseeded].map((id) => [id, null]);
+  return buildBracket(ordered, seeded.length, (id) => byId.get(id)?.club ?? null);
 }
 
 /**
- * Berechnet die Bracket-Positionen fuer Seeds.
- * Seed 1 -> Position 0, Seed 2 -> letzte Position,
- * dann werden die Haelften rekursiv gefuellt.
- * So treffen Seed 1 und Seed 2 erst im Finale aufeinander.
+ * Doubles/mixed knockout bracket. `seedTeams` holds teams in seed order;
+ * teams not listed are drawn at random. Seeding used to be ignored here
+ * entirely (REVIEW-BACKLOG.md A3).
  */
-function getSeedPositions(bracketSize: number): number[] {
-  return generateSeedOrder(bracketSize);
+export function generateEliminationBracketDoubles(
+  teams: [number, number][],
+  seedTeams?: [number, number][],
+  clubOf?: ClubLookup
+): BracketMatch[] {
+  const key = (t: [number, number]) => pairingKey(t[0], t[1]);
+  const known = new Map(teams.map((t) => [key(t), t]));
+
+  const seeded: [number, number][] = [];
+  const seenSeeds = new Set<string>();
+  for (const t of seedTeams ?? []) {
+    const k = key(t);
+    const match = known.get(k);
+    if (match && !seenSeeds.has(k)) {
+      seeded.push(match);
+      seenSeeds.add(k);
+    }
+  }
+  const unseeded = shuffle(teams.filter((t) => !seenSeeds.has(key(t))));
+
+  const ordered: Participant[] = [...drawWithinSeedGroups(seeded), ...unseeded]
+    .map((t) => [t[0], t[1]]);
+  return buildBracket(ordered, seeded.length, clubOf);
 }
 
 /**
@@ -309,62 +518,71 @@ function generateSeedOrder(size: number): number[] {
   return round;
 }
 
-// --- Elimination (KO) for fixed doubles teams ---
-export function generateEliminationBracketDoubles(
-  teams: [number, number][]
-): { team1_p1: number; team1_p2: number; team2_p1: number; team2_p2: number }[] {
-  const size = nextPowerOf2(teams.length);
-  const shuffled = shuffle(teams);
-  const ordered: ([number, number] | null)[] = [...shuffled];
-  while (ordered.length < size) ordered.push(null);
-
-  const matches: { team1_p1: number; team1_p2: number; team2_p1: number; team2_p2: number }[] = [];
-  for (let i = 0; i < size; i += 2) {
-    const t1 = ordered[i];
-    const t2 = ordered[i + 1];
-    if (t1 && t2) {
-      matches.push({ team1_p1: t1[0], team1_p2: t1[1], team2_p1: t2[0], team2_p2: t2[1] });
-    }
-    // Byes (nur ein Team) werden uebersprungen - Team kommt automatisch weiter
-  }
-  return matches;
-}
-
 // --- Mixed Doubles (random, gender-balanced) ---
+/**
+ * Mixed round: every team is one man and one woman.
+ *
+ * Uses the same fairness inputs as the doubles draw — who has played the
+ * fewest matches goes first when the field does not divide evenly, and
+ * repeated partnerships are weighted rather than merely counted. Before
+ * that, whoever happened to be at the end of the shuffled list sat out,
+ * round after round (REVIEW-BACKLOG.md B10).
+ */
 export function generateMixedDoublesRound(
   players: Player[],
-  previousPairings: Set<string>
-): { team1_p1: number; team1_p2: number; team2_p1: number; team2_p2: number }[] {
-  const males = shuffle(players.filter((p) => p.gender === "m"));
-  const females = shuffle(players.filter((p) => p.gender === "f"));
+  previousPairings: Set<string>,
+  matchCounts?: Map<number, number>,
+  pairingCounts?: Map<string, number>
+): DrawnRound {
+  const playedCount = (id: number) => matchCounts?.get(id) ?? 0;
+  // Fewest matches first, ties broken at random.
+  const byNeed = (list: Player[]) =>
+    shuffle(list).sort((a, b) => playedCount(a.id) - playedCount(b.id));
 
-  // Need even number of teams (each match = 2 teams), so pairs must be divisible by 2
+  const males = byNeed(players.filter((p) => p.gender === "m"));
+  const females = byNeed(players.filter((p) => p.gender === "f"));
+
+  // Each match needs two teams, so the number of pairs must be even.
   const pairCount = Math.min(males.length, females.length);
-  const usablePairs = pairCount - (pairCount % 2); // ensure even number of teams
-  if (usablePairs < 2) return [];
+  const usablePairs = pairCount - (pairCount % 2);
+  if (usablePairs < 2) {
+    return { matches: [], byePlayers: players.map((p) => p.id) };
+  }
 
-  // Try to find pairings that minimize repeats
+  const playingMales = males.slice(0, usablePairs);
+  const playingFemales = females.slice(0, usablePairs);
+  const byePlayers = [
+    ...males.slice(usablePairs).map((p) => p.id),
+    ...females.slice(usablePairs).map((p) => p.id),
+  ];
+
+  // Search for the partner assignment with the fewest repeats, weighting a
+  // second repeat higher than a first one.
+  const repeatCost = (a: number, b: number) => {
+    const key = pairingKey(a, b);
+    const count = pairingCounts?.get(key) ?? (previousPairings.has(key) ? 1 : 0);
+    return count * count;
+  };
+
   let bestTeams: [number, number][] = [];
-  let bestRepeats = Infinity;
+  let bestCost = Infinity;
 
   for (let attempt = 0; attempt < 50; attempt++) {
-    const mShuffled = shuffle(males);
-    const fShuffled = shuffle(females);
+    const mShuffled = attempt === 0 ? playingMales : shuffle(playingMales);
+    const fShuffled = attempt === 0 ? playingFemales : shuffle(playingFemales);
     const teams: [number, number][] = [];
-    let repeats = 0;
+    let cost = 0;
 
     for (let i = 0; i < usablePairs; i++) {
       const pair: [number, number] = [mShuffled[i].id, fShuffled[i].id];
       teams.push(pair);
-      if (previousPairings.has(pairingKey(pair[0], pair[1]))) {
-        repeats++;
-      }
+      cost += repeatCost(pair[0], pair[1]);
     }
 
-    if (repeats < bestRepeats) {
-      bestRepeats = repeats;
+    if (cost < bestCost) {
+      bestCost = cost;
       bestTeams = teams;
-      if (repeats === 0) break;
+      if (cost === 0) break;
     }
   }
 
@@ -378,14 +596,14 @@ export function generateMixedDoublesRound(
     });
   }
 
-  return matches;
+  return { matches, byePlayers };
 }
 
 export function getPreviousPairings(matches: Match[]): Set<string> {
   const pairings = new Set<string>();
   for (const m of matches) {
     if (m.team1_p2) pairings.add(pairingKey(m.team1_p1, m.team1_p2));
-    if (m.team2_p2) pairings.add(pairingKey(m.team2_p1, m.team2_p2));
+    if (m.team2_p1 !== null && m.team2_p2) pairings.add(pairingKey(m.team2_p1, m.team2_p2));
   }
   return pairings;
 }
@@ -398,7 +616,7 @@ export function getPreviousPairingCounts(matches: Match[]): Map<string, number> 
       const key = pairingKey(m.team1_p1, m.team1_p2);
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
-    if (m.team2_p2) {
+    if (m.team2_p1 !== null && m.team2_p2) {
       const key = pairingKey(m.team2_p1, m.team2_p2);
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
@@ -434,14 +652,97 @@ export function formFixedMixedTeams(
 }
 
 // Splits teams into numGroups groups (evenly distributed)
+/**
+ * Splits teams into groups, mirroring {@link splitIntoGroups} for singles:
+ * seeded teams are distributed snake-style (G1, G2, …, GN, GN, …, G1) so the
+ * strongest teams end up in different groups, the rest is drawn at random.
+ * Seeding used to be ignored here entirely (REVIEW-BACKLOG.md B9).
+ */
+
+/**
+ * Spreads club-mates across groups, on the same terms as the bracket: only
+ * unseeded entries move, and only when the swap reduces the number of pairs
+ * of club-mates sharing a group (FEATURE-BACKLOG.md C2).
+ *
+ * `groups` is modified in place. `isSeeded` marks the entries the seeding
+ * placed, which stay in the group they were snaked into.
+ */
+function separateClubsAcrossGroups<T extends readonly (number | null)[]>(
+  groups: T[][],
+  isSeeded: (entry: T) => boolean,
+  clubOf: ClubLookup,
+): void {
+  // Flatten to one array so a swap is a plain index exchange, remembering
+  // which group each position belongs to.
+  const flat: T[] = [];
+  const groupOfPos: number[] = [];
+  groups.forEach((members, g) => {
+    for (const m of members) {
+      flat.push(m);
+      groupOfPos.push(g);
+    }
+  });
+
+  const movable = flat
+    .map((entry, i) => ({ i, entry }))
+    .filter(({ entry }) => !isSeeded(entry))
+    .map(({ i }) => i);
+
+  reduceClashes(flat, movable, (arrangement) => {
+    let n = 0;
+    for (let i = 0; i < arrangement.length; i++) {
+      for (let j = i + 1; j < arrangement.length; j++) {
+        if (groupOfPos[i] !== groupOfPos[j]) continue;
+        if (shareClub(arrangement[i], arrangement[j], clubOf)) n++;
+      }
+    }
+    return n;
+  });
+
+  // Write the improved arrangement back into the groups.
+  let pos = 0;
+  groups.forEach((members) => {
+    for (let k = 0; k < members.length; k++) members[k] = flat[pos++];
+  });
+}
+
 export function splitTeamsIntoGroups(
   teams: [number, number][],
-  numGroups: number
+  numGroups: number,
+  seedTeams?: [number, number][],
+  clubOf?: ClubLookup
 ): [number, number][][] {
   const groups: [number, number][][] = Array.from({ length: numGroups }, () => []);
-  for (let i = 0; i < teams.length; i++) {
-    groups[i % numGroups].push(teams[i]);
+  const key = (t: [number, number]) => pairingKey(t[0], t[1]);
+
+  const known = new Map(teams.map((t) => [key(t), t]));
+  const seeded: [number, number][] = [];
+  const seenSeeds = new Set<string>();
+  for (const t of seedTeams ?? []) {
+    const k = key(t);
+    const match = known.get(k);
+    if (match && !seenSeeds.has(k)) {
+      seeded.push(match);
+      seenSeeds.add(k);
+    }
   }
+
+  const rest = seeded.length > 0
+    ? shuffle(teams.filter((t) => !seenSeeds.has(key(t))))
+    : teams;
+
+  drawWithinSeedGroups(seeded).forEach((team, i) => {
+    const round = Math.floor(i / numGroups);
+    const posInRound = i % numGroups;
+    const groupIdx = round % 2 === 0 ? posInRound : numGroups - 1 - posInRound;
+    groups[groupIdx].push(team);
+  });
+  rest.forEach((team, i) => groups[i % numGroups].push(team));
+
+  if (clubOf) {
+    separateClubsAcrossGroups(groups, (t) => seenSeeds.has(key(t)), clubOf);
+  }
+
   return groups;
 }
 
@@ -459,6 +760,7 @@ export function splitIntoGroups(
   seeds?: number[]
 ): Player[][] {
   const groups: Player[][] = Array.from({ length: numGroups }, () => []);
+  const seededIdsForClubs = new Set(seeds ?? []);
 
   if (seeds && seeds.length > 0) {
     const playerMap = new Map(players.map((p) => [p.id, p]));
@@ -467,7 +769,7 @@ export function splitIntoGroups(
     const rest = shuffle(players.filter((p) => !seededIds.has(p.id)));
 
     // Snake/serpentine: forward on even rounds, backward on odd rounds
-    seeded.forEach((p, i) => {
+    drawWithinSeedGroups(seeded).forEach((p, i) => {
       const round = Math.floor(i / numGroups);
       const posInRound = i % numGroups;
       const groupIdx = round % 2 === 0 ? posInRound : numGroups - 1 - posInRound;
@@ -478,6 +780,19 @@ export function splitIntoGroups(
     const shuffled = shuffle(players);
     shuffled.forEach((p, i) => groups[i % numGroups].push(p));
   }
+
+  // Player objects rather than ids here, so the swap works on a projection
+  // and is written back by position.
+  const ids = groups.map((g) => g.map((p) => [p.id, null] as [number, null]));
+  separateClubsAcrossGroups(
+    ids,
+    (entry) => seededIdsForClubs.has(entry[0]!),
+    (id) => players.find((p) => p.id === id)?.club ?? null,
+  );
+  const byId = new Map(players.map((p) => [p.id, p]));
+  ids.forEach((group, g) => {
+    groups[g] = group.map((entry) => byId.get(entry[0]!)!);
+  });
 
   return groups;
 }
@@ -513,47 +828,111 @@ export function generateSwissFirstRound(
 }
 
 /**
- * Generates a Swiss round based on current standings and previous matchups.
- * Pairs by ranking (#1 vs #2, #3 vs #4, etc.) with conflict resolution.
+ * Pairs a ranked list so that no pairing repeats, preferring opponents who
+ * are close in the ranking.
+ *
+ * The straight greedy walk this replaces took the first legal opponent for
+ * the top player, which could strand a later player with nothing but a
+ * rematch — even when a rematch-free round existed (REVIEW-BACKLOG.md B2).
+ * Backtracking explores the alternatives instead. `null` means no
+ * rematch-free pairing exists at all; the caller then has to allow repeats.
+ */
+function pairWithoutRematch(
+  ids: number[],
+  previousMatchups: Set<string>,
+): [number, number][] | null {
+  const used = new Array(ids.length).fill(false);
+  const result: [number, number][] = [];
+  // Safety valve: the search is exponential in theory. Club fields are
+  // small, but a pathological history should degrade to "allow rematches"
+  // rather than freeze the app.
+  let steps = 0;
+  const MAX_STEPS = 200_000;
+
+  const solve = (): boolean => {
+    if (++steps > MAX_STEPS) return false;
+
+    const i = used.indexOf(false);
+    if (i === -1) return true; // everyone paired
+
+    used[i] = true;
+    for (let j = i + 1; j < ids.length; j++) {
+      if (used[j]) continue;
+      if (previousMatchups.has(pairingKey(ids[i], ids[j]))) continue;
+
+      used[j] = true;
+      result.push([ids[i], ids[j]]);
+      if (solve()) return true;
+      result.pop();
+      used[j] = false;
+    }
+    used[i] = false;
+    return false;
+  };
+
+  return solve() ? result : null;
+}
+
+/** Greedy fallback that accepts rematches, used when nothing else fits. */
+function pairAllowingRematch(ids: number[]): [number, number][] {
+  const pairs: [number, number][] = [];
+  for (let i = 0; i + 1 < ids.length; i += 2) {
+    pairs.push([ids[i], ids[i + 1]]);
+  }
+  return pairs;
+}
+
+/**
+ * Picks who sits out an odd Swiss round: the lowest-ranked player who has
+ * not had a bye yet. Previously it was always the last in the table, so the
+ * same player could sit out every single round (REVIEW-BACKLOG.md B2).
+ */
+export function pickByePlayer(
+  standings: StandingEntry[],
+  byesSoFar: Map<number, number>,
+): number | null {
+  if (standings.length % 2 === 0) return null;
+
+  let candidate: number | null = null;
+  let fewestByes = Infinity;
+
+  // Walk from the bottom of the table upwards: among the players with the
+  // fewest byes so far, the lowest-ranked one gets it.
+  for (let i = standings.length - 1; i >= 0; i--) {
+    const id = standings[i].player.id;
+    const byes = byesSoFar.get(id) ?? 0;
+    if (byes < fewestByes) {
+      fewestByes = byes;
+      candidate = id;
+      if (byes === 0) break; // cannot do better than never having sat out
+    }
+  }
+
+  return candidate;
+}
+
+/**
+ * Generates a Swiss round from the current standings.
+ *
+ * `byePlayer` (see {@link pickByePlayer}) is excluded from the pairing; the
+ * caller stores their bye as a completed match so it counts as a win and
+ * shows up in the history.
  */
 export function generateSwissRound(
   standings: StandingEntry[],
-  previousMatchups: Set<string>
+  previousMatchups: Set<string>,
+  byePlayer?: number | null,
 ): { team1_p1: number; team2_p1: number }[] {
-  const ids = standings.map((s) => s.player.id);
+  const ids = standings
+    .map((s) => s.player.id)
+    .filter((id) => id !== byePlayer);
 
-  // If odd count, lowest-ranked player not yet having a bye should get the bye.
-  // For simplicity, remove the last player (lowest ranked).
+  // Without a designated bye, an odd field still has to drop someone.
   if (ids.length % 2 !== 0) ids.pop();
+  if (ids.length === 0) return [];
 
-  const matches: { team1_p1: number; team2_p1: number }[] = [];
-
-  const used = new Set<number>();
-
-  for (let i = 0; i < ids.length; i++) {
-    if (used.has(ids[i])) continue;
-
-    // Find the best opponent: next unused player, preferring one not yet matched
-    let bestJ = -1;
-    for (let j = i + 1; j < ids.length; j++) {
-      if (used.has(ids[j])) continue;
-      if (bestJ === -1) bestJ = j; // fallback: first available
-
-      const key = pairingKey(ids[i], ids[j]);
-      if (!previousMatchups.has(key)) {
-        bestJ = j;
-        break; // ideal: no previous matchup
-      }
-    }
-
-    if (bestJ === -1) continue;
-
-    used.add(ids[i]);
-    used.add(ids[bestJ]);
-    matches.push({ team1_p1: ids[i], team2_p1: ids[bestJ] });
-  }
-
-  return matches;
+  const pairs = pairWithoutRematch(ids, previousMatchups) ?? pairAllowingRematch(ids);
+  return pairs.map(([a, b]) => ({ team1_p1: a, team2_p1: b }));
 }
 
 /** Generates the first round of a Swiss doubles tournament (random pairing). */
@@ -592,85 +971,76 @@ export function generateSwissRoundDoubles(
   const lookup = new Map<string, TeamStandingEntry>();
   for (const s of standings) lookup.set(s.teamKey, s);
 
-  const matches: { team1_p1: number; team1_p2: number; team2_p1: number; team2_p2: number }[] = [];
-  const used = new Set<string>();
-
+  // Same backtracking search as the singles variant, over team keys.
+  const indexOf = new Map(teamKeys.map((k, i) => [k, i]));
+  const asNumbers = teamKeys.map((_, i) => i);
+  const numericHistory = new Set<string>();
   for (let i = 0; i < teamKeys.length; i++) {
-    if (used.has(teamKeys[i])) continue;
-
-    let bestJ = -1;
     for (let j = i + 1; j < teamKeys.length; j++) {
-      if (used.has(teamKeys[j])) continue;
-      if (bestJ === -1) bestJ = j;
-
       const parts = [teamKeys[i], teamKeys[j]].sort();
-      const key = `${parts[0]}-${parts[1]}`;
-      if (!previousMatchups.has(key)) {
-        bestJ = j;
-        break;
+      if (previousMatchups.has(`${parts[0]}-${parts[1]}`)) {
+        numericHistory.add(pairingKey(i, j));
       }
     }
+  }
 
-    if (bestJ === -1) continue;
+  const pairs =
+    pairWithoutRematch(asNumbers, numericHistory) ?? pairAllowingRematch(asNumbers);
 
-    const t1 = lookup.get(teamKeys[i])!;
-    const t2 = lookup.get(teamKeys[bestJ])!;
-    used.add(teamKeys[i]);
-    used.add(teamKeys[bestJ]);
-
+  const matches: { team1_p1: number; team1_p2: number; team2_p1: number; team2_p2: number }[] = [];
+  for (const [a, b] of pairs) {
+    const t1 = lookup.get(teamKeys[a])!;
+    const t2 = lookup.get(teamKeys[b])!;
     matches.push({
       team1_p1: t1.player1.id, team1_p2: t1.player2.id,
       team2_p1: t2.player1.id, team2_p2: t2.player2.id,
     });
   }
 
+  void indexOf;
   return matches;
 }
 
 // --- Monrad System ---
-// Like Swiss but strictly pairs by ranking (#1 vs #2, #3 vs #4) without rematch avoidance.
+// Pairs strictly by ranking (#1 vs #2, #3 vs #4). Unlike Swiss it does not
+// try to spread the field, but it must not repeat a matchup either: with an
+// unchanged table, strict rank pairing reproduces the identical round over
+// and over (REVIEW-BACKLOG.md B3). When a pairing has already been played,
+// the partner is shifted by one position — the classic Monrad correction.
 
-/** Generates a Monrad round based on current standings (strict ranking pairing). */
+/**
+ * Generates a Monrad round: rank-adjacent pairings, shifted where needed to
+ * avoid a repeat. `byePlayer` is excluded like in Swiss.
+ */
 export function generateMonradRound(
   standings: StandingEntry[],
+  previousMatchups: Set<string> = new Set(),
+  byePlayer?: number | null,
 ): { team1_p1: number; team2_p1: number }[] {
-  const ids = standings.map((s) => s.player.id);
+  const ids = standings
+    .map((s) => s.player.id)
+    .filter((id) => id !== byePlayer);
 
-  // If odd count, lowest-ranked player gets a bye
   if (ids.length % 2 !== 0) ids.pop();
+  if (ids.length === 0) return [];
 
-  const matches: { team1_p1: number; team2_p1: number }[] = [];
-  for (let i = 0; i < ids.length - 1; i += 2) {
-    matches.push({ team1_p1: ids[i], team2_p1: ids[i + 1] });
-  }
-  return matches;
+  const pairs = pairWithoutRematch(ids, previousMatchups) ?? pairAllowingRematch(ids);
+  return pairs.map(([a, b]) => ({ team1_p1: a, team2_p1: b }));
 }
 
-/** Generates a Monrad doubles round based on current team standings (strict ranking pairing). */
+/** Monrad doubles round — same rules as the singles variant, over teams. */
 export function generateMonradRoundDoubles(
   standings: TeamStandingEntry[],
+  previousMatchups: Set<string> = new Set(),
 ): { team1_p1: number; team1_p2: number; team2_p1: number; team2_p2: number }[] {
-  const entries = [...standings];
-
-  // If odd count, lowest-ranked team gets a bye
-  if (entries.length % 2 !== 0) entries.pop();
-
-  const matches: { team1_p1: number; team1_p2: number; team2_p1: number; team2_p2: number }[] = [];
-  for (let i = 0; i < entries.length - 1; i += 2) {
-    const t1 = entries[i];
-    const t2 = entries[i + 1];
-    matches.push({
-      team1_p1: t1.player1.id, team1_p2: t1.player2.id,
-      team2_p1: t2.player1.id, team2_p2: t2.player2.id,
-    });
-  }
-  return matches;
+  return generateSwissRoundDoubles(standings, previousMatchups);
 }
 
 // --- King of the Court ---
-// Winner stays on court, loser goes to back of queue. One match at a time.
+// Winner stays on court, loser goes to the back of the queue. One match at
+// a time; the queue is the whole state of the format.
 
-/** Generates ONE King of the Court match from the queue. */
+/** Generates ONE King of the Court match from the front of the queue. */
 export function generateKingOfCourtMatch(
   queue: number[],
 ): { team1_p1: number; team2_p1: number; remainingQueue: number[] } {
@@ -683,29 +1053,92 @@ export function generateKingOfCourtMatch(
   };
 }
 
+/**
+ * Advances the queue after a match: the winner stays at the front, the
+ * loser goes to the back, everyone else keeps their relative order and
+ * moves up.
+ *
+ * This rotation is the entire point of the format, and it needs the actual
+ * previous queue. Rebuilding it from the (alphabetically sorted) player
+ * list each round — the old behaviour — meant the same challenger stepped
+ * up every time while the rest of the field never played
+ * (REVIEW-BACKLOG.md B5).
+ */
+export function advanceKingOfCourtQueue(
+  queue: number[],
+  winner: number,
+  loser: number,
+  activePlayers?: Set<number>,
+): number[] {
+  const waiting = queue.filter((id) => id !== winner && id !== loser);
+  const next = [winner, ...waiting, loser];
+
+  // Drop players who left the tournament, append ones who joined late.
+  if (activePlayers) {
+    const kept = next.filter((id) => activePlayers.has(id));
+    const known = new Set(kept);
+    for (const id of activePlayers) {
+      if (!known.has(id)) kept.push(id);
+    }
+    return kept;
+  }
+  return next;
+}
+
 // --- Waterfall ---
 // Multiple courts, numbered 1 to N. Each round all courts play simultaneously.
 // Winners move up one court, losers move down one court. Court 1 is the "King" court.
 
-/** Generates matches for all courts simultaneously from court assignments. */
+/**
+ * Builds one Waterfall round from the current ladder.
+ *
+ * `courts` caps how many matches run at once — the hall does not grow just
+ * because more players showed up. Whoever cannot be seated sits the round
+ * out, and `restCounts` decides who that is: the players who have rested
+ * least so far take their turn, ties broken by ladder position (lowest
+ * first). Without that bookkeeping the bottom of the ladder sat out every
+ * single round (REVIEW-BACKLOG.md B6).
+ */
 export function generateWaterfallRound(
   courtAssignments: number[],
-): { court: number; team1_p1: number; team2_p1: number }[] {
+  courts?: number,
+  restCounts?: Map<number, number>,
+): { matches: { court: number; team1_p1: number; team2_p1: number }[]; byePlayers: number[] } {
+  const maxByCourts = courts && courts > 0 ? courts : Number.POSITIVE_INFINITY;
+  const seats = Math.min(Math.floor(courtAssignments.length / 2), maxByCourts) * 2;
+  const restingCount = courtAssignments.length - seats;
+
+  let byePlayers: number[] = [];
+  if (restingCount > 0) {
+    const ladderPos = new Map(courtAssignments.map((id, i) => [id, i]));
+    byePlayers = [...courtAssignments]
+      .sort((a, b) => {
+        const restDiff = (restCounts?.get(a) ?? 0) - (restCounts?.get(b) ?? 0);
+        if (restDiff !== 0) return restDiff; // fewest rests take their turn
+        return (ladderPos.get(b) ?? 0) - (ladderPos.get(a) ?? 0); // then from the bottom
+      })
+      .slice(0, restingCount);
+  }
+
+  const resting = new Set(byePlayers);
+  const playing = courtAssignments.filter((id) => !resting.has(id));
+
   const matches: { court: number; team1_p1: number; team2_p1: number }[] = [];
-  for (let i = 0; i < courtAssignments.length - 1; i += 2) {
-    const courtNum = Math.floor(i / 2) + 1;
+  for (let i = 0; i + 1 < playing.length; i += 2) {
     matches.push({
-      court: courtNum,
-      team1_p1: courtAssignments[i],
-      team2_p1: courtAssignments[i + 1],
+      court: i / 2 + 1,
+      team1_p1: playing[i],
+      team2_p1: playing[i + 1],
     });
   }
-  return matches;
+
+  return { matches, byePlayers };
 }
 
 /** Advances waterfall court assignments based on results.
  * Winners move up (lower index), losers move down (higher index).
  * Court 1 winner stays, Court 1 loser goes to court 2.
+ * Players who sat the round out keep their place in the ladder.
  * Returns new court assignments array.
  */
 export function advanceWaterfall(
@@ -720,37 +1153,49 @@ export function advanceWaterfall(
   const winners: number[] = sorted.map((r) => r.winner);
   const losers: number[] = sorted.map((r) => r.loser);
 
-  const newAssignments: number[] = [];
+  const reordered: number[] = [];
 
   for (let c = 0; c < numCourts; c++) {
     if (c === 0) {
-      // Court 1: court 1 winner stays, court 2 winner moves up
-      newAssignments.push(winners[0]);
+      // Court 1: its winner stays, the court-2 winner moves up
+      reordered.push(winners[0]);
       if (numCourts > 1) {
-        newAssignments.push(winners[1]);
+        reordered.push(winners[1]);
       }
     } else if (c === numCourts - 1) {
-      // Last court: previous court's loser moves down, this court's loser stays
-      newAssignments.push(losers[c - 1]);
-      newAssignments.push(losers[c]);
+      // Last court: the previous court's loser drops in, this court's loser stays
+      reordered.push(losers[c - 1]);
+      reordered.push(losers[c]);
     } else {
-      // Middle court: previous court's loser moves down, next court's winner moves up
-      newAssignments.push(losers[c - 1]);
-      newAssignments.push(winners[c + 1]);
+      // Middle court: previous court's loser drops in, next court's winner moves up
+      reordered.push(losers[c - 1]);
+      reordered.push(winners[c + 1]);
     }
   }
 
-  // Add any players not in matches (odd player sitting out)
-  const inResults = new Set<number>();
+  // Put the reordered players back into the ladder slots they came from, so
+  // players who sat the round out neither climb nor fall for not playing.
+  const played = new Set<number>();
   for (const r of results) {
-    inResults.add(r.winner);
-    inResults.add(r.loser);
+    played.add(r.winner);
+    played.add(r.loser);
   }
-  for (const pid of courtAssignments) {
-    if (!inResults.has(pid)) {
-      newAssignments.push(pid);
+
+  const next: number[] = [];
+  let take = 0;
+  for (const id of courtAssignments) {
+    if (played.has(id)) {
+      next.push(reordered[take++]);
+    } else {
+      next.push(id);
     }
   }
 
-  return newAssignments;
+  // Anyone in the results who was not on the ladder before (shouldn't
+  // happen, but keeps the function total) is appended.
+  for (const id of reordered.slice(take)) {
+    if (!next.includes(id)) next.push(id);
+  }
+
+  return next;
 }

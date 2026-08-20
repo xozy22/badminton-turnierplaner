@@ -4,6 +4,23 @@ export type TournamentFormat = "round_robin" | "elimination" | "random_doubles" 
 export type TournamentStatus = "draft" | "active" | "completed" | "archived";
 export type MatchStatus = "pending" | "active" | "completed";
 
+/**
+ * Why a match carries no sets.
+ *
+ * - `walkover` -- one side did not turn up.
+ * - `retired` -- one side stopped mid-match.
+ * - `disqualified` -- one side was removed from the match.
+ * - `no_match` -- neither side turned up. Nobody wins.
+ *
+ * null means the match was played and the sets say what happened.
+ */
+export type MatchOutcome =
+  | "walkover"
+  | "retired"
+  | "disqualified"
+  | "no_match"
+  | null;
+
 export interface Player {
   id: number;
   first_name: string;
@@ -12,6 +29,12 @@ export interface Player {
   birth_date: string | null;
   club: string | null;
   created_at: string;
+  /**
+   * Set when the player was archived: they disappear from the pickers but
+   * stay readable in every tournament they took part in. Players without
+   * history are deleted outright (REVIEW-BACKLOG.md C8). Migration v17.
+   */
+  archived_at?: string | null;
 }
 
 export function playerDisplayName(p: { first_name: string; last_name: string }): string {
@@ -91,6 +114,13 @@ export interface Tournament {
   venue_id: number | null;
   min_rest_minutes: number;
   /**
+   * How many rounds a Swiss / Monrad / Waterfall tournament runs. NULL for
+   * every other format. Before migration v15 this number was squeezed into
+   * `num_groups`, which every other reader treats as a group count
+   * (REVIEW-BACKLOG.md B7).
+   */
+  planned_rounds: number | null;
+  /**
    * 0 = no 3rd-place playoff. 1 = automatically create a "Spiel um Platz 3"
    * match (semifinal losers in elimination/group_ko, LB-final-loser vs.
    * LB-semifinal-loser in double_elimination). Persisted via migration v11.
@@ -103,6 +133,18 @@ export interface Tournament {
    * session. NULL = standalone tournament (default behavior). Migration v13.
    */
   session_id: number | null;
+  /**
+   * When the tournament is played, as opposed to `created_at`, which is
+   * when the row was written. NULL for tournaments set up on the spot and
+   * for everything created before migration v19 — guessing a play date
+   * from the creation date would be wrong for anything planned in advance
+   * (FEATURE-BACKLOG.md A1).
+   */
+  play_date: string | null;
+  /** Start time on the play date, 24-hour clock. */
+  start_time: string | null;
+  /** When the entry fee falls due. See {@link FeeDue}. */
+  fee_due: FeeDue;
   created_at: string;
   status: TournamentStatus;
 }
@@ -126,11 +168,51 @@ export interface Session {
 export type PaymentMethod = "bar" | "ueberweisung" | "paypal";
 export type PaymentStatus = "unpaid" | "paid";
 
-export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  bar: "Bar",
-  ueberweisung: "Ueberweisung",
-  paypal: "PayPal",
-};
+/**
+ * Where a participant stands in the entry list.
+ *
+ * - `entered`   -- taking part; the only state before migration 21.
+ * - `waiting`   -- on the waiting list, not in the draw. Somebody drops
+ *   out, the first in line moves up (FEATURE-BACKLOG.md E1).
+ * - `withdrawn` -- pulled out, kept rather than deleted, because the
+ *   accounts still need them (FEATURE-BACKLOG.md E2).
+ */
+export type EntryStatus = "entered" | "waiting" | "withdrawn";
+
+/**
+ * When the entry fee falls due.
+ *
+ * `participation` is what BOSS always did: whoever plays, pays.
+ * `entry` charges on signing up, so a withdrawal still owes the fee —
+ * which is why withdrawals have to be kept at all
+ * (FEATURE-BACKLOG.md E3).
+ */
+export type FeeDue = "participation" | "entry";
+
+/**
+ * A charge beyond the entry fee: late entry, shuttles, hall contribution
+ * (FEATURE-BACKLOG.md E4).
+ *
+ * `player_id` is null for a charge that belongs to the tournament rather
+ * than to one participant.
+ */
+export interface FeeItem {
+  id: number;
+  tournament_id: number;
+  player_id: number | null;
+  label: string;
+  amount: number;
+  paid: boolean;
+  created_at: string;
+}
+
+/*
+ * MODE_LABELS, FORMAT_LABELS, STATUS_LABELS and PAYMENT_METHOD_LABELS used
+ * to live here as fixed German strings, in parallel with translation keys
+ * that said the same thing. Whichever a screen reached for decided whether
+ * it stayed German under an English setting. See lib/i18n/labels.ts
+ * (REVIEW-BACKLOG.md H4).
+ */
 
 export interface TournamentPlayer {
   tournament_id: number;
@@ -149,6 +231,12 @@ export interface TournamentPlayerInfo {
    * tournament_players.seed_rank since migration v10.
    */
   seed_rank: number | null;
+  /** Taking part, waiting, or withdrawn. See {@link EntryStatus}. */
+  entry_status: EntryStatus;
+  /** Position in the waiting queue, 1 = next up. Null unless waiting. */
+  waiting_rank: number | null;
+  /** When they pulled out, for the entry list. Null unless withdrawn. */
+  withdrawn_at: string | null;
 }
 
 export interface Round {
@@ -166,12 +254,49 @@ export interface Match {
   court_assigned_at: string | null;
   team1_p1: number;
   team1_p2: number | null;
-  team2_p1: number;
+  /**
+   * NULL means the match has no opponent: a bye. The player in team 1
+   * advances without playing, and the match is stored as already completed
+   * with `winner_team = 1`. Nullable since migration v14 — see
+   * REVIEW-BACKLOG.md A2, where byes used to make players disappear from
+   * the bracket entirely.
+   */
+  team2_p1: number | null;
   team2_p2: number | null;
   winner_team: 1 | 2 | null;
   status: MatchStatus;
+  /**
+   * 1 = awarded without play (retirement, no-show). Counts as a win for
+   * the opponent but contributes no sets or points to any table — see
+   * REVIEW-BACKLOG.md B8, where walkovers used to be stored as invented
+   * 21:0 sets. Persisted via migration v15.
+   */
+  walkover: number;
+  /**
+   * Why the match was not played, or null when it was. All four values
+   * imply `walkover = 1`; `outcome` only says which of them applies, so
+   * the printout and the result file can name it (FEATURE-BACKLOG.md D1).
+   *
+   * `no_match` is the one that leaves `winner_team` null: neither side
+   * turned up, so nobody won. Before it existed such a match stayed
+   * pending forever and the tournament could never be finished.
+   */
+  outcome: MatchOutcome;
   started_at: string | null;
   completed_at: string | null;
+  /**
+   * Seconds the match was played, settled when it first finished.
+   *
+   * Not derived from the two timestamps on demand: reopening a finished
+   * match to correct a typo writes a fresh `completed_at` against the
+   * original `started_at`, so a half-hour match would read as however
+   * long ago it was played. A correction changes the score, not the time
+   * people spent on court.
+   *
+   * Null for matches finished before migration 22, and for anything
+   * awarded without play.
+   */
+  duration_seconds: number | null;
 }
 
 export interface GameSet {
@@ -190,6 +315,12 @@ export interface StandingEntry {
   setsLost: number;
   pointsWon: number;
   pointsLost: number;
+  /**
+   * Buchholz score: the sum of the wins of all opponents faced. Only
+   * present for Swiss/Monrad tables, where it is the standard fine-scoring
+   * (REVIEW-BACKLOG.md B2).
+   */
+  buchholz?: number;
 }
 
 export interface LivePublishConfig {
@@ -199,6 +330,12 @@ export interface LivePublishConfig {
   // any tournament is currently being pushed.
   endpoint: string;       // e.g. https://verein.de/wp-json/boss/v1/push
   secret: string;         // shared secret used in X-BOSS-Secret header
+  /**
+   * How much of a player's name reaches the public page. Absent means
+   * "full", which is what installations predating this option published.
+   * See PrivacyLevel in livePublish.ts.
+   */
+  privacyLevel?: "full" | "abbreviated" | "abbreviated_no_club";
   lastPushAt?: string;    // ISO of last successful push (any tournament)
   lastError?: string;     // last error message, cleared on next success
 }
@@ -215,27 +352,3 @@ export interface TeamStandingEntry {
   pointsLost: number;
 }
 
-export const MODE_LABELS: Record<TournamentMode, string> = {
-  singles: "Einzel",
-  doubles: "Doppel",
-  mixed: "Mixed",
-};
-
-export const FORMAT_LABELS: Record<TournamentFormat, string> = {
-  round_robin: "Jeder gegen Jeden",
-  elimination: "KO-System",
-  random_doubles: "Wechselnde Partner",
-  group_ko: "Gruppenphase + KO",
-  swiss: "Schweizer System",
-  double_elimination: "Doppel-KO",
-  monrad: "Monrad-System",
-  king_of_court: "King of the Court",
-  waterfall: "Waterfall",
-};
-
-export const STATUS_LABELS: Record<TournamentStatus, string> = {
-  draft: "Entwurf",
-  active: "Läuft",
-  completed: "Beendet",
-  archived: "Archiviert",
-};

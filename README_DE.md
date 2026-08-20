@@ -11,7 +11,9 @@
 
 <p align="center">
   <a href="https://github.com/xozy22/boss-badminton">GitHub Repository</a> &middot;
-  <a href="README.md">🇬🇧 English Version</a>
+  <a href="README.md">🇬🇧 English Version</a> &middot;
+  <a href="CHANGELOG.md">Changelog</a> &middot;
+  <a href="docs/ARCHITECTURE.md">Architektur</a>
 </p>
 
 ## Screenshots
@@ -78,54 +80,6 @@
 - **Auto-Benennung**: Turniername automatisch generiert aus Datum + Modus + Format, editierbar
 - **Speichern-Bestaetigung**: Gruener Toast bestätigt dass alle Änderungen (Einstellungen, Spieler, Teams, Hallen) nach dem Bearbeiten eines Turnier-Drafts gespeichert wurden
 - **Einheitliche Toast-Benachrichtigungen**: Ein globaler Toast-Kontext (`useToast`) ersetzt native Browser-Alerts fuer Speicher-Bestaetigungen, Import-Zusammenfassungen und Fehlermeldungen in der gesamten App — nicht blockierend, stapelbar, selbst-schliessend
-
-### Score-Eingabe-Polish &amp; TournamentView-Refactor (v2.7.5)
-- **Score-Eingabe — Tippen von "12" landet nicht mehr auf "2"**: schnelle Tastendrücke konnten gelegentlich Ziffern verlieren, weil der controlled-input-Value durch einen Re-Render-Sturm überschrieben wurde. `handleScoreChange` aktualisiert jetzt optimistisch den lokalen Sets-State pro Keystroke und überspringt das `loadAll()` pro Tastendruck (läuft weiter beim Blur), sodass der Input-Wert das wiedergibt, was du gerade getippt hast — auch während asynchroner DB-Round-Trips
-- **Auto-Select beim Fokus nur bei echten Fokus-Events**: eine ref-basierte Prüfung verhindert, dass `e.target.select()` bei React-Re-Renders erneut feuert, die den Fokus während des Tippens wiederherstellen. Das gewohnte "Tab in ein Feld, sofort tippen zum Ueberschreiben"-Verhalten bleibt erhalten, ohne aktive Eingaben zu zerstoeren
-- **Winner-Detection nur noch bei Enter**: Tab durch ein Set loest weiterhin den Auto-Fill-Vorschlag aus (z.B. 12 im 21-Ext-30-Modus → Gegner wird auf 21 gesetzt; 25 → Gegner auf 23 mit der 2-Punkte-Vorsprung-Regel), aber das Match wird erst als `completed` markiert, wenn du **Enter** drueckst. Erlaubt dem TD, Auto-Fill-Vorschlaege ueber mehrere Saetze zu pruefen und zu korrigieren, bevor das Match offiziell abgeschlossen wird. Die komplette `autoFillOpponentScore`-Regel-Logik (alle fuenf Punktmodi + Caps + 2-Punkte-Vorsprung) bleibt 1:1 unveraendert — nur der "Bestaetigen"-Schritt ist jetzt explizit
-- **TournamentView-Refactor (Phase 1)**: die 3983 Zeilen lange monolithische Datei `src/pages/TournamentView.tsx` ist jetzt in einen Ordner aus kleineren Single-Purpose-Files aufgeteilt:
-  - `index.tsx` (Orchestrator, ~2900 Zeilen, -28 %)
-  - `components/MatchCard.tsx` + `CompletedMatchesSection.tsx`
-  - `components/modals/{StartKoModal, EditTournamentModal, RestWarningModal, PlayerConflictModal, ReopenConfirmModal, UndoRoundModal}.tsx`
-  - `lib/{effectiveScoring, undoTarget}.ts` (pure Helper)
-  - 11 neue Dateien, jede unter 400 Zeilen, jeweils eine klare Verantwortlichkeit. Kein Verhaltenswechsel — rein strukturell. Vite loest `pages/TournamentView/index.tsx` transparent als Route auf, kein Routing-Change noetig
-
-### Live-Push-Steuerung &amp; intelligenteres Rueckgaengig (v2.7.4)
-- **Push-Steuerung pro Turnier**: Live-aktive Turniere bekommen jetzt drei kompakte Aktionen — die bestehende "Live aktiv" Pille plus zwei Icon-Buttons (32×32) ⏸️ Pause / 🔄 Jetzt pushen. Pause haelt das Opt-In aufrecht, unterdrueckt aber Pushes (Discovery-Filter respektiert die neue `live_publish_paused_tournament_ids` Liste in app_settings). Jetzt pushen feuert sofort einen Snapshot, ignoriert Debounce + Heartbeat-Dedup + Backoff
-- **Auto-Backoff bei Verbindungsfehlern**: nach 3 aufeinander folgenden Push-Fehlern stuft sich der Publisher automatisch zurueck (30s → 2min → 5min) und ueberspringt event/heartbeat-Pushes waehrend des Cooldowns. Manuelle und finale Pushes ignorieren den Backoff. Erfolgreicher Push setzt den Counter sofort zurueck
-- **Final-Snapshot beim Turnier-Ende**: erkennt die Status-Transition `active → completed/archived` und sendet **einen** abschliessenden Snapshot mit `final: true`-Flag, bevor der Publisher abgebaut wird. Das WP-Plugin (v1.0.4) speichert ein `boss_final` Meta und der Status-Badge bleibt sticky auf "Final" — auch wenn der Status danach noch flackern sollte
-- **Inline Push-Status**: kleiner Hinweis-Text neben dem Live-Button — `Push vor 12s` / `Fehler vor 2 min` / `Wartet (Verbindung gestoert)` / `Pausiert — kein Push` / `Noch kein Push`. Aktualisiert sich sekuendlich, ohne dass ein Push tatsaechlich passiert sein muss
-- **Push-Verlauf in den Settings**: rotierender Puffer der letzten 50 Push-Versuche (Zeitstempel, Turnier, Reason, HTTP-Status oder Fehler, Dauer in ms) — eingeklappt auf 10 Eintraege mit "Alle anzeigen", "Verlauf leeren"-Button, Auto-Refresh alle 5s. Persistiert in `app_settings.live_publish_log`, ueberlebt App-Restart
-- **WordPress-Plugin v1.0.4**: behandelt `final: true` (speichert `boss_final` post-meta), Status-Renderer respektiert das Flag (sticky "Final" auch wenn snapshot-internal status anders aussieht), Court-Header-Spalte breiter (7% → 10%) damit "COURT" nicht abgeschnitten wird, Status-Spalte leicht breiter (12% → 14%)
-- **Rueckgaengig komplett ueberarbeitet**: Detection-Heuristik nutzt jetzt `id desc` (zuletzt **angelegte** Runde) statt `round_number`-Tail (was bei group_ko fast immer "Gruppe N · letzte Runde" lieferte, egal wann gespielt). Erkennt das Final + Bronze Paerchen (gleiche `round_number`, `phase="ko"` + `phase="third_place"`) und loescht beide in einem Schritt. Doppel-KO-Runden (`winners`/`losers`) werden nun ebenfalls korrekt fuer die Phase-Transition beruecksichtigt. Confirm-Modal zeigt Rich-Preview: Runden-Label, Match-Count, ⚠ bei `completedCount > 0` (Datenverlust-Warnung) oder `activeOnCourtCount > 0` (Match auf Feld), Saetze-Count, Phase-Hinweis ("zurueck auf Entwurf" / "zurueck in Gruppenphase"), Confirm-Button roseé statt amber wenn Daten verloren gehen. Toast danach mit Runden-Label + geloeschten Match/Set-Counts
-- **"Live aktivieren" fuer Drafts ist jetzt disabled**: das Opt-In wurde vorher vom `LivePublisherHost`-Filter (`status === "active"`) eh ignoriert, der Button suggerierte aber Aktivitaet. Jetzt zeigt der Button bei `status === "draft"` `disabled:opacity-50 disabled:cursor-not-allowed` mit Tooltip "Erst nach Turnier-Start"
-
-### Self-Healing Schema-Check (v2.7.3)
-- **Robust gegen unvollstaendige Migrationen**: Bei jedem DB-Connect laeuft jetzt eine defensive `ensureExpectedSchema`-Schicht, die per `PRAGMA table_info` gegen `tournaments` + `tournament_players` prueft und fehlende Spalten ergaenzt (`cap`, `ko_points_per_set`, `ko_sets_to_win`, `ko_cap`, `venue_id`, `min_rest_minutes`, `enable_third_place` auf tournaments; `retired`, `payment_status`, `payment_method`, `paid_date`, `seed_rank` auf tournament_players). Idempotent — bei sauberer Migration ein No-op. Behebt "table tournaments has no column named cap"-Fehler, die nach dem Wiederherstellen einer alten DB-Sicherung oder dem Verschieben der DB-Datei ueber BOSS-Versionen hinweg auftreten konnten, wenn `tauri-plugin-sql` auf halber Strecke der Migrations-Kette stehen blieb. Jeder ALTER TABLE ist `try/catch`-gewrappt, damit ein einzelner Quirk nicht den ganzen Vorgang abschiesst
-
-### Gruppen-Synchronisation, ueberarbeiteter TV-Modus &amp; Live-Push-Fixes (v2.7.2)
-- **Smart Court-Queue**: In der Gruppenphase von `Gruppe + KO` wird die Warteschlange der unzugewiesenen Matches nach Gruppe segmentiert und nach verbleibenden Matches absteigend sortiert (groesster Rueckstand oben). Der Turnier-Director greift natuerlich von oben → alle Gruppen werden gleichzeitig fertig, bevor die KO-Phase starten kann. Die Queue zeigt jetzt immer alle Gruppen — Klick auf einen einzelnen Runden-Button blendet die anderen Gruppen nicht mehr aus
-- **Pro-Gruppe Progress-Balken**: Kompakter Balken ueber dem Runden-Selector mit `<fertig>/<gesamt>` pro Gruppe und integrierten read-only Runden-Pills (`[1✓][2✓][3]`). Gruppen im Rueckstand bekommen ein ⚠-Icon. Sichtbar waehrend der Gruppenphase und bleibt als Historie nach KO-Start (alles emerald, alle ✓). Ersetzt die frueheren pro-Gruppe Runden-Buttons, die mit der gruppenuebergreifenden Queue keinen Sinn mehr machten
-- **Gruppen-Tab — Match-Log pro Runde**: Beim Drilldown in eine einzelne Gruppe listet eine neue "Partien"-Karte jedes Match nach Runde segmentiert auf (Runde 1/2/3 mit Mini-Headern), mit Saetze-Bilanz + Detail pro Satz und Sieger-Highlight. Tabellen teilen `table-fixed` Spaltenbreiten, sodass alle Runden Spalte-fuer-Spalte ausgerichtet sind. Der "Beendet"-Toggle im Spiele-Tab ist jetzt ein einfacher Auf/Zu-Schalter statt eines Zwei-Modi-Wechsels
-- **TV-Modus neu gebaut** auf den gleichen Daten-Helpern wie die Hauptansicht: pro-Gruppe Progress-Strip im Header, Smart-Queue gruppiert (max 5 sichtbar pro Gruppe + `+N weitere`), Setzplatz-Badges (`S1`/`S2`/…) auf Court- und Queue-Karten, eigene 🥉-Sektion fuer das Spiel um Platz 3, Multi-Halle-Support mit Hall-Headers + lokal nummerierten Plaetzen (Halle B → "Court 1"), Round/Gruppe-Kontext pro Karte (`G1·R3` / Halbfinale / 🥉 Bronze), read-only Spieler-Konflikt-Markierung (🚫), Recent Results in der Gruppenphase nach Gruppen segmentiert. Plus Hooks-Order-Bug behoben, der die Seite beim ersten Laden weiss erscheinen liess
-- **Live-Veroeffentlichung — WordPress-Plugin v1.0.2**: `[boss_matches]` zeigte bislang nur die *aktuelle* Runde — alle vorigen abgeschlossenen Matches waren unsichtbar. Jetzt eine Sektion pro Runde ueber das gesamte Turnier mit menschenlesbaren Headlines (`Group 1 — Round 2`, `Quarterfinal`, `Semifinal`, `Final`, `🥉 Third Place`, `Winners — Round 1`, …), Status-Sortierung (Live → Pending → Done), und **zwei Score-Spalten**: Saetze (`2:0`) plus Detail pro Satz (`21:18, 21:15`). Standings- und pro-Runde-Match-Tabellen nutzen jetzt `table-layout: fixed` mit expliziten `<colgroup>`-Breiten, sodass alle Gruppen und Runden Spalte-fuer-Spalte gleich aussehen statt je nach laengstem Spielernamen zu schwanken. Plugin-Versions-Bump = automatischer Browser-Cache-Bust beim naechsten Page-Load
-- **Bronze-Schalter bei neuen Turnieren vorab gesetzt**: Regression aus v2.7.1 behoben — die Checkbox "Spiel um Platz 3 austragen" zeigt jetzt den echten Default (AN bei KO-Formaten) beim Anlegen eines neuen Turniers, statt immer abgehakt zu sein
-
-### KO- &amp; Match-Flow-Polish (v2.7.1)
-- **Spiel um Platz 3 (Bronze-Match)**: Pro-Turnier-Schalter, bei neuen KO-Turnieren standardmaessig AN. Wenn die Halbfinals fertig sind, wird das Bronze-Match parallel zum Finale automatisch angelegt. Funktioniert fuer `KO-System`, `Gruppenphase + KO` und `Doppel-KO` (dort: LB-Final-Verlierer vs. LB-Halbfinal-Verlierer). Wird unter dem Bracket als eigenes 🥉-Panel und als separater Runden-Button im Spiele-Tab dargestellt. Im Wizard abschaltbar fuer Veranstaltungen ohne Spiel um Platz 3
-- **Setzplatz-Badges im Turnierbetrieb**: Spieler die im Wizard einen Setzplatz erhalten haben zeigen jetzt im **Gruppen-Tab** (Einzel- + Doppel-Tabellen) und im **Verwaltungs-Tab** ein kompaktes `S1` / `S2` / …-Badge neben dem Namen. Setzplatz wird pro Turnier-Spieler persistiert (vorher nach der Auslosung verworfen) — die Information ueberlebt jetzt den ganzen Turnierverlauf
-- **Spieler-Konflikt bei Court-Zuweisung verhindern**: Wenn die naechste Runde frueh ausgelost wird und ein Spieler noch auf einem anderen Feld aktiv ist, wird das betroffene Match hart von der Court-Zuweisung blockiert. Die Warteliste markiert das Match mit 🚫, das Court-Dropdown deaktiviert die Konflikt-Felder und ein roter Modal listet welcher Spieler noch auf welchem Feld steht — KEIN Bypass (anders als die Pause-Warnung), weil zwei gleichzeitige Matches mit demselben Spieler nie fertig werden
-- **Bronze-Schalter bei neuen Turnieren vorab gesetzt**: Behebt Regression bei der Checkbox "Spiel um Platz 3 austragen" — sie war beim Anlegen eines neuen Turniers faelschlicherweise nicht gesetzt. Der initiale Draft schreibt den Default jetzt korrekt in die DB, sodass die Checkbox im Wizard von Anfang an angekreuzt ist
-
-### Live-Veroeffentlichung auf WordPress (v2.7.0)
-- **Pro Turnier ein-/ausschaltbar**: Jedes Turnier hat in der Detail-Ansicht einen eigenen "📡 Live aktivieren"-Schalter — standardmaessig aus. Mehrere parallele Turniere koennen unabhaengig live laufen, jedes mit eigener ID
-- **Verbindung einmal einrichten**: Endpunkt-URL + Shared Secret werden in den Einstellungen unter "Live-Veroeffentlichung (WordPress)" gespeichert. Ein "Verbindung testen"-Button prueft, ob das WP-Plugin antwortet
-- **Turnier-ID auf dem Button**: Der Live-Button zeigt die Turnier-ID (`ID: 42`) damit der WordPress-Shortcode (`[boss_matches id="42"]`) ohne Suchen zusammengebaut werden kann — der Tooltip zeigt sogar die fertige Shortcode-Vorlage
-- **Event-getriebener Push**: Snapshots werden innerhalb von ~1.5s nach jeder Zustandsaenderung (Score, Court-Zuweisung, Match-Ende, Auslosung) gesendet, plus 60s-Heartbeat als Liveness-Signal. Ein Signatur-Hash ueberspringt unnoetige Heartbeats wenn sich nichts geaendert hat
-- **Veroeffentlichung beenden**: Klick auf "📡 Live aktiv" → Bestaetigungs-Modal → Opt-In wird entfernt UND ein Delete-Request loescht den Snapshot auf der WP-Seite. Auch wenn der WP-Server offline ist wird das Opt-In lokal entfernt damit keine weiteren Pushes laufen
-- **Begleitendes WordPress-Plugin** (`/wordpress-plugin/boss-live-results/`): Single-File-PHP-Plugin mit REST-Endpunkt, Custom Post Type fuer Snapshot-Storage und 5 Shortcodes — `[boss_tournaments]` (Liste), `[boss_matches id]`, `[boss_standings id]`, `[boss_bracket id]`, `[boss_status id]`. Vanilla-JS-Frontend pollt alle 15s, keine React/jQuery-Abhaengigkeit
-- **DSGVO-bewusst**: Es werden nur Vorname, Nachname und Verein uebertragen. Geburtsdaten und Bezahlinfos werden vor dem Push entfernt — oeffentliche Seiten duerfen keine Mitglieder-PII zeigen
-- **Abgesichert**: Outbound-HTTP nur an `*/wp-json/boss/v1/*` (Tauri-Capability-Allowlist). Authentifizierung ueber `X-BOSS-Secret`-Header (zeitkonstantes `hash_equals` auf der WP-Seite)
 
 ### Spielerverwaltung
 - **Vorname + Nachname** als separate Felder
@@ -296,62 +250,26 @@ src-tauri/target/release/bundle/
 
 ```
 src/
-├── components/
-│   ├── bracket/       # KO-Bracket-Visualisierung
-│   ├── courts/        # Felduebersicht, Court-Timer
-│   ├── layout/        # Sidebar, Layout
-│   ├── match/         # Match-Komponenten
-│   ├── players/       # Excel-Import
-│   ├── print/         # Druckansicht, Turnierbericht, Urkunden-Generator
-│   ├── standings/     # Ranglisten-Komponenten
-│   └── tournament/    # Turnier-Komponenten (Format-Info, Team-Zuordnung,
-│                      #   Setzliste, Vorlagen, Verletzung, etc.)
-├── hooks/
-│   └── useTimer.ts    # Court-Timer Hook
-├── lib/
-│   ├── i18n/          # Uebersetzungsdateien
-│   │   ├── en.ts      #   Englische Uebersetzungen
-│   │   ├── de.ts      #   Deutsche Uebersetzungen
-│   │   └── types.ts   #   Uebersetzungs-Typdefinitionen
-│   ├── db.ts          # SQLite-Wrapper
-│   ├── draw.ts        # Auslosungsalgorithmen (Round Robin, KO, Gruppen, Swiss, etc.)
-│   ├── highlights.ts  # Turnier-Highlights (knappstes Spiel, hoechster Sieg)
-│   ├── I18nContext.tsx # React Context fuer Internationalisierung
-│   ├── livePublish.ts  # Snapshot-Builder + Push fuer WordPress-Live-Veroeffentlichung
-│   ├── useLivePublisher.tsx # Globaler Publisher-Host (Multi-Turnier)
-│   ├── scoring.ts     # Punkteberechnung, Validierung, Auto-Fill
-│   ├── stats.ts       # Statistik-Berechnungen
-│   ├── theme.ts       # Theme-Definitionen (4 Farbschemas)
-│   ├── ThemeContext.tsx# React Context fuer Theme-System
-│   └── types.ts       # TypeScript-Interfaces
-├── pages/
-│   ├── Home.tsx             # Dashboard
-│   ├── Players.tsx          # Spielerverwaltung
-│   ├── Settings.tsx         # Einstellungen (Sprache, Design, DB, Voreinstellungen)
-│   ├── Sportstaetten.tsx    # Sportstaetten mit Hallen
-│   ├── Statistics.tsx       # Statistik-Dashboard
-│   ├── TournamentCreate.tsx # Turnier-Wizard
-│   ├── Tournaments.tsx      # Turnierliste + Archiv
-│   ├── TournamentView.tsx   # Turnieransicht (Matches, Courts, Rangliste)
-│   └── TvMode.tsx           # TV-/Beamer-Modus
-├── App.tsx
-└── main.tsx
+├── components/     # bracket, courts, layout, match, players, print,
+│                   #   standings, tournament, ui (die gemeinsamen Bausteine:
+│                   #   Modal, Icon, ConfirmDialog, OverflowMenu, States)
+├── lib/            # alles, was keine Komponente ist
+│   ├── db.ts       #   SQLite-Zugriff, beide Backends
+│   ├── draw.ts     #   Auslosung je Turnierformat
+│   ├── scoring.ts  #   Ergebnisprüfung und Tabellenstände
+│   ├── i18n/       #   en.ts, de.ts, types.ts, labels.ts, format.ts
+│   └── …           #   Sessions, Live-Veröffentlichung, Konflikte, Design
+├── pages/          # ein Verzeichnis je Route; TournamentView ist selbst ein
+│                   #   Verzeichnis (index.tsx plus components/ und lib/)
+└── test/           # SQLite-Backend für Tests, Migrationstests
 
-src-tauri/
-├── src/
-│   ├── lib.rs         # Rust-Backend (DB-Migrations, Backup, Speicherort)
-│   └── main.rs        # Einstiegspunkt
-├── capabilities/      # Tauri-Berechtigungskonfigurationen
-├── Cargo.toml
-└── tauri.conf.json
-
-wordpress-plugin/
-└── boss-live-results/  # Begleitendes WP-Plugin fuer die Live-Veroeffentlichung
-    ├── boss-live-results.php  # REST-Endpunkt, CPT-Storage, 5 Shortcodes
-    ├── frontend.js            # Vanilla-JS-Poller (kein React/jQuery)
-    ├── style.css              # Theme-neutral, dark-mode-faehig
-    └── README.md              # Plugin-Setup + Shortcode-Referenz
+src-tauri/          # Rust: Datenbankpfad, Backup, Wiederherstellung
+scripts/            # i18n-, Kontrast- und Emoji-Prüfungen (laufen in der CI)
+wordpress-plugin/   # Begleit-Plugin für Live-Ergebnisse
 ```
+
+Die Begründungen zur heutigen Struktur stehen in
+[REVIEW-BACKLOG.md](REVIEW-BACKLOG.md).
 
 ## Lizenz
 

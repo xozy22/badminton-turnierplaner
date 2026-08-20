@@ -1,4 +1,5 @@
 import type { ThemeColors } from "../../lib/theme";
+import Icon from "../../components/ui/Icon";
 import type { Player, TournamentMode } from "../../lib/types";
 import { playerDisplayName } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
@@ -43,18 +44,18 @@ export default function TeamPairingStep({
         key={p.id}
         onClick={() => !isMixedBlocked && onPoolClick(p.id)}
         disabled={!!isMixedBlocked}
-        className={`px-3 py-2 rounded-xl text-sm font-medium transition-all border ${
+        className={`px-3 py-2 rounded-md text-sm font-medium transition-all border ${
           isFirst
-            ? `${theme.primaryBg} text-white shadow-md`
+            ? `${theme.primaryBg} text-white shadow-sm`
             : isMixedBlocked
-            ? `${theme.cardBg} ${theme.textMuted} border-gray-200 opacity-30 cursor-not-allowed`
+            ? `${theme.cardBg} ${theme.textMuted} border-line-strong opacity-30 cursor-not-allowed`
             : `${theme.cardBg} ${theme.textPrimary} ${theme.cardBorder} ${theme.cardHoverBorder} hover:shadow-sm cursor-pointer`
         }`}
       >
         {playerDisplayName(p)}
         {!isMixed && (
-          <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${
-            p.gender === "m" ? "bg-blue-500/10 text-blue-500" : "bg-pink-500/10 text-pink-500"
+          <span className={`ml-1.5 text-2xs px-1.5 py-0.5 rounded-full ${
+            p.gender === "m" ? "bg-phase-subtle text-phase-text" : "bg-pink-500/10 text-pink-500"
           }`}>
             {p.gender === "m" ? t.common_gender_male_short : t.common_gender_female_short}
           </span>
@@ -64,10 +65,10 @@ export default function TeamPairingStep({
   };
 
   return (
-    <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5`}>
+    <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5`}>
       <div className="flex items-center justify-between mb-4">
         <h2 className={`font-semibold ${theme.textPrimary}`}>
-          🤝 {t.teams_title}
+          <span aria-hidden="true"><Icon name="handshake" /></span> {t.teams_title}
           <span className={`ml-2 text-xs font-normal ${theme.textSecondary}`}>
             {manualTeams.length > 0
               ? t.teams_count_info.replace("{teams}", String(manualTeams.length)).replace("{open}", String(poolPlayers.length))
@@ -78,7 +79,7 @@ export default function TeamPairingStep({
           {poolPlayers.length >= 2 && (
             <button
               onClick={onAutoAssign}
-              className={`text-xs font-medium ${theme.activeBadgeText} ${theme.activeBadgeBg} px-3 py-1.5 rounded-lg transition-colors`}
+              className={`text-xs font-medium ${theme.activeBadgeText} ${theme.activeBadgeBg} px-3 py-1.5 rounded-sm transition-colors`}
             >
               {t.teams_auto_assign}
             </button>
@@ -86,7 +87,7 @@ export default function TeamPairingStep({
           {manualTeams.length > 0 && (
             <button
               onClick={onClearAll}
-              className={`text-xs ${theme.textMuted} hover:text-rose-600 transition-colors`}
+              className={`text-xs ${theme.textMuted} hover:text-danger-text transition-colors`}
             >
               {t.teams_clear_all}
             </button>
@@ -103,7 +104,7 @@ export default function TeamPairingStep({
           {isMixed ? (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className={`text-[10px] font-bold uppercase tracking-wide mb-1.5 px-1 ${firstPickGender === "f" ? theme.textMuted + " opacity-40" : "text-pink-500"}`}>
+                <div className={`text-2xs font-bold uppercase tracking-wide mb-1.5 px-1 ${firstPickGender === "f" ? theme.textMuted + " opacity-40" : "text-pink-500"}`}>
                   {t.teams_women.replace("{count}", String(poolFemale.length))}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -111,7 +112,7 @@ export default function TeamPairingStep({
                 </div>
               </div>
               <div>
-                <div className={`text-[10px] font-bold uppercase tracking-wide mb-1.5 px-1 ${firstPickGender === "m" ? theme.textMuted + " opacity-40" : "text-blue-500"}`}>
+                <div className={`text-2xs font-bold uppercase tracking-wide mb-1.5 px-1 ${firstPickGender === "m" ? theme.textMuted + " opacity-40" : "text-phase-text"}`}>
                   {t.teams_men.replace("{count}", String(poolMale.length))}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -140,7 +141,7 @@ export default function TeamPairingStep({
               return (
                 <div
                   key={idx}
-                  className={`${theme.selectedBg} border ${theme.cardBorder} rounded-xl px-3 py-2 flex items-center justify-between group`}
+                  className={`${theme.selectedBg} border ${theme.cardBorder} rounded-md px-3 py-2 flex items-center justify-between group`}
                 >
                   <div className="text-sm">
                     <span className={`font-medium ${theme.textPrimary}`}>{p1 ? playerDisplayName(p1) : "?"}</span>
@@ -149,10 +150,10 @@ export default function TeamPairingStep({
                   </div>
                   <button
                     onClick={() => onRemoveTeam(idx)}
-                    className="opacity-0 group-hover:opacity-100 text-xs text-rose-400 hover:text-rose-600 transition-all ml-2"
+                    className="opacity-0 group-hover:opacity-100 text-xs text-danger-text hover:text-danger-text transition-all ml-2"
                     title={t.teams_remove_title}
                   >
-                    ✕
+                    <Icon name="x" />
                   </button>
                 </div>
               );
@@ -164,12 +165,12 @@ export default function TeamPairingStep({
       {/* Status */}
       {poolPlayers.length > 0 && poolPlayers.length < 2 && (
         <div className={`text-xs ${theme.textMuted} mt-3`}>
-          ⚠️ {t.teams_player_leftover}
+          <Icon name="alert" /> {t.teams_player_leftover}
         </div>
       )}
       {poolPlayers.length === 0 && manualTeams.length > 0 && (
-        <div className={`text-xs text-green-600 mt-3`}>
-          ✓ {t.teams_all_assigned}
+        <div className={`text-xs text-success-text mt-3`}>
+          <Icon name="check" /> {t.teams_all_assigned}
         </div>
       )}
     </div>

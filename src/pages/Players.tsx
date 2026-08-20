@@ -1,12 +1,16 @@
-import { useEffect, useState, useMemo } from "react";
-import { getPlayers, createPlayer, updatePlayer, deletePlayer, isTauri } from "../lib/db";
-import ExcelJS from "exceljs";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { EmptyState } from "../components/ui/States";
+import Icon from "../components/ui/Icon";
+import { getPlayers, createPlayer, updatePlayer, removePlayer, restorePlayer, isTauri } from "../lib/db";
+// exceljs is ~800 KB; it loads when someone actually exports
+// (REVIEW-BACKLOG.md E1).
 import type { Player, Gender } from "../lib/types";
 import { calculateAge, playerDisplayName } from "../lib/types";
 import ExcelImport from "../components/players/ExcelImport";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
+import { useToast } from "../lib/ToastContext";
 
 function ClubInput({ value, onChange, onKeyDown, className, placeholder, clubs }: {
   value: string;
@@ -35,13 +39,13 @@ function ClubInput({ value, onChange, onKeyDown, className, placeholder, clubs }
         autoComplete="off"
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-surface-raised border border-line-strong rounded-md shadow-lg max-h-40 overflow-y-auto">
           {filtered.slice(0, 8).map(c => (
             <button
               key={c}
               type="button"
               onMouseDown={(e) => { e.preventDefault(); onChange(c); setOpen(false); }}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-surface-sunken transition-colors"
             >
               {c}
             </button>
@@ -57,6 +61,7 @@ type GenderFilter = "all" | "m" | "f";
 export default function Players() {
   const { theme } = useTheme();
   const { t } = useT();
+  const { showError, showSuccess, showInfo } = useToast();
   useDocumentTitle(t.nav_players);
   const [players, setPlayers] = useState<Player[]>([]);
   const [firstName, setFirstName] = useState("");
@@ -95,9 +100,15 @@ export default function Players() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<{ ids: number[]; displayNames: string[] } | null>(null);
 
-  const load = () => getPlayers().then((p) => { setPlayers(p); setSelectedIds(new Set()); });
+  // Archived players are hidden by default; the toggle brings them back
+  // into the list so they can be restored (REVIEW-BACKLOG.md C8).
+  const [showArchived, setShowArchived] = useState(false);
+  const load = useCallback(
+    () => getPlayers(showArchived).then((p) => { setPlayers(p); setSelectedIds(new Set()); }),
+    [showArchived],
+  );
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   // Unique clubs from existing players
   const existingClubs = useMemo(() => {
@@ -169,15 +180,45 @@ export default function Players() {
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
-    try {
-      for (const id of deleteTarget.ids) {
-        await deletePlayer(id);
+    // Players without history are deleted; players who have already played
+    // are archived so their name stays readable in finished tournaments
+    // (REVIEW-BACKLOG.md C8).
+    let deleted = 0;
+    const archived: string[] = [];
+    const failed: string[] = [];
+
+    for (const id of deleteTarget.ids) {
+      const p = players.find((pp) => pp.id === id);
+      const name = p ? playerDisplayName(p) : String(id);
+      try {
+        const outcome = await removePlayer(id);
+        if (outcome === "archived") archived.push(name);
+        else deleted++;
+      } catch (err) {
+        console.error("Error removing player:", err);
+        failed.push(name);
       }
-      setDeleteTarget(null);
-      load();
-    } catch (err) {
-      console.error("Error deleting player:", err);
     }
+
+    setDeleteTarget(null);
+    load();
+
+    if (failed.length > 0) {
+      showError(t.players_delete_blocked.replace("{players}", failed.join(" · ")));
+    }
+    if (archived.length > 0) {
+      showInfo(t.players_archived_done.replace("{players}", archived.join(" · ")));
+    }
+    if (deleted > 0) {
+      showSuccess(t.players_delete_done.replace("{count}", String(deleted)));
+    }
+  };
+
+  /** Brings an archived player back into the active roster. */
+  const handleRestorePlayer = async (id: number) => {
+    await restorePlayer(id);
+    load();
+    showSuccess(t.players_restored_done);
   };
 
   // Toggle selection
@@ -214,6 +255,7 @@ export default function Players() {
   const someSelected = selectedIds.size > 0;
 
   const handleExport = async () => {
+    const { default: ExcelJS } = await import("exceljs");
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Spieler");
     ws.columns = [
@@ -281,15 +323,15 @@ export default function Players() {
           <button
             onClick={handleExport}
             disabled={players.length === 0}
-            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed`}
+            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed`}
           >
-            📤 {t.common_export}
+            <Icon name="upload" /> {t.common_export}
           </button>
           <button
             onClick={() => setShowImport(true)}
-            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium`}
+            className={`${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2 rounded-md ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium`}
           >
-            📥 {t.common_import}
+            <Icon name="download" /> {t.common_import}
           </button>
         </div>
       </div>
@@ -299,7 +341,7 @@ export default function Players() {
       )}
 
       {/* Add Player */}
-      <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 mb-6`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5 mb-6`}>
         <h2 className={`font-semibold ${theme.textPrimary} mb-3`}>{t.players_new_player}</h2>
         <div className="flex gap-3 items-end">
           <div className="flex-1">
@@ -313,7 +355,7 @@ export default function Players() {
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
               required
               maxLength={60}
-              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               placeholder={t.players_first_name_placeholder}
             />
           </div>
@@ -327,7 +369,7 @@ export default function Players() {
               onChange={(e) => setLastName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
               maxLength={60}
-              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               placeholder={t.players_last_name_placeholder}
             />
           </div>
@@ -338,7 +380,7 @@ export default function Players() {
             <select
               value={gender}
               onChange={(e) => setGender(e.target.value as Gender)}
-              className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
             >
               <option value="m">{t.common_gender_male}</option>
               <option value="f">{t.common_gender_female}</option>
@@ -353,7 +395,7 @@ export default function Players() {
               value={birthDate}
               onChange={(e) => setBirthDate(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              className={`w-40 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-40 ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               min="1900-01-01"
               max={new Date().toISOString().split("T")[0]}
             />
@@ -366,7 +408,7 @@ export default function Players() {
               value={club}
               onChange={setClub}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-xl px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-md px-4 py-2.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
               placeholder={t.players_club_placeholder}
               clubs={existingClubs}
             />
@@ -374,7 +416,7 @@ export default function Players() {
           <button
             onClick={handleAdd}
             disabled={!canAddPlayer}
-            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none`}
+            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all text-sm font-medium disabled:bg-line-strong disabled:cursor-not-allowed disabled:shadow-none`}
           >
             {t.common_add}
           </button>
@@ -382,7 +424,7 @@ export default function Players() {
       </div>
 
       {/* Filter + Actions Bar */}
-      <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} overflow-hidden`}>
+      <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
         <div className={`px-5 py-3 border-b ${theme.cardBorder} flex items-center gap-3 flex-wrap`}>
           {/* Search */}
           <div className="relative flex-1 min-w-[180px]">
@@ -391,19 +433,19 @@ export default function Players() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t.players_search_placeholder}
-              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+              className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
             />
-            <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}>🔍</span>
+            <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}><Icon name="search" /></span>
             {search && (
               <button
                 onClick={() => setSearch("")}
                 className={`absolute right-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} hover:opacity-80 text-xs`}
-              >✕</button>
+              ><Icon name="x" /></button>
             )}
           </div>
 
           {/* Gender Filter */}
-          <div className={`flex rounded-lg border ${theme.inputBorder} overflow-hidden text-xs`}>
+          <div className={`flex rounded-sm border ${theme.inputBorder} overflow-hidden text-xs`}>
             {([
               { value: "all" as GenderFilter, label: t.players_filter_all },
               { value: "m" as GenderFilter, label: t.players_filter_men },
@@ -431,9 +473,9 @@ export default function Players() {
               </span>
               <button
                 onClick={handleDeleteSelected}
-                className="bg-rose-500/10 text-rose-600 border border-rose-500/20 px-3 py-1.5 rounded-lg hover:bg-rose-500/20 transition-all text-xs font-medium"
+                className="bg-danger/10 text-danger-text border border-danger px-3 py-1.5 rounded-sm hover:bg-danger/20 transition-all text-xs font-medium"
               >
-                🗑 {t.players_delete_selected}
+                <Icon name="trash" /> {t.players_delete_selected}
               </button>
               <button
                 onClick={() => setSelectedIds(new Set())}
@@ -449,208 +491,232 @@ export default function Players() {
         {(genderFilter !== "all" || search) && (
           <div className={`px-5 py-1.5 text-xs ${theme.textMuted} border-b ${theme.cardBorder}`}>
             {t.players_shown_of_total.replace("{shown}", String(filteredPlayers.length)).replace("{total}", String(players.length))}
+            <label className={`ml-4 inline-flex items-center gap-1.5 cursor-pointer ${theme.textMuted}`} title={t.players_archive_hint}>
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                className="rounded accent-emerald-600"
+              />
+              {t.players_show_archived}
+            </label>
           </div>
         )}
 
         {/* Player Table */}
-        <table className="w-full text-sm">
-          <thead>
-            <tr className={`border-b ${theme.cardBorder} ${theme.headerGradient}`}>
-              <th className="w-10 px-3 py-3 text-center align-middle">
-                <input
-                  type="checkbox"
-                  checked={allFilteredSelected}
-                  onChange={toggleSelectAll}
-                  className="rounded accent-emerald-600"
-                  title={t.players_select_all}
-                />
-              </th>
-              <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide align-middle`}>
-                #
-              </th>
-              <th
-                onClick={() => toggleSort("first_name")}
-                className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide cursor-pointer select-none hover:opacity-80`}
-              >
-                {t.common_first_name} {sortKey === "first_name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
-              </th>
-              <th
-                onClick={() => toggleSort("last_name")}
-                className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide cursor-pointer select-none hover:opacity-80`}
-              >
-                {t.common_last_name} {sortKey === "last_name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
-              </th>
-              <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.common_gender}
-              </th>
-              <th className={`text-center px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.common_age}
-              </th>
-              <th className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.common_club}
-              </th>
-              <th className={`text-right px-5 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
-                {t.common_actions}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredPlayers.map((p, i) => {
-              const isSelected = selectedIds.has(p.id);
-              return (
-                <tr
-                  key={p.id}
-                  className={`border-b ${theme.cardBorder} last:border-0 transition-colors ${
-                    isSelected ? theme.selectedBg : `hover:${theme.cardBg}`
-                  }`}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className={`border-b ${theme.cardBorder} ${theme.headerGradient}`}>
+                <th scope="col" className="w-10 px-3 py-3 text-center align-middle">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleSelectAll}
+                    className="rounded accent-emerald-600"
+                    title={t.players_select_all}
+                  />
+                </th>
+                <th scope="col" className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide align-middle`}>
+                  #
+                </th>
+                <th scope="col"
+                  onClick={() => toggleSort("first_name")}
+                  className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide cursor-pointer select-none hover:opacity-80`}
                 >
-                  <td className="px-3 py-3 text-center align-middle">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelect(p.id)}
-                      className="rounded accent-emerald-600"
-                    />
-                  </td>
-                  <td className={`px-3 py-3 ${theme.textMuted} font-mono text-xs`}>
-                    {i + 1}
-                  </td>
-                  <td className={`px-3 py-3 font-medium ${theme.textPrimary}`}>
-                    {editingId === p.id ? (
+                  {t.common_first_name} {sortKey === "first_name" ? <Icon name="chevronDown" className={sortDir === "asc" ? "rotate-180" : ""} /> : null}
+                </th>
+                <th scope="col"
+                  onClick={() => toggleSort("last_name")}
+                  className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide cursor-pointer select-none hover:opacity-80`}
+                >
+                  {t.common_last_name} {sortKey === "last_name" ? <Icon name="chevronDown" className={sortDir === "asc" ? "rotate-180" : ""} /> : null}
+                </th>
+                <th scope="col" className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.common_gender}
+                </th>
+                <th scope="col" className={`text-center px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.common_age}
+                </th>
+                <th scope="col" className={`text-left px-3 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.common_club}
+                </th>
+                <th scope="col" className={`text-right px-5 py-3 font-semibold ${theme.standingsHeaderText} text-xs uppercase tracking-wide`}>
+                  {t.common_actions}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPlayers.map((p, i) => {
+                const isSelected = selectedIds.has(p.id);
+                return (
+                  <tr
+                    key={p.id}
+                    className={`border-b ${theme.cardBorder} last:border-0 transition-colors ${
+                      isSelected ? theme.selectedBg : `hover:${theme.cardBg}`
+                    } ${p.archived_at ? "opacity-60" : ""}`}
+                  >
+                    <td className="px-3 py-3 text-center align-middle">
                       <input
-                        type="text"
-                        value={editFirstName}
-                        onChange={(e) => setEditFirstName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
-                        autoFocus
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(p.id)}
+                        className="rounded accent-emerald-600"
                       />
-                    ) : (
-                      p.first_name
-                    )}
-                  </td>
-                  <td className={`px-3 py-3 ${theme.textPrimary}`}>
-                    {editingId === p.id ? (
-                      <input
-                        type="text"
-                        value={editLastName}
-                        onChange={(e) => setEditLastName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
-                      />
-                    ) : (
-                      p.last_name
-                    )}
-                  </td>
-                  <td className="px-3 py-3">
-                    {editingId === p.id ? (
-                      <select
-                        value={editGender}
-                        onChange={(e) => setEditGender(e.target.value as Gender)}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm`}
-                      >
-                        <option value="m">{t.common_gender_male}</option>
-                        <option value="f">{t.common_gender_female}</option>
-                      </select>
-                    ) : (
-                      <span
-                        className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                          p.gender === "m"
-                            ? "bg-blue-500/10 text-blue-500"
-                            : "bg-pink-500/10 text-pink-500"
-                        }`}
-                      >
-                        {p.gender === "m" ? t.common_gender_male : t.common_gender_female}
-                      </span>
-                    )}
-                  </td>
-                  <td className={`px-3 py-3 text-center ${theme.textSecondary}`}>
-                    {editingId === p.id ? (
-                      <input
-                        type="date"
-                        value={editBirthDate}
-                        onChange={(e) => setEditBirthDate(e.target.value)}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-2 py-1.5 text-sm w-36 text-center`}
-                        max={new Date().toISOString().split("T")[0]}
-                      />
-                    ) : (
-                      p.birth_date != null ? (
-                        <span className="text-sm" title={`${t.common_birth_date}: ${new Date(p.birth_date).toLocaleDateString()}`}>
-                          {calculateAge(p.birth_date)}
-                        </span>
+                    </td>
+                    <td className={`px-3 py-3 ${theme.textMuted} font-mono text-xs`}>
+                      {i + 1}
+                    </td>
+                    <td className={`px-3 py-3 font-medium ${theme.textPrimary}`}>
+                      {editingId === p.id ? (
+                        <input
+                          type="text"
+                          value={editFirstName}
+                          onChange={(e) => setEditFirstName(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
+                          autoFocus
+                        />
                       ) : (
-                        <span className="text-sm">-</span>
-                      )
-                    )}
-                  </td>
-                  <td className={`px-3 py-3 ${theme.textSecondary}`}>
-                    {editingId === p.id ? (
-                      <ClubInput
-                        value={editClub}
-                        onChange={setEditClub}
-                        className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg px-3 py-1.5 text-sm w-full`}
-                        placeholder={t.players_club_placeholder}
-                        clubs={existingClubs}
-                      />
+                        p.first_name
+                      )}
+                    </td>
+                    <td className={`px-3 py-3 ${theme.textPrimary}`}>
+                      {editingId === p.id ? (
+                        <input
+                          type="text"
+                          value={editLastName}
+                          onChange={(e) => setEditLastName(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-1.5 text-sm w-full focus:ring-2 ${theme.focusRing} outline-none`}
+                        />
+                      ) : (
+                        p.last_name
+                      )}
+                    </td>
+                    <td className="px-3 py-3">
+                      {editingId === p.id ? (
+                        <select
+                          value={editGender}
+                          onChange={(e) => setEditGender(e.target.value as Gender)}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-1.5 text-sm`}
+                        >
+                          <option value="m">{t.common_gender_male}</option>
+                          <option value="f">{t.common_gender_female}</option>
+                        </select>
+                      ) : (
+                        <span
+                          className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                            p.gender === "m"
+                              ? "bg-phase-subtle text-phase-text"
+                              : "bg-pink-500/10 text-pink-500"
+                          }`}
+                        >
+                          {p.gender === "m" ? t.common_gender_male : t.common_gender_female}
+                        </span>
+                      )}
+                    </td>
+                    <td className={`px-3 py-3 text-center ${theme.textSecondary}`}>
+                      {editingId === p.id ? (
+                        <input
+                          type="date"
+                          value={editBirthDate}
+                          onChange={(e) => setEditBirthDate(e.target.value)}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-2 py-1.5 text-sm w-36 text-center`}
+                          max={new Date().toISOString().split("T")[0]}
+                        />
+                      ) : (
+                        p.birth_date != null ? (
+                          <span className="text-sm" title={`${t.common_birth_date}: ${new Date(p.birth_date).toLocaleDateString()}`}>
+                            {calculateAge(p.birth_date)}
+                          </span>
+                        ) : (
+                          <span className="text-sm">-</span>
+                        )
+                      )}
+                    </td>
+                    <td className={`px-3 py-3 ${theme.textSecondary}`}>
+                      {editingId === p.id ? (
+                        <ClubInput
+                          value={editClub}
+                          onChange={setEditClub}
+                          className={`${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm px-3 py-1.5 text-sm w-full`}
+                          placeholder={t.players_club_placeholder}
+                          clubs={existingClubs}
+                        />
+                      ) : (
+                        <span className="text-sm">{p.club ?? "-"}</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      {editingId === p.id ? (
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={handleSave}
+                            className={`${theme.activeBadgeText} text-sm font-medium`}
+                          >
+                            {t.common_save}
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className={`${theme.textMuted} hover:opacity-80 text-sm`}
+                          >
+                            {t.common_cancel}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-3 justify-end">
+                          {p.archived_at ? (
+                            <button
+                              onClick={() => handleRestorePlayer(p.id)}
+                              className={`${theme.textMuted} hover:${theme.activeBadgeText} text-sm transition-colors`}
+                            >
+                              {t.players_restore}
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleEdit(p)}
+                                className={`${theme.textMuted} hover:${theme.activeBadgeText} text-sm transition-colors`}
+                              >
+                                {t.common_edit}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSingle(p)}
+                                className={`${theme.textMuted} hover:text-danger-text text-sm transition-colors`}
+                              >
+                                {t.common_delete}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredPlayers.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="p-5">
+                    {players.length === 0 ? (
+                      <EmptyState icon="users" title={t.players_none_yet} hint={t.players_empty_hint} />
                     ) : (
-                      <span className="text-sm">{p.club ?? "-"}</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    {editingId === p.id ? (
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={handleSave}
-                          className={`${theme.activeBadgeText} text-sm font-medium`}
-                        >
-                          {t.common_save}
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className={`${theme.textMuted} hover:opacity-80 text-sm`}
-                        >
-                          {t.common_cancel}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-3 justify-end">
-                        <button
-                          onClick={() => handleEdit(p)}
-                          className={`${theme.textMuted} hover:${theme.activeBadgeText} text-sm transition-colors`}
-                        >
-                          {t.common_edit}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteSingle(p)}
-                          className={`${theme.textMuted} hover:text-rose-600 text-sm transition-colors`}
-                        >
-                          {t.common_delete}
-                        </button>
-                      </div>
+                      <EmptyState icon="search" title={t.players_no_filter_results} />
                     )}
                   </td>
                 </tr>
-              );
-            })}
-            {filteredPlayers.length === 0 && (
-              <tr>
-                <td colSpan={8} className={`px-5 py-12 text-center ${theme.textMuted}`}>
-                  {players.length === 0
-                    ? t.players_none_yet
-                    : t.players_no_filter_results}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-md p-6 border ${theme.cardBorder}`}>
+          <div className={`${theme.cardBg} rounded-lg shadow-lg w-full max-w-md p-6 border ${theme.cardBorder}`}>
             <div className="text-center mb-5">
-              <div className="text-4xl mb-3">⚠️</div>
+              <div className="text-4xl mb-3"><Icon name="alert" /></div>
               <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
                 {deleteTarget.ids.length === 1
                   ? t.players_delete_confirm_single
@@ -685,13 +751,13 @@ export default function Players() {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className={`flex-1 ${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium`}
+                className={`flex-1 ${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md hover:opacity-80 transition-all text-sm font-medium`}
               >
                 {t.common_cancel}
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="flex-1 bg-rose-600 text-white px-4 py-2.5 rounded-xl hover:bg-rose-700 transition-all text-sm font-medium"
+                className="flex-1 bg-danger text-danger-fg px-4 py-2.5 rounded-md hover:bg-danger transition-all text-sm font-medium"
               >
                 {deleteTarget.ids.length === 1 ? t.common_delete : t.players_delete_confirm_multi.replace("{count}", String(deleteTarget.ids.length))}
               </button>

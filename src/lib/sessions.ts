@@ -28,6 +28,8 @@ async function getDb() {
 interface LocalStoreShape {
   sessions?: Session[];
   tournaments?: Tournament[];
+  rounds?: { id: number; tournament_id: number }[];
+  matches?: { id: number; round_id: number; court: number | null; status: string }[];
   nextId?: { sessions?: number; [k: string]: number | undefined };
   [k: string]: unknown;
 }
@@ -240,9 +242,21 @@ export async function getSessionEndStats(sessionId: number): Promise<SessionEndS
   const tournaments = (store.tournaments ?? [])
     .filter((tt) => (tt as Tournament).session_id === sessionId && (tt as Tournament).status === "active")
     .map((tt) => ({ id: (tt as Tournament).id, name: (tt as Tournament).name }));
-  // localStorage doesn't keep matches per tournament structurally — return 0.
-  // (browser-mode usage is rare; the Tauri path covers the real case.)
-  return { activeTournaments: tournaments, matchesOnCourt: 0 };
+
+  // This used to return a hard 0, on the assumption that the fallback store
+  // has no per-tournament matches. It does — rounds and matches sit right
+  // next to the tournaments — so the confirm dialog was telling browser
+  // users that no match was on court while several were
+  // (REVIEW-BACKLOG.md C5).
+  const tournamentIds = new Set(tournaments.map((tt) => tt.id));
+  const roundIds = new Set(
+    (store.rounds ?? []).filter((r) => tournamentIds.has(r.tournament_id)).map((r) => r.id),
+  );
+  const matchesOnCourt = (store.matches ?? []).filter(
+    (m) => roundIds.has(m.round_id) && m.court !== null && m.status !== "completed",
+  ).length;
+
+  return { activeTournaments: tournaments, matchesOnCourt };
 }
 
 // ---- Tournament <-> Session linking ----
@@ -265,9 +279,11 @@ export async function attachTournamentToSession(
   const session = await getSession(sessionId);
   if (!session) throw new Error(`Session ${sessionId} not found`);
   if (session.status !== "active") {
-    throw new Error(
-      `Session "${session.name}" ist ${session.status === "ended" ? "beendet" : "archiviert"} — Turniere koennen nur an aktive Sessions angedockt werden.`,
-    );
+    // A code, not prose: this message reaches the interface, and the
+    // sentence for it already exists as a translation key
+    // (session_attach_blocked_status_hint). See lib/backendError.ts for
+    // the same treatment of the Rust-side errors.
+    throw new Error(`BOSS:session_not_active|${session.name}`);
   }
   if (isTauri()) {
     const d = await getDb();

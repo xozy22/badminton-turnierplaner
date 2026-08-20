@@ -1,4 +1,5 @@
 import type { Tournament, Match, GameSet, Player, TournamentFormat, TournamentMode } from "./types";
+import { minutesOf } from "./duration";
 import { calculateAge } from "./types";
 
 // ===== Tournament Stats =====
@@ -47,15 +48,14 @@ export function calculateMatchStats(matches: Match[], sets: Map<number, GameSet[
   const completed = matches.filter((m) => m.status === "completed");
 
   // Duration calculations
+  // Through minutesOf, so this page and the schedule forecast report the
+  // same number: the time settled when the match finished, or the old
+  // timestamp difference for matches from before that was recorded.
   const durations: { matchId: number; minutes: number }[] = [];
   for (const m of completed) {
-    if (m.started_at && m.completed_at) {
-      const start = new Date(m.started_at).getTime();
-      const end = new Date(m.completed_at).getTime();
-      const minutes = (end - start) / 60000;
-      if (minutes > 0) {
-        durations.push({ matchId: m.id, minutes });
-      }
+    const minutes = minutesOf(m);
+    if (minutes !== null && minutes > 0) {
+      durations.push({ matchId: m.id, minutes });
     }
   }
 
@@ -126,13 +126,11 @@ export function calculateCourtStats(matches: Match[]): CourtStats {
     const court = m.court!;
     courtCounts.set(court, (courtCounts.get(court) || 0) + 1);
 
-    if (m.started_at && m.completed_at) {
-      const minutes = (new Date(m.completed_at).getTime() - new Date(m.started_at).getTime()) / 60000;
-      if (minutes > 0) {
-        const arr = courtDurations.get(court) || [];
-        arr.push(minutes);
-        courtDurations.set(court, arr);
-      }
+    const courtMinutes = minutesOf(m);
+    if (courtMinutes !== null && courtMinutes > 0) {
+      const arr = courtDurations.get(court) || [];
+      arr.push(courtMinutes);
+      courtDurations.set(court, arr);
     }
   }
 

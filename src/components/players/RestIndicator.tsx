@@ -7,6 +7,7 @@
 // Zero-cost when min_rest_minutes <= 0 (no timer installed, early return).
 
 import { useEffect, useState } from "react";
+import Icon from "../../components/ui/Icon";
 import { useT } from "../../lib/I18nContext";
 import { getPlayerRestStatus } from "../../lib/restTime";
 import type { Match } from "../../lib/types";
@@ -59,11 +60,11 @@ export default function RestIndicator({
 
   return (
     <span
-      className={`inline-flex items-center text-amber-500 text-xs ml-1 ${className ?? ""}`}
+      className={`inline-flex items-center text-warning-text text-xs ml-1 ${className ?? ""}`}
       title={tooltip}
       aria-label={tooltip}
     >
-      ⏱
+      <Icon name="clock" />
     </span>
   );
 }

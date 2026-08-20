@@ -11,6 +11,10 @@
 // and multi-hall layout all stay in sync without re-implementing logic.
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { formatLabel, modeLabel } from "../lib/i18n/labels";
+import Icon from "../components/ui/Icon";
+import { onDataChanged } from "../lib/changeEvents";
+import { usePolling } from "../lib/usePolling";
 import { useParams } from "react-router-dom";
 import {
   getTournament,
@@ -31,8 +35,6 @@ import type {
   HallConfig,
 } from "../lib/types";
 import {
-  MODE_LABELS,
-  FORMAT_LABELS,
   playerDisplayName,
   parseHallConfig,
   getCourtHallLabel,
@@ -48,11 +50,10 @@ import {
   getMatchConflicts,
   type ConflictPlayer,
 } from "../lib/courtConflicts";
-import { useTheme } from "../lib/ThemeContext";
-import { useT } from "../lib/I18nContext";
+import { useT, useLocale } from "../lib/I18nContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import RestIndicator from "../components/players/RestIndicator";
-import { getCustomLogo } from "./Settings";
+import { getCustomLogo } from "./settings/LogoSettings";
 
 interface Announcement {
   id: number;
@@ -62,13 +63,24 @@ interface Announcement {
   timestamp: number;
 }
 
-// TV accent color mapping per theme. Bronze accent (orange) is hardcoded
-// regardless of theme since it specifically marks the third-place match.
-const TV_ACCENTS: Record<string, { primary: string; primaryBg: string; gradient: string; headerBorder: string; courtBorder: string; courtBg: string; winText: string; barFill: string }> = {
-  green:  { primary: "text-emerald-400", primaryBg: "bg-emerald-600", gradient: "from-gray-950 via-emerald-950 to-gray-950", headerBorder: "border-emerald-800/30", courtBorder: "border-emerald-500/50", courtBg: "bg-emerald-900/20", winText: "text-emerald-400", barFill: "bg-emerald-500" },
-  blue:   { primary: "text-blue-400",    primaryBg: "bg-blue-600",    gradient: "from-gray-950 via-blue-950 to-gray-950",    headerBorder: "border-blue-800/30",    courtBorder: "border-blue-500/50",    courtBg: "bg-blue-900/20",    winText: "text-blue-400",    barFill: "bg-blue-500" },
-  orange: { primary: "text-orange-400",  primaryBg: "bg-orange-600",  gradient: "from-gray-950 via-orange-950 to-gray-950",  headerBorder: "border-orange-800/30",  courtBorder: "border-orange-500/50",  courtBg: "bg-orange-900/20",  winText: "text-orange-400",  barFill: "bg-orange-500" },
-  dark:   { primary: "text-emerald-400", primaryBg: "bg-emerald-600", gradient: "from-gray-950 via-gray-900 to-gray-950",    headerBorder: "border-gray-700/30",    courtBorder: "border-emerald-500/50", courtBg: "bg-emerald-900/20", winText: "text-emerald-400", barFill: "bg-emerald-500" },
+/**
+ * One accent set for the TV display, built from the design tokens.
+ *
+ * This was a table of four — the same arrangement that F1 removed from the
+ * app — so a theme added here had to be added there too. `--accent-bright`
+ * is the light accent each theme defines for dark surfaces, which is
+ * exactly what a projector needs: 10.5:1 (green), 7.9:1 (blue) and 8.9:1
+ * (orange) against the background, all above AAA at viewing distance
+ * (REVIEW-BACKLOG.md F2, G3).
+ */
+const TV_ACCENT = {
+  primary: "text-accent-bright",
+  primaryBg: "bg-accent",
+  headerBorder: "border-accent-bright/30",
+  courtBorder: "border-accent-bright/50",
+  courtBg: "bg-accent-bright/10",
+  winText: "text-accent-bright",
+  barFill: "bg-accent-bright",
 };
 
 // Bronze (3rd-place) match accent — fixed regardless of theme so spectators
@@ -80,9 +92,10 @@ const BRONZE_BG = "bg-orange-900/20";
 const COURT_BG = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 134" fill="none" opacity="0.12"><rect x="2" y="2" width="256" height="130" rx="2" stroke="#9CA3AF" stroke-width="1.5"/><line x1="130" y1="2" x2="130" y2="132" stroke="#9CA3AF" stroke-width="2"/><rect x="2" y="17" width="256" height="100" rx="1" stroke="#9CA3AF" stroke-width="1"/><line x1="46" y1="17" x2="46" y2="117" stroke="#9CA3AF" stroke-width="1"/><line x1="214" y1="17" x2="214" y2="117" stroke="#9CA3AF" stroke-width="1"/><line x1="46" y1="67" x2="214" y2="67" stroke="#9CA3AF" stroke-width="1"/><line x1="236" y1="2" x2="236" y2="132" stroke="#9CA3AF" stroke-width="1" stroke-dasharray="4 3"/><line x1="24" y1="2" x2="24" y2="132" stroke="#9CA3AF" stroke-width="1" stroke-dasharray="4 3"/></svg>`)}`;
 
 export default function TvMode() {
-  const { themeId } = useTheme();
   const { t } = useT();
-  const tv = TV_ACCENTS[themeId] || TV_ACCENTS.green;
+  const locale = useLocale();
+  // The accent no longer depends on the theme id — the tokens carry it.
+  const tv = TV_ACCENT;
   const { id } = useParams<{ id: string }>();
   const tournamentId = Number(id);
 
@@ -165,12 +178,15 @@ export default function TvMode() {
     }
   }, [tournamentId]);
 
-  // Poll data every 5 seconds
-  useEffect(() => {
-    loadAll();
-    const interval = setInterval(loadAll, 5000);
-    return () => clearInterval(interval);
-  }, [loadAll]);
+  // A result reaches the wall as soon as it is entered: the write announces
+  // itself across windows, and this listens. Polling stays as a safety net
+  // for anything that changes without an announcement — a database edited
+  // from elsewhere, or a notification lost with a closed window — but at
+  // 30s instead of 5s, since it is no longer the primary path
+  // (REVIEW-BACKLOG.md E3).
+  useEffect(() => onDataChanged(() => void loadAll()), [loadAll]);
+
+  usePolling(() => loadAll(), { intervalMs: 30_000, label: "TvMode" }, [loadAll]);
 
   // Listen for announcements from main window
   useEffect(() => {
@@ -296,7 +312,7 @@ export default function TvMode() {
   const matchContextLabel = (m: Match): string => {
     const r = roundById.get(m.round_id);
     if (!r) return "";
-    if (r.phase === "third_place") return `🥉 ${t.bracket_third_place_short}`;
+    if (r.phase === "third_place") return t.bracket_third_place_short;
     if (r.phase === "group" && r.group_number != null) {
       const idx = groupRoundIndex.get(r.id) ?? r.round_number;
       return `G${r.group_number} · R${idx}`;
@@ -377,7 +393,7 @@ export default function TvMode() {
         <span>{playerName(pid)}</span>
         {seed != null && (
           <span
-            className="ml-1 px-1 py-0 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 align-middle"
+            className="ml-1 px-1 py-0 rounded text-2xs font-bold bg-warning/20 text-warning-text border border-warning/40 align-middle"
             title={t.seed_badge_tooltip.replace("{n}", String(seed))}
           >
             {t.seed_badge_short.replace("{n}", String(seed))}
@@ -395,14 +411,15 @@ export default function TvMode() {
     );
   };
 
-  const renderTeam = (p1: number, p2: number | null, m: Match) => {
+  const renderTeam = (p1: number | null, p2: number | null, m: Match) => {
+    if (p1 === null) return <span className="italic text-white/60">{t.common_bye}</span>;
     const wantIcons = showRestIcons && m.status !== "completed";
     return (
       <>
         {renderPlayerName(p1, m, wantIcons)}
         {p2 != null && (
           <>
-            <span className="mx-1 text-gray-500">/</span>
+            <span className="mx-1 text-white/50">/</span>
             {renderPlayerName(p2, m, wantIcons)}
           </>
         )}
@@ -538,10 +555,10 @@ export default function TvMode() {
       return (
         <div
           key={courtNum}
-          className="rounded-2xl border-2 border-dashed border-gray-700 bg-gray-900/50 p-4 flex flex-col items-center justify-center min-h-[140px]"
+          className="rounded-lg border-2 border-dashed border-line-strong bg-gray-900/50 p-4 flex flex-col items-center justify-center min-h-[140px]"
           style={{ backgroundImage: `url("${COURT_BG}")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'auto 85%' }}
         >
-          <span className="text-xs font-bold text-amber-700 bg-amber-900/50 px-2.5 py-0.5 rounded-md mb-2">
+          <span className="text-xs font-bold text-amber-700 bg-warning-subtle/50 px-2.5 py-0.5 rounded-sm mb-2">
             {courtLabel}
           </span>
           <div className="text-gray-600 text-sm">{t.tv_free}</div>
@@ -563,23 +580,23 @@ export default function TvMode() {
     return (
       <div
         key={courtNum}
-        className={`rounded-2xl border-2 ${isBronze ? BRONZE_BORDER : tv.courtBorder} ${isBronze ? BRONZE_BG : tv.courtBg} p-4 min-h-[140px] flex flex-col relative overflow-hidden`}
+        className={`rounded-lg border-2 ${isBronze ? BRONZE_BORDER : tv.courtBorder} ${isBronze ? BRONZE_BG : tv.courtBg} p-4 min-h-[140px] flex flex-col relative overflow-hidden`}
         style={{ backgroundImage: `url("${COURT_BG}")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'auto 85%' }}
       >
         {/* Court header: court label · context (Group/Round) · timer */}
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-amber-700 bg-amber-900/50 px-2.5 py-0.5 rounded-md">
+            <span className="text-xs font-bold text-amber-700 bg-warning-subtle/50 px-2.5 py-0.5 rounded-sm">
               {courtLabel}
             </span>
             {ctxLabel && (
-              <span className={`text-[11px] font-bold uppercase tracking-wide ${isBronze ? "text-orange-300" : tv.primary}`}>
+              <span className={`text-2xs font-bold uppercase tracking-wide ${isBronze ? "text-orange-300" : tv.primary}`}>
                 {ctxLabel}
               </span>
             )}
           </div>
-          <span className="text-sm font-mono font-bold text-amber-400">
-            ⏱ {formatTimer(match.court_assigned_at)}
+          <span className="text-sm font-mono font-bold text-warning-text">
+            <Icon name="clock" /> {formatTimer(match.started_at)}
           </span>
         </div>
 
@@ -588,7 +605,7 @@ export default function TvMode() {
           <div className="text-base font-bold text-white leading-tight truncate">
             {renderTeam(match.team1_p1, match.team1_p2, match)}
           </div>
-          <div className="text-gray-500 text-xs my-0.5">{t.common_vs}</div>
+          <div className="text-white/50 text-xs my-0.5">{t.common_vs}</div>
           <div className="text-base font-bold text-white leading-tight truncate">
             {renderTeam(match.team2_p1, match.team2_p2, match)}
           </div>
@@ -596,13 +613,13 @@ export default function TvMode() {
 
         {/* Score */}
         <div className="flex items-center gap-3 mt-2">
-          <div className="text-2xl font-extrabold font-mono text-center bg-black/30 rounded-xl px-4 py-2 flex-1">
+          <div className="text-2xl font-extrabold font-mono text-center bg-black/30 rounded-md px-4 py-2 flex-1">
             <span className={t1Sets > t2Sets ? tv.winText : "text-white"}>{t1Sets}</span>
             <span className="text-gray-600 mx-2">:</span>
             <span className={t2Sets > t1Sets ? tv.winText : "text-white"}>{t2Sets}</span>
           </div>
           {sets.length > 0 && (
-            <div className="text-xs font-mono text-gray-400 leading-tight">
+            <div className="text-xs font-mono text-white/60 leading-tight">
               {sets
                 .filter((s) => s.team1_score > 0 || s.team2_score > 0)
                 .map((s) => (
@@ -623,34 +640,34 @@ export default function TvMode() {
     return (
       <div
         key={m.id}
-        className={`rounded-xl px-3 py-2 border transition-all ${
+        className={`rounded-md px-3 py-2 border transition-all ${
           isBronze
             ? "bg-orange-900/20 border-orange-400/40"
             : blocked
               ? "bg-rose-900/20 border-rose-500/40"
               : isFirst
-                ? "bg-amber-500/10 border-amber-500/30"
-                : "bg-black/20 border-gray-800"
+                ? "bg-warning/10 border-warning/30"
+                : "bg-black/20 border-line"
         }`}
       >
-        <div className="flex items-center justify-between mb-1 text-[10px] font-bold uppercase tracking-widest">
+        <div className="flex items-center justify-between mb-1 text-2xs font-bold uppercase tracking-widest">
           {isFirst && !blocked && !isBronze && (
-            <span className="text-amber-500">{t.tv_next_up}</span>
+            <span className="text-warning-text">{t.tv_next_up}</span>
           )}
-          {ctxLabel && <span className="text-gray-400 ml-auto">{ctxLabel}</span>}
+          {ctxLabel && <span className="text-white/60 ml-auto">{ctxLabel}</span>}
         </div>
         <div className="text-sm">
           <div className="font-semibold text-white">
             {renderTeam(m.team1_p1, m.team1_p2, m)}
           </div>
-          <div className="text-gray-500 text-xs my-0.5">{t.common_vs}</div>
+          <div className="text-white/50 text-xs my-0.5">{t.common_vs}</div>
           <div className="font-semibold text-white">
             {renderTeam(m.team2_p1, m.team2_p2, m)}
           </div>
         </div>
         {blocked && (
-          <div className="mt-1 text-[10px] font-bold text-rose-400 flex items-center gap-1">
-            <span>🚫</span><span>{t.match_blocked_short}</span>
+          <div className="mt-1 text-2xs font-bold text-danger-text flex items-center gap-1">
+            <span><Icon name="ban" /></span><span>{t.match_blocked_short}</span>
           </div>
         )}
       </div>
@@ -670,19 +687,19 @@ export default function TvMode() {
     }
     const ctx = matchContextLabel(m);
     return (
-      <div key={m.id} className="bg-black/20 rounded-xl px-4 py-2.5 text-sm">
+      <div key={m.id} className="bg-black/20 rounded-md px-4 py-2.5 text-sm">
         {ctx && (
-          <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">
+          <div className="text-2xs font-bold uppercase tracking-widest text-white/50 mb-1">
             {ctx}
           </div>
         )}
         <div className="flex items-center justify-between mb-1">
-          <span className={`font-semibold truncate ${m.winner_team === 1 ? tv.winText : "text-gray-500"}`}>{t1}</span>
-          <span className={`font-mono font-bold text-lg ml-2 ${m.winner_team === 1 ? tv.winText : "text-gray-500"}`}>{t1Sets}</span>
+          <span className={`font-semibold truncate ${m.winner_team === 1 ? tv.winText : "text-white/50"}`}>{t1}</span>
+          <span className={`font-mono font-bold text-lg ml-2 ${m.winner_team === 1 ? tv.winText : "text-white/50"}`}>{t1Sets}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className={`font-semibold truncate ${m.winner_team === 2 ? tv.winText : "text-gray-500"}`}>{t2}</span>
-          <span className={`font-mono font-bold text-lg ml-2 ${m.winner_team === 2 ? tv.winText : "text-gray-500"}`}>{t2Sets}</span>
+          <span className={`font-semibold truncate ${m.winner_team === 2 ? tv.winText : "text-white/50"}`}>{t2}</span>
+          <span className={`font-mono font-bold text-lg ml-2 ${m.winner_team === 2 ? tv.winText : "text-white/50"}`}>{t2Sets}</span>
         </div>
       </div>
     );
@@ -696,8 +713,8 @@ export default function TvMode() {
     const median = completedCounts[Math.floor(completedCounts.length / 2)];
     const isBehind = (p: GroupProgress) => p.remaining > 0 && median - p.completed >= 2;
     return (
-      <div className="px-8 py-2 bg-black/20 border-b border-gray-800/50 flex items-center gap-6 overflow-x-auto">
-        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest shrink-0">
+      <div className="px-8 py-2 bg-black/20 border-b border-line/50 flex items-center gap-6 overflow-x-auto">
+        <span className="text-2xs font-bold text-white/50 uppercase tracking-widest shrink-0">
           {t.tv_groups_strip_header}
         </span>
         {progress.map((p) => {
@@ -706,20 +723,20 @@ export default function TvMode() {
           const done = p.remaining === 0 && p.total > 0;
           return (
             <div key={p.group} className="flex items-center gap-2 shrink-0 min-w-[160px]">
-              <span className={`text-sm font-bold shrink-0 ${behind ? "text-rose-400" : "text-white"}`}>
+              <span className={`text-sm font-bold shrink-0 ${behind ? "text-danger-text" : "text-white"}`}>
                 G{p.group}
               </span>
-              <div className="flex-1 h-2 rounded-full overflow-hidden bg-gray-800 border border-gray-700">
+              <div className="flex-1 h-2 rounded-full overflow-hidden bg-surface-raised border border-line-strong">
                 <div
-                  className={`h-full ${done ? "bg-emerald-500" : behind ? "bg-rose-400" : tv.barFill}`}
+                  className={`h-full ${done ? "bg-success" : behind ? "bg-danger" : tv.barFill}`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <span className="text-xs font-mono text-gray-400 shrink-0">
+              <span className="text-xs font-mono text-white/60 shrink-0">
                 {p.completed}/{p.total}
               </span>
-              {behind && <span className="text-rose-400 shrink-0">⚠</span>}
-              {done && <span className="text-emerald-400 shrink-0">✓</span>}
+              {behind && <span className="text-danger-text shrink-0"><Icon name="alert" /></span>}
+              {done && <span className="text-emerald-400 shrink-0"><Icon name="check" /></span>}
             </div>
           );
         })}
@@ -730,17 +747,17 @@ export default function TvMode() {
   // ---------- Render ----------
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${tv.gradient} text-white overflow-hidden flex flex-col`}>
+    <div className="min-h-screen bg-tv text-white overflow-hidden flex flex-col">
       {/* Header */}
       <div className={`bg-black/30 backdrop-blur-sm border-b ${tv.headerBorder} px-8 py-4 flex justify-between items-center shrink-0`}>
         <div className="flex items-center gap-4">
-          <img src={getCustomLogo() || "/logo.png"} alt="Logo" className="w-10 h-10 object-contain" />
+          <img src={getCustomLogo() || "/logo.webp"} alt="Logo" className="w-10 h-10 object-contain" />
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight">{tournament.name}</h1>
             <div className={`${tv.primary} text-sm font-medium`}>
-              {MODE_LABELS[tournament.mode]} &middot; {FORMAT_LABELS[tournament.format]}
+              {modeLabel(t, tournament.mode)} &middot; {formatLabel(t, tournament.format)}
               {phaseLabel && (
-                <span className="ml-2 px-2 py-0.5 rounded-md bg-black/30 text-white text-xs font-bold uppercase tracking-wider">
+                <span className="ml-2 px-2 py-0.5 rounded-sm bg-black/30 text-white text-xs font-bold uppercase tracking-wider">
                   {phaseLabel}
                 </span>
               )}
@@ -749,9 +766,9 @@ export default function TvMode() {
         </div>
         <div className="text-right">
           <div className={`text-3xl font-mono font-bold ${tv.primary}`}>
-            {new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+            {new Date().toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
           </div>
-          <div className="text-gray-400 text-sm">
+          <div className="text-white/60 text-sm">
             {t.tv_players_round.replace("{players}", String(players.length)).replace("{round}", String(rounds.length))}
           </div>
         </div>
@@ -759,13 +776,13 @@ export default function TvMode() {
 
       {/* Announcement Banner */}
       {announcements.length > 0 && (
-        <div className="bg-amber-500 text-gray-950 shrink-0">
+        <div className="bg-warning text-gray-950 shrink-0">
           {announcements.map((a) => (
             <div
               key={a.id}
-              className="px-8 py-3 flex items-center gap-4 text-lg font-bold animate-pulse border-b border-amber-600 last:border-0"
+              className="px-8 py-3 flex items-center gap-4 text-lg font-bold animate-pulse border-b border-warning last:border-0"
             >
-              <span className="text-2xl">📢</span>
+              <span className="text-2xl"><Icon name="megaphone" /></span>
               <span>{t.tv_court_label.replace("{n}", String(a.court))}:</span>
               <span className="flex-1">
                 {a.team1} <span className="font-normal mx-2">{t.common_vs}</span> {a.team2}
@@ -789,7 +806,7 @@ export default function TvMode() {
             <div className="space-y-4">
               {courtSections.map((section) => (
                 <div key={section.name}>
-                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                  <div className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">
                     {section.name}
                   </div>
                   <div
@@ -813,14 +830,14 @@ export default function TvMode() {
           {/* Recent results */}
           {completedMatches.length > 0 && (
             <div className="mt-2">
-              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">
+              <h3 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-2">
                 {t.tv_recent_results}
               </h3>
               {recentGrouped ? (
                 <div className="space-y-3">
                   {recentGrouped.map(({ group, matches }) => (
                     <div key={group}>
-                      <div className="text-[11px] font-bold uppercase tracking-widest text-violet-400 mb-1">
+                      <div className="text-2xs font-bold uppercase tracking-widest text-phase-text mb-1">
                         {t.group_progress_label.replace("{n}", String(group))}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
@@ -840,14 +857,14 @@ export default function TvMode() {
 
         {/* RIGHT 1/3: Queue */}
         <div className="flex flex-col min-h-0">
-          <h2 className="text-lg font-bold text-amber-400 uppercase tracking-wider mb-3 shrink-0">
+          <h2 className="text-lg font-bold text-warning-text uppercase tracking-wider mb-3 shrink-0">
             {t.tv_queue}
           </h2>
 
           {queueSections.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-gray-600 text-lg text-center">
-                <div className="text-4xl mb-2">✅</div>
+                <div className="text-4xl mb-2"><Icon name="check" /></div>
                 {t.tv_no_waiting}
               </div>
             </div>
@@ -860,17 +877,17 @@ export default function TvMode() {
                 return (
                   <div key={section.key}>
                     {section.label && (
-                      <div className={`flex items-center gap-2 mb-1.5 text-[11px] font-bold uppercase tracking-widest ${
-                        isBronze ? "text-orange-300" : section.behind ? "text-rose-400" : "text-violet-400"
+                      <div className={`flex items-center gap-2 mb-1.5 text-2xs font-bold uppercase tracking-widest ${
+                        isBronze ? "text-orange-300" : section.behind ? "text-danger-text" : "text-phase-text"
                       }`}>
-                        {isBronze && <span>🥉</span>}
+                        {isBronze && <Icon name="medal" className="text-orange-300" />}
                         <span>{section.label}</span>
                         {section.matches.length > 0 && (
-                          <span className="font-mono font-normal text-gray-400">
+                          <span className="font-mono font-normal text-white/60">
                             {t.court_waiting_count.replace("{count}", String(section.matches.length))}
                           </span>
                         )}
-                        {section.behind && <span>⚠</span>}
+                        {section.behind && <span><Icon name="alert" /></span>}
                       </div>
                     )}
                     <div className="space-y-2">
@@ -890,7 +907,7 @@ export default function TvMode() {
       </div>
 
       {/* Keyboard hint */}
-      <div className="fixed bottom-2 right-3 text-[10px] text-gray-600 opacity-60">
+      <div className="fixed bottom-2 right-3 text-2xs text-gray-600 opacity-60">
         {t.tv_keyboard_hint}
       </div>
     </div>

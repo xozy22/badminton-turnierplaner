@@ -16,9 +16,20 @@ export interface Translations {
   common_delete: string;
   common_edit: string;
   common_add: string;
+  shortcuts_open: string;
+  shortcuts_title: string;
+  shortcuts_hint: string;
+  shortcuts_group_scores: string;
+  shortcuts_group_dialogs: string;
+  shortcuts_group_general: string;
+  shortcuts_score_next: string;
+  shortcuts_score_confirm: string;
+  shortcuts_dialog_close: string;
+  shortcuts_dialog_cycle: string;
+  shortcuts_general_help: string;
+  shortcuts_general_fullscreen: string;
   common_close: string;
   common_back: string;
-  common_next: string;
   common_export: string;
   common_import: string;
   common_search: string;
@@ -30,18 +41,13 @@ export interface Translations {
   common_loading: string;
   common_saving: string;
   common_done: string;
-  common_none: string;
-  common_yes: string;
-  common_no: string;
-  common_ok: string;
   common_field: string;
   common_fields: string;
-  common_court: string;
   common_courts: string;
   common_round: string;
   common_vs: string;
+  common_bye: string;
   common_set: string;
-  common_sets: string;
   common_points: string;
   common_wins_abbr: string;
   common_losses_abbr: string;
@@ -52,14 +58,13 @@ export interface Translations {
   common_gender_female_short: string;
   common_gender: string;
   common_age: string;
-  common_birth_year: string;
   common_birth_date: string;
   common_club: string;
   common_action_irreversible: string;
-  common_confirm_type: string;
+  common_more_actions: string;
+  common_confirm: string;
   common_delete_permanently: string;
   common_selected: string;
-  common_of: string;
   common_and_more: string;
   common_free: string;
   common_occupied: string;
@@ -89,10 +94,19 @@ export interface Translations {
   players_clear_selection: string;
   players_shown_of_total: string;
   players_select_all: string;
+  players_empty_hint: string;
+  tournaments_empty_hint: string;
   players_none_yet: string;
   players_no_filter_results: string;
   players_delete_confirm_single: string;
   players_delete_confirm_multi: string;
+  players_archived_done: string;
+  players_restored_done: string;
+  players_show_archived: string;
+  players_restore: string;
+  players_archive_hint: string;
+  players_delete_done: string;
+  players_delete_blocked: string;
 
   // ===== Tournaments Page =====
   tournaments_title: string;
@@ -105,10 +119,9 @@ export interface Translations {
   tournaments_none_yet: string;
   tournaments_delete_title: string;
   tournaments_delete_message: string;
-  tournaments_delete_confirm_label: string;
+  confirm_type_word: string;
   tournaments_delete_confirm_word: string;
   tournaments_best_of: string;
-  tournaments_up_to: string;
   tournaments_import: string;
   tournaments_import_error: string;
   // Toast text emitted after the venue-resolution step of a template
@@ -125,10 +138,32 @@ export interface Translations {
   tournament_edit_title: string;
   tournament_name: string;
   tournament_name_placeholder: string;
+  tournament_play_date: string;
+  tournament_start_time: string;
+  print_oclock: string;
   tournament_mode: string;
   tournament_format: string;
   tournament_sets_to_win: string;
   tournament_points_per_set: string;
+  next_step_label: string;
+  next_step_start: string;
+  next_step_done: string;
+  next_step_assign_court: string;
+  next_step_enter_results: string;
+  next_step_advance: string;
+  next_step_finish: string;
+  next_step_round: string;
+  next_step_round_of: string;
+  score_input_label: string;
+  score_error_negative: string;
+  score_error_max: string;
+  score_error_draw: string;
+  score_error_ext_min: string;
+  score_error_ext_diff: string;
+  score_error_cap: string;
+  score_error_tie_impossible: string;
+  scoring_description_ext: string;
+  scoring_description_hard: string;
   scoring_mode: string;
   scoring_mode_11_hard: string;
   scoring_mode_11_ext: string;
@@ -142,7 +177,6 @@ export interface Translations {
   ko_modal_ko_scoring: string;
   ko_modal_start_button: string;
   tournament_venue: string;
-  tournament_venue_none: string;
   // Venue is mandatory — these cover the empty-state and validation paths
   tournament_venue_required: string;
   tournament_venue_pick_placeholder: string;
@@ -157,20 +191,16 @@ export interface Translations {
   tournament_halls_synced_from_venue: string;
   tournament_halls_edit_venue_link: string;
   tournament_num_groups: string;
-  tournament_qualify_per_group: string;
   tournament_qualify_ko_count: string;
   tournament_ko_size: string;
   tournament_ko_size_hint: string;
   tournament_seeding_enable: string;
   tournament_seeding_hint: string;
   tournament_entry_fee_enable: string;
-  tournament_entry_fee_hint: string;
   tournament_entry_fee_per_person: string;
   tournament_entry_fee_per_team: string;
   tournament_entry_fee_hint_person: string;
   tournament_entry_fee_hint_team: string;
-  tournament_entry_fee_single: string;
-  tournament_entry_fee_double: string;
   tournament_min_rest_enable: string;
   tournament_min_rest_hint: string;
   tournament_min_rest_label: string;
@@ -204,6 +234,28 @@ export interface Translations {
   player_conflict_title: string;
   player_conflict_body: string;
   player_conflict_row: string;
+  outcome_title: string;
+  outcome_description: string;
+  outcome_reason_legend: string;
+  outcome_winner_legend: string;
+  outcome_walkover: string;
+  outcome_walkover_hint: string;
+  outcome_retired: string;
+  outcome_retired_hint: string;
+  outcome_disqualified: string;
+  outcome_disqualified_hint: string;
+  outcome_no_match: string;
+  outcome_no_match_hint: string;
+  outcome_no_sets_note: string;
+  outcome_confirm: string;
+  outcome_button: string;
+  outcome_badge_walkover: string;
+  outcome_badge_retired: string;
+  outcome_badge_disqualified: string;
+  outcome_badge_no_match: string;
+  court_taken_title: string;
+  court_taken_body: string;
+  court_taken_by_other_tournament: string;
   match_blocked_short: string;
   match_player_busy_short: string;
   // Live publishing
@@ -211,6 +263,17 @@ export interface Translations {
   settings_live_publish_help: string;
   settings_live_publish_url: string;
   settings_live_publish_url_placeholder: string;
+  settings_live_publish_url_insecure: string;
+  settings_live_publish_url_malformed: string;
+  live_privacy_title: string;
+  live_privacy_notice_full: string;
+  live_privacy_notice_abbreviated: string;
+  live_privacy_notice_no_club: string;
+  settings_live_publish_privacy: string;
+  settings_live_publish_privacy_hint: string;
+  settings_live_publish_privacy_full: string;
+  settings_live_publish_privacy_abbreviated: string;
+  settings_live_publish_privacy_no_club: string;
   settings_live_publish_secret: string;
   settings_live_publish_secret_placeholder: string;
   settings_live_publish_test: string;
@@ -266,7 +329,6 @@ export interface Translations {
   tournament_players_shown: string;
   tournament_players_selected_of: string;
   tournament_no_players_yet: string;
-  tournament_no_players_hint: string;
   tournament_no_filter_results: string;
   tournament_continue_to: string;
   tournament_summary: string;
@@ -357,18 +419,15 @@ export interface Translations {
 
   // Monrad specific
   tournament_view_next_monrad_round: string;
-  tournament_view_monrad_round_counter: string;
 
   // King of Court / Waterfall specific
   tournament_view_next_kotc_match: string;
   tournament_view_next_waterfall_round: string;
-  tournament_view_waterfall_round_counter: string;
 
   // Swiss specific
   tournament_swiss_rounds: string;
   tournament_swiss_rounds_hint: string;
   tournament_view_next_swiss_round: string;
-  tournament_view_swiss_round_counter: string;
 
   // Double Elimination specific
   tournament_view_advance_bracket: string;
@@ -388,12 +447,38 @@ export interface Translations {
   groups_count: string;
 
   // Top N
-  top_n: string;
 
   // ===== Tournament View =====
   tournament_view_edit: string;
   tournament_view_template: string;
   tournament_view_delete: string;
+  validation_min_players: string;
+  validation_mixed_needs_two_each: string;
+  validation_mixed_unbalanced: string;
+  validation_doubles_odd_players: string;
+  validation_ko_needs_two: string;
+  validation_ko_byes: string;
+  validation_groups_min: string;
+  validation_groups_too_many: string;
+  validation_ko_size_too_large: string;
+  validation_rounds_min: string;
+  validation_rounds_exceed_opponents: string;
+  validation_waterfall_sit_out: string;
+  validation_kotc_single_court: string;
+  validation_round_robin_long: string;
+  validation_random_doubles_remainder: string;
+  validation_teams_incomplete: string;
+  validation_errors_title: string;
+  validation_warnings_title: string;
+  export_matches_csv: string;
+  export_standings_csv: string;
+  export_payments_csv: string;
+  export_json: string;
+  export_done: string;
+  export_failed: string;
+  tournament_view_round_counter: string;
+  tournament_view_round_byes: string;
+  tournament_view_start_failed: string;
   tournament_view_start: string;
   tournament_view_next_round: string;
   tournament_view_start_ko: string;
@@ -412,7 +497,6 @@ export interface Translations {
   tournament_view_tab_bracket: string;
   tournament_view_tab_standings: string;
   tournament_view_tab_management: string;
-  tournament_view_all_groups: string;
   tournament_view_on_court: string;
   tournament_view_completed_matches: string;
   tournament_view_assign_court_first: string;
@@ -424,11 +508,8 @@ export interface Translations {
 
   // ===== Edit Tournament Modal =====
   edit_tournament_title: string;
-  edit_tournament_win_sets: string;
-  edit_tournament_points_set: string;
   edit_tournament_courts_label: string;
   edit_tournament_groups_count: string;
-  edit_tournament_qualify_group: string;
   edit_tournament_fee_single: string;
   edit_tournament_fee_double: string;
   edit_tournament_saved: string;
@@ -460,6 +541,78 @@ export interface Translations {
 
   // ===== Seeding Step =====
   seeding_title: string;
+  seeding_groups_hint: string;
+  seeding_group_drawn: string;
+  release_notes_title: string;
+  release_notes_hint: string;
+  release_notes_current: string;
+  release_notes_german_only: string;
+  release_notes_show_all: string;
+  draw_preview_title: string;
+  draw_preview_title_round: string;
+  draw_preview_description: string;
+  draw_preview_confirm: string;
+  draw_preview_redraw: string;
+  draw_preview_round: string;
+  draw_preview_group: string;
+  draw_preview_bye: string;
+  draw_preview_no_matches: string;
+  draw_preview_sitting_out: string;
+  draw_preview_summary: string;
+  draw_preview_no_redraw: string;
+  print_card_time: string;
+  print_card_winner: string;
+  print_card_signature: string;
+  print_card_blank_label: string;
+  print_mode_scorecards: string;
+  print_mode_scorecards_desc: string;
+  print_mode_scorecards_blank: string;
+  print_mode_scorecards_blank_desc: string;
+  entry_list_title: string;
+  entry_list_empty_hint: string;
+  entry_list_add_waiting: string;
+  entry_list_promote_next: string;
+  entry_list_search_placeholder: string;
+  entry_list_no_candidates: string;
+  entry_list_queue_action: string;
+  entry_list_waiting_heading: string;
+  entry_list_withdrawn_heading: string;
+  entry_list_withdrawn_hint: string;
+  entry_list_enter: string;
+  entry_list_reenter: string;
+  entry_list_promoted: string;
+  entry_list_nobody_waiting: string;
+  entry_list_withdraw: string;
+  fee_due_legend: string;
+  fee_due_participation: string;
+  fee_due_participation_hint: string;
+  fee_due_entry: string;
+  fee_due_entry_hint: string;
+  fee_items_title: string;
+  fee_items_label: string;
+  fee_items_label_placeholder: string;
+  fee_items_amount: string;
+  fee_items_for: string;
+  fee_items_whole_tournament: string;
+  fee_items_add: string;
+  fee_items_empty: string;
+  fee_items_total: string;
+  fee_items_open: string;
+  fee_items_paid_label: string;
+  fee_items_delete_label: string;
+  common_hours_short: string;
+  common_minutes_short: string;
+  forecast_matches: string;
+  forecast_matches_about: string;
+  forecast_duration: string;
+  forecast_basis_measured: string;
+  forecast_basis_guess: string;
+  forecast_courts: string;
+  forecast_open_ended: string;
+  set_unreachable: string;
+  set_unreachable_stray: string;
+  court_taken_by_sibling: string;
+  court_taken_by_sibling_title: string;
   seeding_description: string;
   seeding_move_up: string;
   seeding_move_down: string;
@@ -498,6 +651,8 @@ export interface Translations {
   standings_wins: string;
   standings_losses: string;
   standings_sets_header: string;
+  standings_buchholz: string;
+  standings_buchholz_hint: string;
   standings_points: string;
   standings_no_results: string;
 
@@ -510,13 +665,14 @@ export interface Translations {
   bracket_winner: string;
   bracket_winners_bracket: string;
   bracket_losers_bracket: string;
-  bracket_grand_final: string;
 
   // ===== Court Overview =====
   court_field: string;
   court_free_drag: string;
   court_waiting: string;
   court_waiting_count: string;
+  court_assign: string;
+  court_assign_to_match: string;
   court_choose_court: string;
   court_drag_or_double_click: string;
   court_double_click_jump: string;
@@ -571,12 +727,10 @@ export interface Translations {
   import_step_mapping: string;
   import_step_preview: string;
   import_step_done: string;
-  import_select_file: string;
   import_file_hint: string;
   import_choose_file: string;
   import_sheet: string;
   import_rows_found: string;
-  import_column_name: string;
   import_column_first_name: string;
   import_column_last_name: string;
   import_column_gender: string;
@@ -612,9 +766,6 @@ export interface Translations {
 
   // ===== Print View =====
   print_participants: string;
-  print_all_results: string;
-  print_group_phase: string;
-  print_ko_phase: string;
   print_group_tables: string;
   print_group: string;
   print_round: string;
@@ -636,8 +787,6 @@ export interface Translations {
   print_matches_completed: string;
   print_sets_played: string;
   print_total_points: string;
-  print_footer: string;
-  print_created_on: string;
 
   // ===== Settings Page =====
   settings_title: string;
@@ -679,6 +828,38 @@ export interface Translations {
   settings_backup_create: string;
   settings_backup_restore: string;
   settings_backup_hint: string;
+  settings_backup_auto_hint: string;
+  settings_backup_auto_open: string;
+  settings_diagnostics_export: string;
+  settings_diagnostics_hint: string;
+  settings_diagnostics_saved: string;
+  credits_by: string;
+  // Errors from the Rust backend
+  backend_err_app_dir: string;
+  backend_err_backup_dir_failed: string;
+  backend_err_backup_failed: string;
+  backend_err_backup_missing: string;
+  backend_err_backup_not_sqlite: string;
+  backend_err_backup_too_new: string;
+  backend_err_bad_param: string;
+  backend_err_transaction: string;
+  backend_err_copy_failed: string;
+  backend_err_db_missing: string;
+  backend_err_db_unreadable: string;
+  backend_err_dir_unknown: string;
+  backend_err_file_open_failed: string;
+  backend_err_file_read_failed: string;
+  backend_err_mkdir_failed: string;
+  backend_err_no_connection: string;
+  backend_err_open_failed: string;
+  backend_err_open_unsupported: string;
+  backend_err_path_denied: string;
+  backend_err_path_missing: string;
+  backend_err_path_unresolved: string;
+  backend_err_queue_failed: string;
+  backend_err_safety_copy_failed: string;
+  backend_err_statement_failed: string;
+  backend_err_target_dir_missing: string;
   settings_backup_success: string;
   settings_backup_restore_confirm: string;
   settings_backup_restored: string;
@@ -708,6 +889,8 @@ export interface Translations {
   theme_emerald: string;
   theme_sapphire: string;
   theme_amber: string;
+  theme_osc_night: string;
+  theme_osc_split: string;
   theme_night: string;
 
   // ===== Sportstaetten (Venues) Page =====
@@ -769,8 +952,6 @@ export interface Translations {
   stats_subtitle: string;
 
   stats_tournaments_overview: string;
-  stats_total_tournaments: string;
-  stats_by_status: string;
   stats_by_format: string;
   stats_by_mode: string;
 
@@ -791,7 +972,6 @@ export interface Translations {
   stats_courts_used: string;
   stats_matches_per_court: string;
   stats_avg_matches_per_court: string;
-  stats_avg_time_per_court: string;
 
   stats_player_demographics: string;
   stats_gender_split: string;
@@ -811,7 +991,6 @@ export interface Translations {
   stats_filter_tournament: string;
 
   // ===== Unsaved changes warning =====
-  tournament_unsaved_warning: string;
 
   // ===== Database wipe =====
   settings_wipe_database: string;
@@ -823,7 +1002,6 @@ export interface Translations {
 
   // ===== Undo last round =====
   tournament_view_undo_round: string;
-  tournament_view_undo_round_confirm: string;
   // Rich undo modal — preview + counts + phase hints + outcome toast
   tournament_view_undo_round_title: string;
   tournament_view_undo_target_label: string;
@@ -837,6 +1015,7 @@ export interface Translations {
   tournament_view_undo_done: string;
 
   // ===== Reopen tournament =====
+  tournament_not_found: string;
   tournament_view_reopen: string;
   tournament_view_reopen_confirm: string;
 
@@ -859,7 +1038,6 @@ export interface Translations {
   certificate_place_1: string;
   certificate_place_2: string;
   certificate_place_3: string;
-  certificate_tournament: string;
   certificate_date: string;
   certificate_signature: string;
   certificate_congratulations: string;
@@ -882,9 +1060,6 @@ export interface Translations {
   // ===== Sessions (Multi-Tournament-Workspace) =====
   sessions_title: string;
   sessions_subtitle: string;
-  sessions_count_active: string;
-  sessions_count_ended: string;
-  sessions_count_archived: string;
   sessions_new: string;
   sessions_none_yet: string;
   sessions_no_active: string;
@@ -944,7 +1119,6 @@ export interface Translations {
   session_started_at: string;
   session_ended_at: string;
   session_dashboard_title: string;
-  session_dashboard_subtitle: string;
   session_dashboard_courts_section: string;
   session_dashboard_queue_section: string;
   session_dashboard_recent_section: string;
@@ -957,14 +1131,10 @@ export interface Translations {
   session_pill_label: string;
   session_pill_open_dashboard: string;
   session_switcher_label: string;
-  session_court_busy_in_other: string;
   session_player_busy_in_other: string;
-  session_court_dropdown_busy: string;
-  session_match_from_other_tournament: string;
   tournament_create_session_label: string;
   tournament_create_session_none: string;
   tournament_create_session_hint: string;
+  sportstaetten_in_use_error: string;
   sportstaetten_active_sessions: string;
-  sportstaetten_no_active_sessions: string;
-  sportstaetten_start_session: string;
 }

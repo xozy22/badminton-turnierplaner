@@ -2,9 +2,17 @@
  * Live Publishing — builds JSON snapshots of an active tournament and pushes
  * them to a configured WordPress endpoint via the BOSS Live Results plugin.
  *
- * Privacy: only first_name, last_name and club are exposed. Birth date and
- * payment info are deliberately omitted — public WordPress sites must not
- * expose member-PII or financial data.
+ * Privacy: a player leaves this module only as a `PublicPlayer` — first
+ * name, last name, club. Birth date, gender and the internal timestamps
+ * stay behind; a public WordPress site must not carry member data beyond
+ * what a result list needs.
+ *
+ * That rule used to hold for the `players` map only. The standings tables
+ * embedded the whole `Player` row, so birth date and gender were published
+ * with every push despite the promise above (REVIEW-BACKLOG.md I3).
+ *
+ * On top of that, `privacyLevel` lets a club decide how much of a name is
+ * published at all — see `applyPrivacy`.
  */
 
 import { fetch } from "@tauri-apps/plugin-http";
@@ -195,6 +203,56 @@ export async function clearPushLog(): Promise<void> {
   }
 }
 
+/**
+ * How much of a player's identity is published.
+ *
+ * `full` is the default because it is what a result list normally shows,
+ * and because changing it silently would rewrite the display of every
+ * installation that already publishes. The choice is put in front of the
+ * user when they switch live results on, rather than buried in settings.
+ */
+export type PrivacyLevel = "full" | "abbreviated" | "abbreviated_no_club";
+
+export const DEFAULT_PRIVACY_LEVEL: PrivacyLevel = "full";
+
+/**
+ * Shortens a surname to its initial: "Mustermann" → "M.".
+ *
+ * Hyphenated names keep both initials ("Müller-Lüdenscheidt" → "M.-L."),
+ * because dropping the second half of a double-barrelled name reads as a
+ * mistake to the person who owns it.
+ */
+export function abbreviateSurname(lastName: string): string {
+  const trimmed = lastName.trim();
+  if (!trimmed) return "";
+  return trimmed
+    .split("-")
+    .map((part) => {
+      const first = Array.from(part.trim())[0];
+      return first ? `${first.toUpperCase()}.` : "";
+    })
+    .filter(Boolean)
+    .join("-");
+}
+
+/** Reduces a player to what the chosen level allows to be published. */
+export function applyPrivacy(player: Player, level: PrivacyLevel): PublicPlayer {
+  if (level === "full") {
+    return {
+      id: player.id,
+      first_name: player.first_name,
+      last_name: player.last_name,
+      club: player.club,
+    };
+  }
+  return {
+    id: player.id,
+    first_name: player.first_name,
+    last_name: abbreviateSurname(player.last_name),
+    club: level === "abbreviated_no_club" ? null : player.club,
+  };
+}
+
 /** Lean player record — only the fields the public WP site needs. */
 export interface PublicPlayer {
   id: number;
@@ -222,6 +280,20 @@ export interface PublicTournament {
   ko_cap: number | null;
 }
 
+/**
+ * The published form of a standings row: same numbers, but the player is a
+ * `PublicPlayer` rather than the full database row.
+ */
+export interface PublicStandingEntry extends Omit<StandingEntry, "player"> {
+  player: PublicPlayer;
+}
+
+export interface PublicTeamStandingEntry
+  extends Omit<TeamStandingEntry, "player1" | "player2"> {
+  player1: PublicPlayer;
+  player2: PublicPlayer;
+}
+
 export interface LiveSnapshot {
   schema: typeof LIVE_PUBLISH_SCHEMA_VERSION;
   pushed_at: string;
@@ -231,9 +303,9 @@ export interface LiveSnapshot {
   rounds: Round[];
   matches: Match[];
   sets: GameSet[];
-  standings: StandingEntry[] | TeamStandingEntry[];
+  standings: PublicStandingEntry[] | PublicTeamStandingEntry[];
   /** Per-group standings when the tournament is in/after a group phase. */
-  groups?: { number: number; standings: StandingEntry[] }[];
+  groups?: { number: number; standings: PublicStandingEntry[] }[];
   /**
    * `true` on the very last snapshot a tournament emits — sent once when
    * the tournament transitions from `active` to `completed`/`archived`.
@@ -277,17 +349,39 @@ function toPublicTournament(t: Tournament): PublicTournament {
   };
 }
 
-function toPublicPlayers(players: Player[]): Record<number, PublicPlayer> {
+function toPublicPlayers(
+  players: Player[],
+  level: PrivacyLevel,
+): Record<number, PublicPlayer> {
   const map: Record<number, PublicPlayer> = {};
   for (const p of players) {
-    map[p.id] = {
-      id: p.id,
-      first_name: p.first_name,
-      last_name: p.last_name,
-      club: p.club,
-    };
+    map[p.id] = applyPrivacy(p, level);
   }
   return map;
+}
+
+/**
+ * Strips the standings down to what may be published.
+ *
+ * This is the funnel the whole promise rests on: the calculators need real
+ * `Player` rows to work with, so the filtering has to happen on the way
+ * out, and it has to happen in one place or it will be forgotten in the
+ * next one added.
+ */
+function toPublicStandings(
+  entries: StandingEntry[] | TeamStandingEntry[],
+  level: PrivacyLevel,
+): PublicStandingEntry[] | PublicTeamStandingEntry[] {
+  return (entries as Array<StandingEntry | TeamStandingEntry>).map((e) => {
+    if ("player" in e) {
+      return { ...e, player: applyPrivacy(e.player, level) };
+    }
+    return {
+      ...e,
+      player1: applyPrivacy(e.player1, level),
+      player2: applyPrivacy(e.player2, level),
+    };
+  }) as PublicStandingEntry[] | PublicTeamStandingEntry[];
 }
 
 /**
@@ -303,8 +397,9 @@ export function buildSnapshot(
   matches: Match[],
   sets: GameSet[],
   appVersion: string,
-  options: { final?: boolean } = {},
+  options: { final?: boolean; privacyLevel?: PrivacyLevel } = {},
 ): LiveSnapshot {
+  const privacy = options.privacyLevel ?? DEFAULT_PRIVACY_LEVEL;
   // Group sets by match_id for the standings calculator.
   const setsByMatch = new Map<number, GameSet[]>();
   for (const s of sets) {
@@ -320,7 +415,7 @@ export function buildSnapshot(
     : calculateStandings(players, matches, setsByMatch);
 
   // For group_ko: compute standings per group separately.
-  let groups: { number: number; standings: StandingEntry[] }[] | undefined;
+  let groups: { number: number; standings: PublicStandingEntry[] }[] | undefined;
   if (tournament.format === "group_ko" && tournament.num_groups > 0) {
     const groupRounds = rounds.filter((r) => r.phase === "group");
     const byGroup = new Map<number, Round[]>();
@@ -338,13 +433,16 @@ export function buildSnapshot(
       for (const m of groupMatches) {
         groupPlayerIds.add(m.team1_p1);
         if (m.team1_p2) groupPlayerIds.add(m.team1_p2);
-        groupPlayerIds.add(m.team2_p1);
+        if (m.team2_p1) groupPlayerIds.add(m.team2_p1);
         if (m.team2_p2) groupPlayerIds.add(m.team2_p2);
       }
       const groupPlayers = players.filter((p) => groupPlayerIds.has(p.id));
       groups.push({
         number: groupNum,
-        standings: calculateStandings(groupPlayers, groupMatches, setsByMatch),
+        standings: toPublicStandings(
+          calculateStandings(groupPlayers, groupMatches, setsByMatch),
+          privacy,
+        ) as PublicStandingEntry[],
       });
     }
     groups.sort((a, b) => a.number - b.number);
@@ -355,11 +453,11 @@ export function buildSnapshot(
     pushed_at: new Date().toISOString(),
     app_version: appVersion,
     tournament: toPublicTournament(tournament),
-    players: toPublicPlayers(players),
+    players: toPublicPlayers(players, privacy),
     rounds,
     matches,
     sets,
-    standings,
+    standings: toPublicStandings(standings, privacy),
     ...(groups ? { groups } : {}),
     ...(options.final ? { final: true } : {}),
   };
@@ -394,6 +492,30 @@ export function snapshotSignature(snap: LiveSnapshot): string {
   return h.toString(16);
 }
 
+// --- Endpoint validation ----------------------------------------------------
+
+/**
+ * Why the endpoint has to be HTTPS: the shared secret rides in the
+ * `X-BOSS-Secret` header of every push. Over plain HTTP that header is
+ * readable by anyone on the path — the club's WLAN, the venue's uplink —
+ * and the secret is the only thing standing between a stranger and write
+ * access to the published results (REVIEW-BACKLOG.md I1).
+ */
+export type EndpointCheck = { ok: true } | { ok: false; reason: "empty" | "insecure" | "malformed" };
+
+export function checkEndpoint(endpoint: string): EndpointCheck {
+  const trimmed = endpoint.trim();
+  if (!trimmed) return { ok: false, reason: "empty" };
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return { ok: false, reason: "malformed" };
+  }
+  if (url.protocol !== "https:") return { ok: false, reason: "insecure" };
+  return { ok: true };
+}
+
 // --- Push -------------------------------------------------------------------
 
 export type PushResult = { ok: true; status: number } | { ok: false; error: string };
@@ -403,6 +525,13 @@ async function postJson(
   secret: string,
   body: unknown,
 ): Promise<PushResult> {
+  // Also checked here, not only in the settings form: a config written by
+  // an earlier build may still carry an http:// URL, and that one would
+  // otherwise keep sending the secret in the clear on every heartbeat.
+  const check = checkEndpoint(endpoint);
+  if (!check.ok) {
+    return { ok: false, error: `endpoint ${check.reason}` };
+  }
   try {
     const res = await fetch(endpoint, {
       method: "POST",

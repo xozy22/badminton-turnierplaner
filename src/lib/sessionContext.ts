@@ -20,7 +20,9 @@
 // mode operate).
 
 import { useEffect, useState } from "react";
-import { getAllMatchesByTournament } from "./db";
+import { onDataChanged } from "./changeEvents";
+import { usePolling } from "./usePolling";
+import { getMatchesForTournaments } from "./db";
 import { getSessionTournaments } from "./sessions";
 import type { Match, Tournament, TournamentFormat } from "./types";
 
@@ -44,19 +46,19 @@ export interface SessionMatch extends Match {
  */
 export async function getSessionMatches(sessionId: number): Promise<SessionMatch[]> {
   const tournaments = await getSessionTournaments(sessionId);
-  const out: SessionMatch[] = [];
-  for (const t of tournaments) {
-    const matches = await getAllMatchesByTournament(t.id);
-    for (const m of matches) {
-      out.push({
-        ...m,
-        tournament_id: t.id,
-        tournament_name: t.name,
-        tournament_format: t.format,
-      });
-    }
-  }
-  return out;
+  if (tournaments.length === 0) return [];
+
+  // One query for the whole session instead of one per tournament — this
+  // runs every five seconds while the dashboard is open
+  // (REVIEW-BACKLOG.md E4).
+  const byId = new Map(tournaments.map((t) => [t.id, t]));
+  const matches = await getMatchesForTournaments(tournaments.map((t) => t.id));
+
+  return matches.flatMap((m) => {
+    const t = byId.get(m.tournament_id);
+    if (!t) return [];
+    return [{ ...m, tournament_id: t.id, tournament_name: t.name, tournament_format: t.format }];
+  });
 }
 
 /**
@@ -86,6 +88,36 @@ export function getSessionCourtOccupancy(matches: SessionMatch[]): Map<number, S
     const a = m.court_assigned_at ?? "";
     const b = existing.court_assigned_at ?? "";
     if (a > b) map.set(m.court, m);
+  }
+  return map;
+}
+
+/** What a court card needs to say who has a court next door. */
+export interface ForeignCourt {
+  tournamentName: string;
+  /** When that match started, so the card can show its clock. */
+  startedAt: string | null;
+}
+
+/**
+ * The courts held by every tournament in the session *except* this one.
+ *
+ * The court overview already refused a drop onto a court in use next
+ * door, but drew it as free -- so the refusal arrived without a reason.
+ * Separating the neighbours' courts from our own is what lets the card
+ * name whoever has it.
+ */
+export function getForeignCourtOccupancy(
+  occupancy: Map<number, SessionMatch>,
+  ownTournamentId: number,
+): Map<number, ForeignCourt> {
+  const map = new Map<number, ForeignCourt>();
+  for (const [court, match] of occupancy) {
+    if (match.tournament_id === ownTournamentId) continue;
+    map.set(court, {
+      tournamentName: match.tournament_name,
+      startedAt: match.started_at,
+    });
   }
   return map;
 }
@@ -138,7 +170,9 @@ export function getSessionPlayerCourts(
 
 // ---- Reactive hook ----
 
-const SESSION_CONTEXT_POLL_MS = 5_000;
+// Writes announce themselves (see changeEvents), so this is the safety
+// net rather than the primary path (REVIEW-BACKLOG.md E3).
+const SESSION_CONTEXT_POLL_MS = 30_000;
 
 export interface SessionContextValue {
   matches: SessionMatch[];
@@ -175,42 +209,41 @@ const EMPTY: SessionContextValue = {
 export function useSessionContext(sessionId: number | null, paused = false): SessionContextValue {
   const [value, setValue] = useState<SessionContextValue>(EMPTY);
 
-  useEffect(() => {
-    if (sessionId == null) {
-      setValue(EMPTY);
-      return;
-    }
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const [tournaments, matches] = await Promise.all([
-          getSessionTournaments(sessionId),
-          getSessionMatches(sessionId),
-        ]);
-        if (cancelled) return;
-        setValue({
-          matches,
-          courtOccupancy: getSessionCourtOccupancy(matches),
-          playerCourts: getSessionPlayerCourts(matches),
-          tournaments,
-          loaded: true,
-        });
-      } catch (err) {
-        console.error(`useSessionContext(${sessionId}): poll failed:`, err);
+  // Bumping this restarts the poller, and usePolling always opens with an
+  // immediate tick — so an announced write refreshes the view at once
+  // instead of waiting for the interval (REVIEW-BACKLOG.md E3).
+  const [changeTick, setChangeTick] = useState(0);
+  useEffect(() => onDataChanged(() => setChangeTick((n) => n + 1)), []);
+
+  usePolling(
+    async (cancelled) => {
+      if (sessionId == null) {
+        setValue(EMPTY);
+        return;
       }
-    };
-    // Always run one tick so the value is populated even when paused —
-    // the dashboard needs the last known state to render the static view.
-    tick();
-    if (paused) {
-      return () => { cancelled = true; };
-    }
-    const id = setInterval(tick, SESSION_CONTEXT_POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [sessionId, paused]);
+      const [tournaments, matches] = await Promise.all([
+        getSessionTournaments(sessionId),
+        getSessionMatches(sessionId),
+      ]);
+      if (cancelled()) return;
+      setValue({
+        matches,
+        courtOccupancy: getSessionCourtOccupancy(matches),
+        playerCourts: getSessionPlayerCourts(matches),
+        tournaments,
+        loaded: true,
+      });
+    },
+    {
+      intervalMs: SESSION_CONTEXT_POLL_MS,
+      // A paused poller still runs its first tick — which is what keeps the
+      // dashboard showing the last known state, and what clears the value
+      // when the session id goes away. `disabled` would skip that tick too.
+      paused: paused || sessionId == null,
+      label: `useSessionContext(${sessionId})`,
+    },
+    [sessionId, changeTick],
+  );
 
   return value;
 }

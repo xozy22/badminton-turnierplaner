@@ -92,16 +92,16 @@ export default function CourtContextMenu({ x, y, courtLabel, onUnassign, onClose
       role="menu"
       aria-label={courtLabel}
       style={{ position: "fixed", left: pos.left, top: pos.top, zIndex: 50 }}
-      className={`${theme.cardBg} border ${theme.cardBorder} rounded-xl shadow-xl py-1 min-w-[220px]`}
+      className={`${theme.cardBg} border ${theme.cardBorder} rounded-md shadow-lg py-1 min-w-[220px]`}
     >
-      <div className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${theme.textMuted} border-b ${theme.cardBorder}`}>
+      <div className={`px-3 py-1.5 text-2xs font-bold uppercase tracking-wide ${theme.textMuted} border-b ${theme.cardBorder}`}>
         {courtLabel}
       </div>
       <button
         type="button"
         role="menuitem"
         onClick={() => { onUnassign(); onClose(); }}
-        className={`w-full text-left px-3 py-2 text-sm ${theme.textPrimary} hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-2`}
+        className={`w-full text-left px-3 py-2 text-sm ${theme.textPrimary} hover:bg-warning-subtle hover:text-warning-text transition-colors flex items-center gap-2`}
       >
         {t.court_context_menu_unassign}
       </button>

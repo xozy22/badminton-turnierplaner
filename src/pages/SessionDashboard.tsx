@@ -15,6 +15,9 @@
 // /sessions/:id/live route, parallel to /tv/:id).
 
 import { useEffect, useMemo, useState } from "react";
+import { LoadingState } from "../components/ui/States";
+import Icon from "../components/ui/Icon";
+import { formatDateTime } from "../lib/datetime";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getSession } from "../lib/sessions";
 import { getSportstaetten, getPlayers } from "../lib/db";
@@ -22,7 +25,7 @@ import { useSessionContext } from "../lib/sessionContext";
 import type { Session, Sportstaette, Player } from "../lib/types";
 import { parseHallConfig, hallConfigTotalCourts, getCourtHallLabel, playerDisplayName } from "../lib/types";
 import { useTheme } from "../lib/ThemeContext";
-import { useT } from "../lib/I18nContext";
+import { useT, useLocale } from "../lib/I18nContext";
 import { useToast } from "../lib/ToastContext";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { CourtTimer } from "../components/courts/CourtTimer";
@@ -30,6 +33,7 @@ import { CourtTimer } from "../components/courts/CourtTimer";
 export default function SessionDashboard() {
   const { theme } = useTheme();
   const { t } = useT();
+  const locale = useLocale();
   const { showError } = useToast();
   const navigate = useNavigate();
   const params = useParams<{ id: string }>();
@@ -186,7 +190,7 @@ export default function SessionDashboard() {
   if (!session) {
     return (
       <div className={`min-h-screen ${theme.cardBg} flex items-center justify-center`}>
-        <p className={theme.textSecondary}>{t.common_loading}</p>
+        <LoadingState rows={3} />
       </div>
     );
   }
@@ -195,8 +199,7 @@ export default function SessionDashboard() {
   const formatTimestamp = (iso: string | null): string => {
     if (!iso) return "—";
     try {
-      const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
-      return d.toLocaleString();
+      return formatDateTime(iso);
     } catch {
       return iso;
     }
@@ -209,13 +212,13 @@ export default function SessionDashboard() {
           color per status: amber for ended (recent winding-down), grey
           for archived (historical). */}
       {session.status === "ended" && (
-        <div className="bg-amber-100 text-amber-900 border-b border-amber-200 px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
+        <div className="bg-warning-subtle text-warning-text border-b border-warning px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
           ⏹ {t.session_dashboard_ended_banner.replace("{date}", formatTimestamp(session.ended_at))}
         </div>
       )}
       {session.status === "archived" && (
-        <div className="bg-gray-100 text-gray-700 border-b border-gray-200 px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
-          📦 {t.session_dashboard_archived_banner}
+        <div className="bg-surface-sunken text-secondary border-b border-line-strong px-6 py-2 text-sm font-medium flex items-center justify-center gap-2">
+          <Icon name="archive" /> {t.session_dashboard_archived_banner}
         </div>
       )}
 
@@ -227,19 +230,19 @@ export default function SessionDashboard() {
               to={`/sessions/${session.id}`}
               className="text-white/80 hover:text-white text-sm"
             >
-              ← {t.session_dashboard_back_to_session}
+              <Icon name="arrowLeft" /> {t.session_dashboard_back_to_session}
             </Link>
           </div>
           <h1 className="text-xl font-extrabold tracking-tight mt-1">
-            🔗 {session.name}
+            <Icon name="link" /> {session.name}
           </h1>
           <p className="text-sm text-white/80">
-            🏟️ {venue?.name ?? "—"} · {ctx.tournaments.length} {t.tournaments_title.toLowerCase()}
+            <Icon name="building" /> {venue?.name ?? "—"} · {ctx.tournaments.length} {t.tournaments_title.toLowerCase()}
           </p>
         </div>
         <div className="text-right">
           <div className="font-mono text-3xl font-extrabold tabular-nums">
-            {new Date(now).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            {new Date(now).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
           </div>
           <div className="text-xs text-white/70 mt-0.5">
             {shouldPause
@@ -255,7 +258,7 @@ export default function SessionDashboard() {
         {/* --- COURTS --- */}
         <section>
           <h2 className={`text-lg font-bold ${theme.textPrimary} mb-3`}>
-            🟩 {t.session_dashboard_courts_section} ({totalCourts})
+            <span aria-hidden="true"><Icon name="dot" /></span> {t.session_dashboard_courts_section} ({totalCourts})
           </h2>
           {totalCourts === 0 ? (
             <p className={`text-sm ${theme.textMuted} italic`}>
@@ -278,7 +281,7 @@ export default function SessionDashboard() {
                         <div
                           key={courtNum}
                           onClick={m ? () => handleCourtClick(m) : undefined}
-                          className={`rounded-2xl border p-3 transition-all ${
+                          className={`rounded-lg border p-3 transition-all ${
                             free
                               ? `${theme.cardBg} ${theme.inputBorder} text-center`
                               : `${theme.cardBg} ${theme.cardHoverBorder} cursor-pointer shadow-sm hover:shadow`
@@ -289,7 +292,7 @@ export default function SessionDashboard() {
                               #{localCourt}
                             </span>
                             {m && (
-                              <CourtTimer assignedAt={m.court_assigned_at} />
+                              <CourtTimer startedAt={m.started_at} />
                             )}
                           </div>
                           {free ? (
@@ -298,7 +301,7 @@ export default function SessionDashboard() {
                             </p>
                           ) : (
                             <>
-                              <p className={`text-[10px] uppercase tracking-wide ${theme.textMuted} truncate`}>
+                              <p className={`text-2xs uppercase tracking-wide ${theme.textMuted} truncate`}>
                                 {m.tournament_name}
                               </p>
                               <p className={`text-xs font-medium ${theme.textPrimary} mt-0.5 leading-tight`}>
@@ -320,12 +323,12 @@ export default function SessionDashboard() {
         <section>
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
             <h2 className={`text-lg font-bold ${theme.textPrimary}`}>
-              ⏳ {t.session_dashboard_queue_section} ({queue.length})
+              <Icon name="hourglass" /> {t.session_dashboard_queue_section} ({queue.length})
             </h2>
             <div className="flex flex-wrap gap-1.5">
               <button
                 onClick={() => setTournamentFilter("all")}
-                className={`px-3 py-1 rounded-lg text-xs font-medium border transition-all ${
+                className={`px-3 py-1 rounded-sm text-xs font-medium border transition-all ${
                   tournamentFilter === "all"
                     ? `${theme.primaryBg} ${theme.primaryText} border-transparent`
                     : `${theme.cardBg} ${theme.textSecondary} ${theme.inputBorder} ${theme.cardHoverBorder}`
@@ -337,7 +340,7 @@ export default function SessionDashboard() {
                 <button
                   key={tt.id}
                   onClick={() => setTournamentFilter(tt.id)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium border transition-all ${
+                  className={`px-3 py-1 rounded-sm text-xs font-medium border transition-all ${
                     tournamentFilter === tt.id
                       ? `${theme.primaryBg} ${theme.primaryText} border-transparent`
                       : `${theme.cardBg} ${theme.textSecondary} ${theme.inputBorder} ${theme.cardHoverBorder}`
@@ -361,11 +364,11 @@ export default function SessionDashboard() {
                 return (
                   <div
                     key={tid}
-                    className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} p-3`}
+                    className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} p-3`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h3 className={`font-semibold text-sm ${theme.textPrimary}`}>
-                        🏆 {tName}
+                        <Icon name="trophy" /> {tName}
                       </h3>
                       <span className={`text-xs ${theme.textMuted}`}>
                         {ms.length} wartend
@@ -376,7 +379,7 @@ export default function SessionDashboard() {
                         <button
                           key={m.id}
                           onClick={() => handleQueueClick(m)}
-                          className={`text-left text-xs px-3 py-2 border ${theme.inputBorder} rounded-lg ${theme.cardHoverBorder} transition-all`}
+                          className={`text-left text-xs px-3 py-2 border ${theme.inputBorder} rounded-sm ${theme.cardHoverBorder} transition-all`}
                           title={t.session_dashboard_jump_to_tournament}
                         >
                           <p className={`${theme.textPrimary} truncate`}>
@@ -389,7 +392,7 @@ export default function SessionDashboard() {
                           to={`/tournaments/${tid}`}
                           className={`text-xs ${theme.textSecondary} px-3 py-2 italic hover:underline self-center`}
                         >
-                          + {ms.length - 9} {t.tv_more}
+                          {t.tv_more.replace("{count}", String(ms.length - 9))}
                         </Link>
                       )}
                     </div>
@@ -403,29 +406,29 @@ export default function SessionDashboard() {
         {/* --- RECENT --- */}
         <section>
           <h2 className={`text-lg font-bold ${theme.textPrimary} mb-3`}>
-            ✓ {t.session_dashboard_recent_section}
+            <Icon name="check" /> {t.session_dashboard_recent_section}
           </h2>
           {recent.length === 0 ? (
             <p className={`text-sm ${theme.textMuted} italic`}>
               {t.session_dashboard_no_recent}
             </p>
           ) : (
-            <div className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} divide-y ${theme.inputBorder}`}>
+            <div className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} divide-y ${theme.inputBorder}`}>
               {recent.map((m) => (
                 <button
                   key={m.id}
                   onClick={() => handleQueueClick(m)}
-                  className={`w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors`}
+                  className={`w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-surface-sunken transition-colors`}
                 >
-                  <span className={`text-[10px] uppercase tracking-wide ${theme.textMuted} shrink-0`}>
+                  <span className={`text-2xs uppercase tracking-wide ${theme.textMuted} shrink-0`}>
                     {m.tournament_name}
                   </span>
                   <span className={`text-xs ${theme.textPrimary} flex-1 truncate`}>
                     {matchPlayersLabel(m)}
                   </span>
                   {m.winner_team && (
-                    <span className="text-xs font-bold text-emerald-700 shrink-0">
-                      🏅 Team {m.winner_team}
+                    <span className="text-xs font-bold text-success-text shrink-0">
+                      <span aria-hidden="true"><Icon name="medal" /></span> Team {m.winner_team}
                     </span>
                   )}
                 </button>

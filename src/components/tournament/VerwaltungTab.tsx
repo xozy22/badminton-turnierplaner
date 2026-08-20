@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { formatMoney } from "../../lib/datetime";
+import Icon from "../../components/ui/Icon";
 import type { ThemeColors } from "../../lib/theme";
 import type {
   Tournament,
@@ -6,13 +8,19 @@ import type {
   Match,
   TournamentPlayerInfo,
   PaymentMethod,
+  FeeDue,
+  FeeItem,
 } from "../../lib/types";
 import {
   getTournamentPlayersDetailed,
   updatePlayerPayment,
 } from "../../lib/db";
 import { playerDisplayName } from "../../lib/types";
-import { useT } from "../../lib/I18nContext";
+import { useT, useLocale } from "../../lib/I18nContext";
+import { fill } from "../../lib/i18n/format";
+import { summariseFees } from "../../lib/fees";
+import EntryListSection from "./EntryListSection";
+import FeeItemsSection from "./FeeItemsSection";
 import SeedBadge from "../players/SeedBadge";
 
 interface VerwaltungTabProps {
@@ -32,6 +40,13 @@ interface VerwaltungTabProps {
   setRetireTarget: (target: { player: Player; partnerNote: string } | null) => void;
   onUnretire: (playerId: number) => void;
   playerName: (id: number | null) => string;
+  feeItems: FeeItem[];
+  onEntryStatusChange: (playerId: number, status: "entered" | "waiting" | "withdrawn") => void | Promise<void>;
+  onPromoteWaiting: () => void | Promise<void>;
+  onFeeItemAdd: (playerId: number | null, label: string, amount: number) => void | Promise<void>;
+  onFeeItemPaid: (itemId: number, paid: boolean) => void | Promise<void>;
+  onFeeItemDelete: (itemId: number) => void | Promise<void>;
+  onFeeDueChange: (value: FeeDue) => void | Promise<void>;
 }
 
 export default function VerwaltungTab({
@@ -51,59 +66,64 @@ export default function VerwaltungTab({
   setRetireTarget,
   onUnretire,
   playerName,
+  feeItems,
+  onEntryStatusChange,
+  onPromoteWaiting,
+  onFeeItemAdd,
+  onFeeItemPaid,
+  onFeeItemDelete,
+  onFeeDueChange,
 }: VerwaltungTabProps) {
   const { t } = useT();
+  const locale = useLocale();
   const [verwaltungSearch, setVerwaltungSearch] = useState("");
   const [verwaltungFilter, setVerwaltungFilter] = useState<"all" | "paid" | "unpaid">("all");
 
   const formatsWithFixedTeamsTop: string[] = ["elimination", "group_ko", "double_elimination"];
   const isFixedTeamModeTop = tournament.mode !== "singles" && formatsWithFixedTeamsTop.includes(tournament.format);
 
+  // paymentData carries everyone linked to the tournament since migration
+  // 21, including the waiting list and the withdrawals. This list is about
+  // who is playing; the rest lives in EntryListSection below.
+  const entrants = paymentData.filter((p) => p.entry_status === "entered");
+
+  const fees = summariseFees(paymentData, allMatches, feeItems, {
+    entryFeeSingle: tournament.entry_fee_single,
+    entryFeeDouble: tournament.entry_fee_double,
+    isSingles: tournament.mode === "singles",
+    isFixedTeams: isFixedTeamModeTop,
+    feeDue: tournament.fee_due,
+  });
+
   return (
-    <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} overflow-hidden`}>
+    <div className="flex flex-col gap-5">
+      <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} overflow-hidden`}>
       <div className={`px-5 py-3 border-b ${theme.cardBorder} ${theme.headerGradient} flex justify-between items-center`}>
         <span className={`font-semibold text-sm ${theme.standingsHeaderText}`}>
-          {"\u{1F465}"} {t.management_participants.replace("{count}", String(players.length))}
-          {(tournament.entry_fee_single > 0 || tournament.entry_fee_double > 0) && (() => {
-            const fee = tournament.mode === "singles" ? tournament.entry_fee_single : tournament.entry_fee_double;
-            let paidCount: number, totalCount: number;
-            if (!isFixedTeamModeTop) {
-              // Singles or non-fixed team formats: everyone pays individually
-              paidCount = paymentData.filter((p) => p.payment_status === "paid").length;
-              totalCount = paymentData.length;
-            } else {
-              // Fixed team doubles/mixed: count teams (one payment per team)
-              totalCount = Math.ceil(paymentData.length / 2);
-              // A team is paid if at least one partner paid
-              const paidIds = new Set(paymentData.filter(p => p.payment_status === "paid").map(p => p.player.id));
-              const teamsPaid = new Set<string>();
-              for (const m of allMatches) {
-                if (m.team1_p1 && m.team1_p2 && (paidIds.has(m.team1_p1) || paidIds.has(m.team1_p2))) {
-                  teamsPaid.add(`${Math.min(m.team1_p1, m.team1_p2)}-${Math.max(m.team1_p1, m.team1_p2)}`);
-                }
-                if (m.team2_p1 && m.team2_p2 && (paidIds.has(m.team2_p1) || paidIds.has(m.team2_p2))) {
-                  teamsPaid.add(`${Math.min(m.team2_p1, m.team2_p2)}-${Math.max(m.team2_p1, m.team2_p2)}`);
-                }
-              }
-              paidCount = teamsPaid.size || paymentData.filter(p => p.payment_status === "paid").length;
-            }
-            const openCount = totalCount - paidCount;
-            const paidAmount = paidCount * fee;
-            const openAmount = openCount * fee;
-            return (
-              <span className={`ml-2 font-normal text-xs ${theme.textSecondary}`}>
-                {"\u{1F4B0}"} {t.management_paid_count.replace("{paid}", String(paidCount)).replace("{total}", String(totalCount))}
-                &nbsp;&middot;&nbsp;
-                <span className="text-emerald-500">{t.management_paid_amount.replace("{amount}", String(paidAmount))}</span>
-                {openAmount > 0 && (
-                  <>
-                    &nbsp;&middot;&nbsp;
-                    <span className="text-rose-500">{t.management_open_amount.replace("{amount}", String(openAmount))}</span>
-                  </>
-                )}
+          <Icon name="users" /> {fill(t.management_participants, { count: String(entrants.length) })}
+          {(tournament.entry_fee_single > 0 || tournament.entry_fee_double > 0 || feeItems.length > 0) && (
+            // The sum lives in lib/fees.ts: three rules now decide it
+            // (when the fee falls due, who withdrew, what else is owed),
+            // and money is worth testing (FEATURE-BACKLOG.md E2-E4).
+            <span className={`ml-2 font-normal text-xs ${theme.textSecondary}`}>
+              <Icon name="coins" /> {fill(t.management_paid_count, {
+                paid: String(fees.entryPaidCount),
+                total: String(fees.entryCount),
+              })}
+              &nbsp;&middot;&nbsp;
+              <span className="text-success-text">
+                {fill(t.management_paid_amount, { amount: formatMoney(fees.paid, locale) })}
               </span>
-            );
-          })()}
+              {fees.open > 0 && (
+                <>
+                  &nbsp;&middot;&nbsp;
+                  <span className="text-danger-text">
+                    {fill(t.management_open_amount, { amount: formatMoney(fees.open, locale) })}
+                  </span>
+                </>
+              )}
+            </span>
+          )}
         </span>
         {tournament.status === "draft" && (
           <button
@@ -118,7 +138,7 @@ export default function VerwaltungTab({
       {/* Add Player Dropdown - only in draft */}
       {showAddPlayer && tournament.status === "draft" && (
         <div className={`p-3 border-b ${theme.cardBorder} ${theme.selectedBg}`}>
-          <div className="text-xs text-gray-500 mb-2 font-medium">{t.management_add_player_label}</div>
+          <div className="text-xs text-muted mb-2 font-medium">{t.management_add_player_label}</div>
           <div className="max-h-40 overflow-y-auto space-y-1">
             {allPlayers
               .filter((ap) => !players.some((p) => p.id === ap.id))
@@ -126,16 +146,16 @@ export default function VerwaltungTab({
                 <button
                   key={ap.id}
                   onClick={() => handleAddPlayer(ap.id)}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm hover:bg-gray-100 transition-colors text-left"
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-sm text-sm hover:bg-surface-sunken transition-colors text-left"
                 >
                   <span className={theme.textPrimary}>{playerDisplayName(ap)}</span>
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${ap.gender === "m" ? "bg-blue-50 text-blue-500" : "bg-pink-50 text-pink-500"}`}>
+                  <span className={`text-2xs font-medium px-1.5 py-0.5 rounded-full ${ap.gender === "m" ? "bg-info-subtle text-phase-text" : "bg-pink-50 text-pink-500"}`}>
                     {ap.gender === "m" ? t.common_gender_male_short : t.common_gender_female_short}
                   </span>
                 </button>
               ))}
             {allPlayers.filter((ap) => !players.some((p) => p.id === ap.id)).length === 0 && (
-              <div className="text-xs text-gray-400 py-2 text-center">{t.management_all_players_added}</div>
+              <div className="text-xs text-muted py-2 text-center">{t.management_all_players_added}</div>
             )}
           </div>
         </div>
@@ -149,15 +169,15 @@ export default function VerwaltungTab({
             value={verwaltungSearch}
             onChange={(e) => setVerwaltungSearch(e.target.value)}
             placeholder={t.management_search_placeholder}
-            className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-lg pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
+            className={`w-full ${theme.inputBg} ${theme.inputText} border ${theme.inputBorder} rounded-sm pl-8 pr-3 py-1.5 text-sm ${theme.focusBorder} focus:ring-2 ${theme.focusRing} outline-none transition-all`}
           />
-          <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}>{"\u{1F50D}"}</span>
+          <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} text-xs`}><Icon name="search" size={12} /></span>
           {verwaltungSearch && (
             <button onClick={() => setVerwaltungSearch("")} className={`absolute right-2.5 top-1/2 -translate-y-1/2 ${theme.textMuted} hover:opacity-80 text-xs`}>{"\u2715"}</button>
           )}
         </div>
         {(tournament.entry_fee_single > 0 || tournament.entry_fee_double > 0) && (
-          <div className={`flex rounded-lg border ${theme.inputBorder} overflow-hidden text-xs`}>
+          <div className={`flex rounded-sm border ${theme.inputBorder} overflow-hidden text-xs`}>
             {([
               { value: "all" as const, label: t.management_filter_all },
               { value: "paid" as const, label: t.management_filter_paid },
@@ -212,7 +232,7 @@ export default function VerwaltungTab({
         };
         const fee = tournament.mode === "singles" ? tournament.entry_fee_single : tournament.entry_fee_double;
         const searchLower = verwaltungSearch.toLowerCase().trim();
-        const filtered = paymentData.filter((pd) => {
+        const filtered = entrants.filter((pd) => {
           if (searchLower && !playerDisplayName(pd.player).toLowerCase().includes(searchLower) && !(pd.player.club ?? "").toLowerCase().includes(searchLower)) return false;
           if (verwaltungFilter === "paid" && pd.payment_status !== "paid") return false;
           if (verwaltungFilter === "unpaid" && pd.payment_status !== "unpaid") return false;
@@ -236,17 +256,17 @@ export default function VerwaltungTab({
           <table className="w-full text-sm">
             <thead>
               <tr className={`border-b ${theme.cardBorder} text-xs ${theme.textMuted}`}>
-                <th className="text-left px-3 py-2">{t.common_name}</th>
-                <th className="text-center px-2 py-2">{t.common_gender}</th>
-                <th className="text-left px-2 py-2">{t.common_club}</th>
+                <th scope="col" className="text-left px-3 py-2">{t.common_name}</th>
+                <th scope="col" className="text-center px-2 py-2">{t.common_gender}</th>
+                <th scope="col" className="text-left px-2 py-2">{t.common_club}</th>
                 {hasPayment && (
                   <>
-                    <th className="text-center px-2 py-2">{t.management_entry_fee}</th>
-                    <th className="text-center px-2 py-2">{t.management_payment_method}</th>
-                    <th className="text-center px-2 py-2">{t.management_payment_date}</th>
+                    <th scope="col" className="text-center px-2 py-2">{t.management_entry_fee}</th>
+                    <th scope="col" className="text-center px-2 py-2">{t.management_payment_method}</th>
+                    <th scope="col" className="text-center px-2 py-2">{t.management_payment_date}</th>
                   </>
                 )}
-                <th className="text-right px-3 py-2">{t.common_actions}</th>
+                <th scope="col" className="text-right px-3 py-2">{t.common_actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -282,10 +302,10 @@ export default function VerwaltungTab({
                           <td className={`px-3 py-2 pl-6 font-medium ${isRetired ? `${theme.textMuted} line-through` : theme.textPrimary}`}>
                             {playerDisplayName(pd.player)}
                             <SeedBadge rank={pd.seed_rank} />
-                            {isRetired && <span className="ml-1.5 text-[10px] text-rose-400 no-underline inline-block">{"\u{1F3E5}"}</span>}
+                            {isRetired && <span className="ml-1.5 text-2xs text-danger-text no-underline inline-block"><Icon name="medical" size={12} /></span>}
                           </td>
                           <td className="px-2 py-2 text-center">
-                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${pd.player.gender === "m" ? "bg-blue-50 text-blue-500" : "bg-pink-50 text-pink-500"}`}>
+                            <span className={`text-2xs font-medium px-1.5 py-0.5 rounded-full ${pd.player.gender === "m" ? "bg-info-subtle text-phase-text" : "bg-pink-50 text-pink-500"}`}>
                               {pd.player.gender === "m" ? t.common_gender_male_short : t.common_gender_female_short}
                             </span>
                           </td>
@@ -296,16 +316,16 @@ export default function VerwaltungTab({
                                 {(() => {
                                   const partnerPaidBy = pd.payment_status !== "paid" ? getPartnerPaidInfo(pd.player.id) : null;
                                   return partnerPaidBy ? (
-                                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600" title={partnerPaidBy}>
-                                      ✓ {partnerPaidBy}
+                                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-phase-subtle text-info-text" title={partnerPaidBy}>
+                                      <Icon name="check" /> {partnerPaidBy}
                                     </span>
                                   ) : (
                                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                                       pd.payment_status === "paid"
-                                        ? "bg-green-500/10 text-green-600"
-                                        : "bg-orange-500/10 text-orange-600"
+                                        ? "bg-success-subtle text-success-text"
+                                        : "bg-warning-subtle text-warning-text"
                                     }`}>
-                                      {pd.payment_status === "paid" ? `${fee} EUR` : t.management_open}
+                                      {pd.payment_status === "paid" ? formatMoney(Number(fee), locale) : t.management_open}
                                     </span>
                                   );
                                 })()}
@@ -339,7 +359,7 @@ export default function VerwaltungTab({
                                     const updated = await getTournamentPlayersDetailed(tournament.id);
                                     setPaymentData(updated);
                                   }}
-                                  className={`text-xs ${theme.textMuted} hover:text-orange-600 transition-colors`}
+                                  className={`text-xs ${theme.textMuted} hover:text-warning-text transition-colors`}
                                 >
                                   {"\u21A9"}
                                 </button>
@@ -348,22 +368,33 @@ export default function VerwaltungTab({
                                   <button
                                     key={m}
                                     onClick={async () => {
-                                      const today = new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+                                      const today = new Date().toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" });
                                       await updatePlayerPayment(tournament.id, pd.player.id, "paid", m, today);
                                       const updated = await getTournamentPlayersDetailed(tournament.id);
                                       setPaymentData(updated);
                                     }}
-                                    className={`text-xs px-2 py-1 rounded-lg border ${theme.cardBorder} ${theme.textSecondary} hover:border-green-400 hover:text-green-600 transition-all`}
+                                    className={`text-xs px-2 py-1 rounded-sm border ${theme.cardBorder} ${theme.textSecondary} hover:border-success hover:text-success-text transition-all`}
                                   >
                                     {m === "bar" ? t.payment_cash : m === "ueberweisung" ? t.payment_transfer : t.payment_paypal}
                                   </button>
                                 ))
                               ) : null}
+                              {/* Withdrawing keeps the entry for the
+                                  accounts; removing deletes it, which is
+                                  what you want for a wrong entry and not
+                                  for somebody who cancelled. */}
+                              <button
+                                onClick={() => onEntryStatusChange(pd.player.id, "withdrawn")}
+                                title={t.entry_list_withdraw}
+                                className="ml-1 text-2xs font-medium text-warning-text transition-colors hover:underline"
+                              >
+                                {t.entry_list_withdraw}
+                              </button>
                               {tournament.status === "draft" && (
                                 <button
                                   onClick={() => handleRemovePlayer(pd.player.id)}
                                   title={t.management_remove_from_tournament}
-                                  className="text-xs text-rose-400 hover:text-rose-600 ml-1"
+                                  className="text-xs text-danger-text hover:text-danger-text ml-1"
                                 >
                                   {"\u2715"}
                                 </button>
@@ -385,18 +416,18 @@ export default function VerwaltungTab({
                                     setRetireTarget({ player: p, partnerNote });
                                   }}
                                   title={t.management_retire_title}
-                                  className="text-xs text-amber-500 hover:text-amber-700 ml-1"
+                                  className="text-xs text-warning-text hover:text-warning-text ml-1"
                                 >
-                                  {"\u{1F3E5}"}
+                                  <Icon name="medical" size={12} />
                                 </button>
                               )}
                               {tournament.status === "active" && isRetired && (
                                 <button
                                   onClick={() => onUnretire(pd.player.id)}
                                   title={t.retire_undo}
-                                  className="text-xs text-emerald-500 hover:text-emerald-700 ml-1"
+                                  className="text-xs text-success-text hover:text-success-text ml-1"
                                 >
-                                  ✅
+                                  <Icon name="check" />
                                 </button>
                               )}
                             </div>
@@ -412,6 +443,29 @@ export default function VerwaltungTab({
           </>
         );
       })()}
+      </div>
+
+      <EntryListSection
+        participants={paymentData}
+        candidates={allPlayers.filter(
+          (p) => !paymentData.some((pd) => pd.player.id === p.id),
+        )}
+        theme={theme}
+        onEnter={(id) => onEntryStatusChange(id, "entered")}
+        onWait={(id) => onEntryStatusChange(id, "waiting")}
+        onPromote={onPromoteWaiting}
+      />
+
+      <FeeItemsSection
+        items={feeItems}
+        players={paymentData.map((pd) => pd.player)}
+        feeDue={tournament.fee_due}
+        theme={theme}
+        onAdd={onFeeItemAdd}
+        onTogglePaid={onFeeItemPaid}
+        onDelete={onFeeItemDelete}
+        onFeeDueChange={onFeeDueChange}
+      />
     </div>
   );
 }

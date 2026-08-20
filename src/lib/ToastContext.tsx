@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { useT } from "./I18nContext";
+import { describeBackendError } from "./backendError";
+import Icon, { type IconName } from "../components/ui/Icon";
 
 export type ToastKind = "success" | "error" | "info";
 
@@ -31,6 +34,7 @@ const ToastContext = createContext<ToastContextValue>({
 let nextId = 1;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { t } = useT();
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const dismissToast = useCallback((id: number) => {
@@ -56,9 +60,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (message: string, durationMs = 3000) => showToast(message, "success", durationMs),
     [showToast]
   );
+  /**
+   * Errors from the Rust commands arrive as `BOSS:<code>|<detail>`; the
+   * code is translated on the way through. Anything else passes unchanged.
+   *
+   * Done here rather than at each call site because every one of them ends
+   * up in this function anyway, and because the next one added will get it
+   * without anyone remembering to (REVIEW-BACKLOG.md H4).
+   */
   const showError = useCallback(
-    (message: string, durationMs = 5000) => showToast(message, "error", durationMs),
-    [showToast]
+    (message: string, durationMs = 5000) =>
+      showToast(describeBackendError(t, message), "error", durationMs),
+    [showToast, t]
   );
   const showInfo = useCallback(
     (message: string, durationMs = 3000) => showToast(message, "info", durationMs),
@@ -79,9 +92,15 @@ export function useToast() {
 
 function ToastStack() {
   const { toasts, dismissToast } = useContext(ToastContext);
-  if (toasts.length === 0) return null;
+  // The region stays mounted even when empty: a live region has to exist
+  // before its content changes, or screen readers miss the first message
+  // (REVIEW-BACKLOG.md G4).
   return (
-    <div className="fixed bottom-6 right-6 z-[1000] flex flex-col gap-2 items-end pointer-events-none">
+    <div
+      className="fixed bottom-6 right-6 z-[1000] flex flex-col gap-2 items-end pointer-events-none"
+      aria-live="polite"
+      aria-atomic="false"
+    >
       {toasts.map((t) => (
         <ToastItem key={t.id} toast={t} onDismiss={() => dismissToast(t.id)} />
       ))}
@@ -90,18 +109,19 @@ function ToastStack() {
 }
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
-  const palette: Record<ToastKind, { bg: string; icon: string }> = {
-    success: { bg: "bg-emerald-600", icon: "✓" },
-    error: { bg: "bg-rose-600", icon: "✕" },
-    info: { bg: "bg-sky-600", icon: "ℹ" },
+  const palette: Record<ToastKind, { bg: string; icon: IconName }> = {
+    success: { bg: "bg-success", icon: "check" },
+    error: { bg: "bg-danger", icon: "x" },
+    info: { bg: "bg-info", icon: "alert" },
   };
   const { bg, icon } = palette[toast.kind];
   return (
     <div
-      className={`flex items-center gap-2 ${bg} text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium pointer-events-auto max-w-sm`}
+      className={`flex items-center gap-2 ${bg} text-white px-4 py-3 rounded-md shadow-lg text-sm font-medium pointer-events-auto max-w-sm`}
       role={toast.kind === "error" ? "alert" : "status"}
+      aria-live={toast.kind === "error" ? "assertive" : "polite"}
     >
-      <span aria-hidden="true">{icon}</span>
+      <Icon name={icon} />
       <span className="flex-1 whitespace-pre-line break-words">{toast.message}</span>
       <button
         onClick={onDismiss}

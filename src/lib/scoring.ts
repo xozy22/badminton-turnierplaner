@@ -1,4 +1,5 @@
 import type { Player, Match, GameSet, StandingEntry, TeamStandingEntry } from "./types";
+import type { Translations } from "./i18n/types";
 
 /**
  * 5 Punktemodi (unabhaengig von Gewinnsaetzen):
@@ -79,15 +80,29 @@ export function isSetComplete(s: GameSet, pointsPerSet: number, cap?: number | n
   );
 }
 
+/**
+ * Ergebnis einer Punktpruefung.
+ *
+ * `error` ist ein Uebersetzungsschluessel, kein fertiger Satz — die
+ * Meldungen standen frueher als deutscher Text in dieser Datei und
+ * erschienen damit auch in der englischen Oberflaeche
+ * (REVIEW-BACKLOG.md H1). `params` fuellt die Platzhalter des Schluessels.
+ */
+export interface ScoreValidation {
+  valid: boolean;
+  error?: Extract<keyof Translations, string>;
+  params?: Record<string, number>;
+}
+
 /** Prueft ob ein eingegebener Score gueltig ist (zur Validierung) */
 export function isScoreValid(
   score1: number,
   score2: number,
   pointsPerSet: number,
   cap: number | null
-): { valid: boolean; error?: string } {
+): ScoreValidation {
   if (score1 < 0 || score2 < 0) {
-    return { valid: false, error: "Punkte duerfen nicht negativ sein" };
+    return { valid: false, error: "score_error_negative" };
   }
 
   const maxAllowed = cap !== null ? cap : pointsPerSet;
@@ -95,7 +110,8 @@ export function isScoreValid(
   if (score1 > maxAllowed || score2 > maxAllowed) {
     return {
       valid: false,
-      error: `Maximale Punktzahl ist ${maxAllowed}`,
+      error: "score_error_max",
+      params: { max: maxAllowed },
     };
   }
 
@@ -116,16 +132,30 @@ export function isScoreValid(
       return { valid: true };
     }
 
+    // Zielpunktzahl gegen extStart, also 21:20 / 15:14 / 11:10.
+    //
+    // Bei 20:20 geht der Satz weiter, bis jemand zwei Punkte vorne liegt
+    // -- er kann 22:20 enden, aber nie 21:20. Ohne diesen Zweig fiel der
+    // Stand durch alle weiteren Pruefungen (die verlangen samt und
+    // sonders `high > pointsPerSet`) bis zum abschliessenden "gueltig".
+    // Die Eingabe wurde also angenommen, der Satz aber nie als gewonnen
+    // gewertet: das Spiel blieb offen, ohne dass etwas auf dem Bildschirm
+    // den Grund nannte.
+    if (high === pointsPerSet && low === extStart) {
+      return { valid: false, error: "score_error_ext_diff" };
+    }
+
     // Gleichstand auf oder ueber Zielpunktzahl: kein Unentschieden
     if (high >= pointsPerSet && diff === 0) {
-      return { valid: false, error: "Unentschieden nicht moeglich" };
+      return { valid: false, error: "score_error_draw" };
     }
 
     // Verlaengerung: Beide muessen mindestens extStart (z.B. 20, 10, 14) haben
     if (high > pointsPerSet && low < extStart) {
       return {
         valid: false,
-        error: `Bei ${high} muss der Gegner mind. ${high - 2} haben`,
+        error: "score_error_ext_min",
+        params: { high, min: high - 2 },
       };
     }
 
@@ -133,7 +163,7 @@ export function isScoreValid(
     if (high > pointsPerSet && high < cap && diff !== 2) {
       return {
         valid: false,
-        error: "Verlaengerung: genau 2 Punkte Differenz noetig",
+        error: "score_error_ext_diff",
       };
     }
 
@@ -141,13 +171,14 @@ export function isScoreValid(
     if (high === cap && low < cap - 2) {
       return {
         valid: false,
-        error: `Bei ${cap} muss der Gegner ${cap - 2} oder ${cap - 1} haben`,
+        error: "score_error_cap",
+        params: { cap, low: cap - 2, high: cap - 1 },
       };
     }
 
     // cap:cap geht nicht
     if (score1 === cap && score2 === cap) {
-      return { valid: false, error: `${cap}:${cap} ist nicht moeglich` };
+      return { valid: false, error: "score_error_tie_impossible", params: { score: cap } };
     }
   } else {
     // Modi OHNE Verlaengerung (11_1, 15_1): first-to-N
@@ -160,7 +191,7 @@ export function isScoreValid(
 
     // Gleichstand auf Zielpunktzahl: unmoeoglich
     if (score1 === pointsPerSet && score2 === pointsPerSet) {
-      return { valid: false, error: `${pointsPerSet}:${pointsPerSet} ist nicht moeglich` };
+      return { valid: false, error: "score_error_tie_impossible", params: { score: pointsPerSet } };
     }
 
     // Verlierer darf nicht auch Zielpunktzahl haben
@@ -224,18 +255,206 @@ export function getMaxScore(pointsPerSet: number, cap: number | null): number {
   return cap !== null ? cap : pointsPerSet;
 }
 
-/** Beschreibt das Zaehsystem als Text */
-export function getScoringDescription(pointsPerSet: number, cap: number | null): string {
+/**
+ * Beschreibt das Zaehlsystem als Text.
+ *
+ * Die beiden Vorlagen kommen von aussen — vorher stand hier deutscher
+ * Text fest verdrahtet, der auch in der englischen Oberflaeche erschien
+ * (REVIEW-BACKLOG.md H1).
+ */
+export function getScoringDescription(
+  pointsPerSet: number,
+  cap: number | null,
+  texts: { ext: string; hard: string },
+): string {
   if (cap !== null) {
-    return `Rallypoint bis ${pointsPerSet}, Verlaengerung bei ${pointsPerSet - 1}:${pointsPerSet - 1} (max. ${cap})`;
+    return texts.ext
+      .replace(/\{points\}/g, String(pointsPerSet))
+      .replace(/\{ext\}/g, String(pointsPerSet - 1))
+      .replace(/\{cap\}/g, String(cap));
   }
-  return `Erster bis ${pointsPerSet} Punkte (kein Ext.)`;
+  return texts.hard.replace(/\{points\}/g, String(pointsPerSet));
+}
+
+
+// ---------------------------------------------------------------------------
+// Ranking
+// ---------------------------------------------------------------------------
+
+/**
+ * One decided encounter between two ranking subjects — a player in singles
+ * standings, a team in team standings. Doubles matches produce one duel per
+ * winner/loser pair, so individual standings in rotating-partner formats
+ * still have head-to-head data.
+ */
+interface Duel<K> {
+  winner: K;
+  loser: K;
+  setsWinner: number;
+  setsLoser: number;
+  pointsWinner: number;
+  pointsLoser: number;
+}
+
+/** The figures every ranking rule works on, independent of subject type. */
+interface Rankable<K> {
+  key: K;
+  wins: number;
+  losses: number;
+  setsWon: number;
+  setsLost: number;
+  pointsWon: number;
+  pointsLost: number;
+  /** Present only when the caller asked for Buchholz scoring. */
+  buchholz?: number;
+}
+
+/**
+ * Orders a standings table.
+ *
+ * The rule, in order:
+ *   1. Wins (absolute, not a percentage)
+ *   2. Head-to-head among everyone still tied — wins in the mini table
+ *   3. Set difference within that mini table
+ *   4. Set difference overall
+ *   5. Point difference overall
+ *   6. A stable fallback so the order never wobbles between renders
+ *
+ * Why not the win percentage that came before: with an unequal number of
+ * matches played — a normal state mid-round, across groups of different
+ * sizes, and after a retirement — 1 win from 1 match (100%) outranked 5
+ * wins from 6 (83%). See REVIEW-BACKLOG.md B1.
+ */
+function rankSubjects<K>(
+  entries: Rankable<K>[],
+  duels: Duel<K>[],
+  tiebreak: (a: Rankable<K>, b: Rankable<K>) => number,
+): Rankable<K>[] {
+  const setDiff = (e: Rankable<K>) => e.setsWon - e.setsLost;
+  const pointDiff = (e: Rankable<K>) => e.pointsWon - e.pointsLost;
+
+  // Stage 1: group by wins.
+  const byWins = new Map<number, Rankable<K>[]>();
+  for (const e of entries) {
+    const bucket = byWins.get(e.wins);
+    if (bucket) bucket.push(e);
+    else byWins.set(e.wins, [e]);
+  }
+
+  const result: Rankable<K>[] = [];
+  const winCounts = [...byWins.keys()].sort((a, b) => b - a);
+
+  for (const wins of winCounts) {
+    const tied = byWins.get(wins)!;
+    if (tied.length === 1) {
+      result.push(tied[0]);
+      continue;
+    }
+
+    // Stage 2: mini table over the duels these subjects played against
+    // each other. Everyone else's results are irrelevant here.
+    const inGroup = new Set(tied.map((e) => e.key));
+    const miniWins = new Map<K, number>();
+    const miniSetDiff = new Map<K, number>();
+    for (const e of tied) {
+      miniWins.set(e.key, 0);
+      miniSetDiff.set(e.key, 0);
+    }
+    for (const d of duels) {
+      if (!inGroup.has(d.winner) || !inGroup.has(d.loser)) continue;
+      miniWins.set(d.winner, (miniWins.get(d.winner) ?? 0) + 1);
+      miniSetDiff.set(d.winner, (miniSetDiff.get(d.winner) ?? 0) + (d.setsWinner - d.setsLoser));
+      miniSetDiff.set(d.loser, (miniSetDiff.get(d.loser) ?? 0) + (d.setsLoser - d.setsWinner));
+    }
+
+    tied.sort((a, b) => {
+      // Buchholz first when it was computed: in Swiss the strength of the
+      // opponents faced outranks a single head-to-head result.
+      if (a.buchholz !== undefined && b.buchholz !== undefined && a.buchholz !== b.buchholz) {
+        return b.buchholz - a.buchholz;
+      }
+
+      const miniWinDiff = (miniWins.get(b.key) ?? 0) - (miniWins.get(a.key) ?? 0);
+      if (miniWinDiff !== 0) return miniWinDiff;
+
+      const miniSets = (miniSetDiff.get(b.key) ?? 0) - (miniSetDiff.get(a.key) ?? 0);
+      if (miniSets !== 0) return miniSets;
+
+      const sets = setDiff(b) - setDiff(a);
+      if (sets !== 0) return sets;
+
+      const points = pointDiff(b) - pointDiff(a);
+      if (points !== 0) return points;
+
+      return tiebreak(a, b);
+    });
+
+    result.push(...tied);
+  }
+
+  return result;
+}
+
+/** Human-readable description of the ranking rule, for tooltips and docs. */
+export const RANKING_CRITERIA = [
+  "wins",
+  "head_to_head",
+  "set_difference",
+  "point_difference",
+] as const;
+
+/** Options that change how a table is counted. */
+export interface StandingsOptions {
+  /**
+   * Swiss and Monrad award a bye as a win — sitting out is not the
+   * player's doing, and their score has to keep up with the field. In a
+   * knockout a bye is only an advance, so it stays uncounted (the default).
+   */
+  byesCountAsWins?: boolean;
+  /**
+   * Adds the Buchholz score (sum of the opponents' wins) to each entry.
+   * It is the standard fine-scoring in Swiss: whoever faced the stronger
+   * field ranks higher on equal points.
+   */
+  withBuchholz?: boolean;
+  /**
+   * The scoring rules, so sets after the deciding one can be left out.
+   *
+   * A best-of-three ends at two sets; a third one stored against it was
+   * never played, and counting it inflates both the set ratio and the
+   * point ratio -- the two things that separate equal records in a group.
+   *
+   * Optional because not every caller has a tournament to hand. Without
+   * it every stored set counts, which is how it always behaved.
+   */
+  scoring?: { setsToWin: number; pointsPerSet: number; cap: number | null };
+}
+
+/**
+ * A tournament's scoring rules, in the shape {@link StandingsOptions} wants.
+ *
+ * Uses the ordinary values rather than the `ko_*` ones on purpose: those
+ * apply to the knockout phase, and a knockout has a bracket, not a table.
+ * Every standings table in this application is a group table or a
+ * whole-tournament table, both of which are played to the ordinary rules.
+ */
+export function scoringOf(tournament: {
+  sets_to_win: number;
+  points_per_set: number;
+  cap: number | null;
+}): NonNullable<StandingsOptions["scoring"]> {
+  return {
+    setsToWin: tournament.sets_to_win,
+    pointsPerSet: tournament.points_per_set,
+    cap: tournament.cap,
+  };
 }
 
 export function calculateStandings(
   players: Player[],
   matches: Match[],
-  sets: Map<number, GameSet[]>
+  sets: Map<number, GameSet[]>,
+  options: StandingsOptions = {},
 ): StandingEntry[] {
   const entries = new Map<number, StandingEntry>();
 
@@ -251,10 +470,37 @@ export function calculateStandings(
     });
   }
 
+  const duels: Duel<number>[] = [];
+
   for (const match of matches) {
     if (match.status !== "completed" || !match.winner_team) continue;
+    // A bye (no opponent) advances a player through the bracket but is not
+    // a played match — counting it as a win would inflate their record and
+    // skew every ratio-based tiebreak. See REVIEW-BACKLOG.md A2.
+    if (match.team2_p1 === null) {
+      if (options.byesCountAsWins) {
+        for (const pid of [match.team1_p1, match.team1_p2]) {
+          if (pid === null) continue;
+          const e = entries.get(pid);
+          if (e) e.wins++;
+        }
+      }
+      continue;
+    }
 
-    const matchSets = sets.get(match.id) || [];
+    // A walkover is a win, but nothing was played: no sets, no points.
+    const isWalkover = match.walkover === 1;
+    const stored = isWalkover ? [] : sets.get(match.id) || [];
+    // Anything past the deciding set was never playable, whatever is in
+    // the database -- see playedSets.
+    const matchSets = options.scoring
+      ? playedSets(
+          stored,
+          options.scoring.setsToWin,
+          options.scoring.pointsPerSet,
+          options.scoring.cap,
+        )
+      : stored;
 
     const team1Players = [match.team1_p1, match.team1_p2].filter(
       (id): id is number => id !== null
@@ -311,27 +557,68 @@ export function calculateStandings(
         e.setsLost += team1SetsWon;
       }
     }
+
+    // Record the encounter for the head-to-head tiebreak. In doubles every
+    // winner counts as having beaten every loser.
+    const winnerSets = match.winner_team === 1 ? team1SetsWon : team2SetsWon;
+    const loserSets = match.winner_team === 1 ? team2SetsWon : team1SetsWon;
+    let winnerPoints = 0;
+    let loserPoints = 0;
+    for (const s of matchSets) {
+      winnerPoints += match.winner_team === 1 ? s.team1_score : s.team2_score;
+      loserPoints += match.winner_team === 1 ? s.team2_score : s.team1_score;
+    }
+    for (const w of winners) {
+      for (const l of losers) {
+        duels.push({
+          winner: w,
+          loser: l,
+          setsWinner: winnerSets,
+          setsLoser: loserSets,
+          pointsWinner: winnerPoints,
+          pointsLoser: loserPoints,
+        });
+      }
+    }
   }
 
   const result = Array.from(entries.values());
-  result.sort((a, b) => {
-    // 1. Match win percentage (wins / total matches)
-    const matchPctA = (a.wins + a.losses) > 0 ? a.wins / (a.wins + a.losses) : 0;
-    const matchPctB = (b.wins + b.losses) > 0 ? b.wins / (b.wins + b.losses) : 0;
-    if (matchPctB !== matchPctA) return matchPctB - matchPctA;
 
-    // 2. Set win percentage (setsWon / total sets)
-    const setPctA = (a.setsWon + a.setsLost) > 0 ? a.setsWon / (a.setsWon + a.setsLost) : 0;
-    const setPctB = (b.setsWon + b.setsLost) > 0 ? b.setsWon / (b.setsWon + b.setsLost) : 0;
-    if (setPctB !== setPctA) return setPctB - setPctA;
+  if (options.withBuchholz) {
+    // Sum of the wins of everyone a player actually faced.
+    const opponents = new Map<number, number[]>();
+    for (const d of duels) {
+      if (!opponents.has(d.winner)) opponents.set(d.winner, []);
+      if (!opponents.has(d.loser)) opponents.set(d.loser, []);
+      opponents.get(d.winner)!.push(d.loser);
+      opponents.get(d.loser)!.push(d.winner);
+    }
+    const winsById = new Map(result.map((e) => [e.player.id, e.wins]));
+    for (const entry of result) {
+      const faced = opponents.get(entry.player.id) ?? [];
+      entry.buchholz = faced.reduce((sum, id) => sum + (winsById.get(id) ?? 0), 0);
+    }
+  }
 
-    // 3. Point win percentage (pointsWon / total points)
-    const ptPctA = (a.pointsWon + a.pointsLost) > 0 ? a.pointsWon / (a.pointsWon + a.pointsLost) : 0;
-    const ptPctB = (b.pointsWon + b.pointsLost) > 0 ? b.pointsWon / (b.pointsWon + b.pointsLost) : 0;
-    return ptPctB - ptPctA;
-  });
+  const ranked = rankSubjects(
+    result.map((e) => ({
+      key: e.player.id,
+      buchholz: e.buchholz,
+      wins: e.wins,
+      losses: e.losses,
+      setsWon: e.setsWon,
+      setsLost: e.setsLost,
+      pointsWon: e.pointsWon,
+      pointsLost: e.pointsLost,
+    })),
+    duels,
+    // Stable last resort: player id. Deterministic, so the table does not
+    // reshuffle itself between renders.
+    (a, b) => a.key - b.key,
+  );
 
-  return result;
+  const byId = new Map(result.map((e) => [e.player.id, e]));
+  return ranked.map((r) => byId.get(r.key)!);
 }
 
 function teamKey(p1: number, p2: number): string {
@@ -341,7 +628,8 @@ function teamKey(p1: number, p2: number): string {
 export function calculateTeamStandings(
   players: Player[],
   matches: Match[],
-  sets: Map<number, GameSet[]>
+  sets: Map<number, GameSet[]>,
+  options: StandingsOptions = {},
 ): TeamStandingEntry[] {
   const entries = new Map<string, TeamStandingEntry>();
   const playerMap = new Map(players.map((p) => [p.id, p]));
@@ -359,7 +647,7 @@ export function calculateTeamStandings(
         });
       }
     }
-    if (m.team2_p2) {
+    if (m.team2_p1 !== null && m.team2_p2) {
       const key = teamKey(m.team2_p1, m.team2_p2);
       if (!entries.has(key)) {
         entries.set(key, {
@@ -372,12 +660,23 @@ export function calculateTeamStandings(
     }
   }
 
+  const duels: Duel<string>[] = [];
+
   for (const m of matches) {
     if (m.status !== "completed" || !m.winner_team) continue;
-    const matchSets = sets.get(m.id) || [];
+    if (m.team2_p1 === null) continue; // bye — advanced, not played
+    const storedSets = m.walkover === 1 ? [] : sets.get(m.id) || [];
+    const matchSets = options.scoring
+      ? playedSets(
+          storedSets,
+          options.scoring.setsToWin,
+          options.scoring.pointsPerSet,
+          options.scoring.cap,
+        )
+      : storedSets;
 
     const t1key = m.team1_p2 ? teamKey(m.team1_p1, m.team1_p2) : null;
-    const t2key = m.team2_p2 ? teamKey(m.team2_p1, m.team2_p2) : null;
+    const t2key = m.team2_p1 !== null && m.team2_p2 ? teamKey(m.team2_p1, m.team2_p2) : null;
 
     const winKey = m.winner_team === 1 ? t1key : t2key;
     const loseKey = m.winner_team === 1 ? t2key : t1key;
@@ -401,27 +700,176 @@ export function calculateTeamStandings(
     }
     if (t1key) { const e = entries.get(t1key); if (e) { e.setsWon += t1SetsWon; e.setsLost += t2SetsWon; } }
     if (t2key) { const e = entries.get(t2key); if (e) { e.setsWon += t2SetsWon; e.setsLost += t1SetsWon; } }
+
+    if (winKey && loseKey) {
+      let winnerPoints = 0;
+      let loserPoints = 0;
+      for (const s of matchSets) {
+        winnerPoints += m.winner_team === 1 ? s.team1_score : s.team2_score;
+        loserPoints += m.winner_team === 1 ? s.team2_score : s.team1_score;
+      }
+      duels.push({
+        winner: winKey,
+        loser: loseKey,
+        setsWinner: m.winner_team === 1 ? t1SetsWon : t2SetsWon,
+        setsLoser: m.winner_team === 1 ? t2SetsWon : t1SetsWon,
+        pointsWinner: winnerPoints,
+        pointsLoser: loserPoints,
+      });
+    }
   }
 
   const result = Array.from(entries.values());
-  result.sort((a, b) => {
-    // 1. Match win percentage
-    const matchPctA = (a.wins + a.losses) > 0 ? a.wins / (a.wins + a.losses) : 0;
-    const matchPctB = (b.wins + b.losses) > 0 ? b.wins / (b.wins + b.losses) : 0;
-    if (matchPctB !== matchPctA) return matchPctB - matchPctA;
+  const ranked = rankSubjects(
+    result.map((e) => ({
+      key: e.teamKey,
+      wins: e.wins,
+      losses: e.losses,
+      setsWon: e.setsWon,
+      setsLost: e.setsLost,
+      pointsWon: e.pointsWon,
+      pointsLost: e.pointsLost,
+    })),
+    duels,
+    (a, b) => a.key.localeCompare(b.key),
+  );
 
-    // 2. Set win percentage
-    const setPctA = (a.setsWon + a.setsLost) > 0 ? a.setsWon / (a.setsWon + a.setsLost) : 0;
-    const setPctB = (b.setsWon + b.setsLost) > 0 ? b.setsWon / (b.setsWon + b.setsLost) : 0;
-    if (setPctB !== setPctA) return setPctB - setPctA;
+  const byKey = new Map(result.map((e) => [e.teamKey, e]));
+  return ranked.map((r) => byKey.get(r.key)!);
+}
 
-    // 3. Point win percentage
-    const ptPctA = (a.pointsWon + a.pointsLost) > 0 ? a.pointsWon / (a.pointsWon + a.pointsLost) : 0;
-    const ptPctB = (b.pointsWon + b.pointsLost) > 0 ? b.pointsWon / (b.pointsWon + b.pointsLost) : 0;
-    return ptPctB - ptPctA;
+
+/**
+ * Orders participants from *different* groups against each other — the
+ * "best runners-up" comparison when a KO bracket has more slots than there
+ * are group winners.
+ *
+ * Head-to-head cannot apply here (they never met), so the rule is wins,
+ * then set difference, then point difference, then a stable fallback.
+ * Percentages are deliberately not used: they made a 1-0 record outrank a
+ * 5-1 one (REVIEW-BACKLOG.md B1/B11).
+ *
+ * Note that the caller has to hand over *comparable* records — see
+ * {@link limitStandingsToTopN} when groups differ in size.
+ */
+export function rankAcrossGroups<T extends {
+  wins: number;
+  setsWon: number;
+  setsLost: number;
+  pointsWon: number;
+  pointsLost: number;
+}>(entries: T[], stableKey: (entry: T) => number | string): T[] {
+  return [...entries].sort((a, b) => {
+    if (b.wins !== a.wins) return b.wins - a.wins;
+
+    const setDiff = (b.setsWon - b.setsLost) - (a.setsWon - a.setsLost);
+    if (setDiff !== 0) return setDiff;
+
+    const pointDiff = (b.pointsWon - b.pointsLost) - (a.pointsWon - a.pointsLost);
+    if (pointDiff !== 0) return pointDiff;
+
+    const ka = stableKey(a);
+    const kb = stableKey(b);
+    if (typeof ka === "number" && typeof kb === "number") return ka - kb;
+    return String(ka).localeCompare(String(kb));
+  });
+}
+
+/**
+ * Recomputes a group table as if only its top N participants existed.
+ *
+ * Groups of different sizes produce records that cannot be compared
+ * directly: in a group of five everyone has one more match than in a group
+ * of four. The established fix is to drop the results against the
+ * bottom-placed participants of the larger groups, which is what this does.
+ */
+export function limitStandingsToTopN(
+  standings: StandingEntry[],
+  matches: Match[],
+  sets: Map<number, GameSet[]>,
+  topN: number,
+): StandingEntry[] {
+  if (standings.length <= topN) return standings;
+
+  const keep = new Set(standings.slice(0, topN).map((e) => e.player.id));
+  const keptPlayers = standings.slice(0, topN).map((e) => e.player);
+  const keptMatches = matches.filter((m) => {
+    const ids = [m.team1_p1, m.team1_p2, m.team2_p1, m.team2_p2].filter(
+      (id): id is number => id !== null && id > 0,
+    );
+    return ids.every((id) => keep.has(id));
   });
 
-  return result;
+  return calculateStandings(keptPlayers, keptMatches, sets);
+}
+
+/** Team-standings counterpart of {@link limitStandingsToTopN}. */
+export function limitTeamStandingsToTopN(
+  standings: TeamStandingEntry[],
+  players: Player[],
+  matches: Match[],
+  sets: Map<number, GameSet[]>,
+  topN: number,
+): TeamStandingEntry[] {
+  if (standings.length <= topN) return standings;
+
+  const keep = new Set(standings.slice(0, topN).map((e) => e.teamKey));
+  const teamKeyOf = (p1: number, p2: number | null) =>
+    p2 === null ? null : `${Math.min(p1, p2)}-${Math.max(p1, p2)}`;
+
+  const keptMatches = matches.filter((m) => {
+    const t1 = teamKeyOf(m.team1_p1, m.team1_p2);
+    const t2 = m.team2_p1 === null ? null : teamKeyOf(m.team2_p1, m.team2_p2);
+    return t1 !== null && t2 !== null && keep.has(t1) && keep.has(t2);
+  });
+
+  return calculateTeamStandings(players, keptMatches, sets);
+}
+
+/**
+ * Whether set `setNumber` could have been played at all.
+ *
+ * A best-of-three ends the moment somebody has two sets; a third one
+ * cannot exist. The score entry used to allow it anyway, and the extra
+ * set then counted towards the set and point ratios that decide ties.
+ *
+ * Deliberately asks about the sets *before* this one and nothing else, so
+ * correcting an earlier set frees or blocks the later ones as it should:
+ * change a 21:15 to 15:21 and the third set becomes playable again.
+ */
+export function isSetPlayable(
+  setNumber: number,
+  matchSets: GameSet[],
+  setsToWin: number,
+  pointsPerSet: number,
+  cap?: number | null,
+): boolean {
+  const earlier = matchSets.filter((s) => s.set_number < setNumber);
+  return determineMatchWinner(earlier, setsToWin, pointsPerSet, cap) === null;
+}
+
+/**
+ * The sets that count: everything up to and including the one that
+ * decided the match.
+ *
+ * Anything after it was never playable, whatever is stored -- and a
+ * stored one would otherwise inflate the loser's points and the winner's
+ * set ratio. Used by the standings so an old, wrongly entered match does
+ * not keep skewing a table.
+ */
+export function playedSets(
+  matchSets: GameSet[],
+  setsToWin: number,
+  pointsPerSet: number,
+  cap?: number | null,
+): GameSet[] {
+  const ordered = [...matchSets].sort((a, b) => a.set_number - b.set_number);
+  const out: GameSet[] = [];
+  for (const set of ordered) {
+    if (determineMatchWinner(out, setsToWin, pointsPerSet, cap) !== null) break;
+    out.push(set);
+  }
+  return out;
 }
 
 export function determineMatchWinner(

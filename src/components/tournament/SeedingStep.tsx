@@ -1,7 +1,9 @@
 import type { ThemeColors } from "../../lib/theme";
+import Icon from "../../components/ui/Icon";
 import type { Player } from "../../lib/types";
 import { playerDisplayName } from "../../lib/types";
 import { useT } from "../../lib/I18nContext";
+import { seedGroups } from "../../lib/draw";
 
 interface SeedingStepProps {
   seedOrder: number[];
@@ -55,15 +57,27 @@ export default function SeedingStep({
   );
   const unseededList = [...unseededFromSeedOrder, ...unseededExtra];
 
+  // Seeding groups: 1, 2, 3/4, 5/8, 9/16. Positions inside a group are
+  // drawn by lot, so the list shows the group rather than a rank the draw
+  // does not honour (FEATURE-BACKLOG.md C1).
+  const groupOfIndex = new Map<number, { label: string; groupIndex: number }>();
+  for (const [gi, group] of seedGroups(seededList.length).entries()) {
+    const first = group[0] + 1;
+    const last = group[group.length - 1] + 1;
+    const label = first === last ? String(first) : `${first}/${last}`;
+    for (const i of group) groupOfIndex.set(i, { label, groupIndex: gi });
+  }
+
   return (
-    <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 space-y-5`}>
+    <div className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5 space-y-5`}>
       <div>
         <h2 className={`font-semibold ${theme.textPrimary} mb-1`}>
-          🎯 {t.seeding_title}
+          <Icon name="target" /> {t.seeding_title}
         </h2>
         <p className={`text-xs ${theme.textMuted}`}>
           {t.seeding_description}
         </p>
+        <p className={`mt-1 text-xs ${theme.textMuted}`}>{t.seeding_groups_hint}</p>
       </div>
 
       {/* Seeded section */}
@@ -72,14 +86,15 @@ export default function SeedingStep({
           {t.seeding_section_seeded} ({seededList.length})
         </h3>
         {seededList.length === 0 ? (
-          <div className={`rounded-xl border border-dashed ${theme.cardBorder} px-4 py-6 text-center text-sm ${theme.textMuted}`}>
+          <div className={`rounded-md border border-dashed ${theme.cardBorder} px-4 py-6 text-center text-sm ${theme.textMuted}`}>
             {t.seeding_empty_hint}
           </div>
         ) : (
-          <div className={`rounded-xl border ${theme.cardBorder} overflow-hidden`}>
+          <div className={`rounded-md border ${theme.cardBorder} overflow-hidden`}>
             {seededList.map((pid, idx) => {
               const p = players.find((pl) => pl.id === pid);
               if (!p) return null;
+              const seedGroup = groupOfIndex.get(idx) ?? { label: String(idx + 1), groupIndex: idx };
               const isDragging = dragSeedIdx === idx;
               const isOver = dragOverIdx === idx;
               return (
@@ -92,8 +107,8 @@ export default function SeedingStep({
                   onDragLeave={() => onDragLeave(idx)}
                   onDrop={(e) => { e.preventDefault(); onSeedDrop(idx); }}
                   className={`flex items-center gap-3 px-4 py-2.5 text-sm cursor-grab active:cursor-grabbing select-none transition-all ${
-                    idx > 0 ? "border-t border-gray-50" : ""
-                  } ${isDragging ? "opacity-40 bg-gray-50" : ""} ${
+                    idx > 0 ? "border-t border-line" : ""
+                  } ${isDragging ? "opacity-40 bg-surface-sunken" : ""} ${
                     isOver && !isDragging ? "border-t-2 border-t-emerald-400" : ""
                   }`}
                 >
@@ -106,25 +121,28 @@ export default function SeedingStep({
                     className="w-4 h-4 accent-emerald-600 cursor-pointer shrink-0"
                     title={t.seeding_is_seeded}
                   />
-                  <span className="text-gray-300 text-xs cursor-grab" draggable={false}>⠿</span>
-                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                    idx === 0
-                      ? "bg-amber-100 text-amber-700"
-                      : idx === 1
-                      ? "bg-gray-200 text-gray-600"
-                      : idx === 2
-                      ? "bg-orange-100 text-orange-700"
-                      : "bg-gray-100 text-gray-500"
-                  }`}>
-                    {idx + 1}
+                  <span className="text-muted text-xs cursor-grab" draggable={false}>⠿</span>
+                  <span
+                    className={`flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full px-2 text-xs font-bold ${
+                      seedGroup.groupIndex === 0
+                        ? "bg-warning-subtle text-warning-text"
+                        : seedGroup.groupIndex === 1
+                          ? "bg-line-strong text-secondary"
+                          : seedGroup.groupIndex === 2
+                            ? "bg-warning-subtle text-warning-text"
+                            : "bg-surface-sunken text-muted"
+                    }`}
+                    title={seedGroup.label.includes("/") ? t.seeding_group_drawn : undefined}
+                  >
+                    {seedGroup.label}
                   </span>
                   <span className={`font-medium ${theme.textPrimary} flex-1`}>
                     {playerDisplayName(p)}
                   </span>
                   <span
-                    className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                    className={`text-2xs font-medium px-2 py-0.5 rounded-full ${
                       p.gender === "m"
-                        ? "bg-blue-50 text-blue-500"
+                        ? "bg-info-subtle text-phase-text"
                         : "bg-pink-50 text-pink-500"
                     }`}
                   >
@@ -135,19 +153,19 @@ export default function SeedingStep({
                       draggable={false}
                       onClick={() => onMoveSeed(idx, -1)}
                       disabled={idx === 0}
-                      className="text-gray-400 hover:text-emerald-600 disabled:opacity-20 disabled:cursor-default text-xs leading-none"
+                      className="text-muted hover:text-success-text disabled:opacity-20 disabled:cursor-default text-xs leading-none"
                       title={t.seeding_move_up}
                     >
-                      ▲
+                      <Icon name="chevronDown" className="rotate-180" />
                     </button>
                     <button
                       draggable={false}
                       onClick={() => onMoveSeed(idx, 1)}
                       disabled={idx === seededList.length - 1}
-                      className="text-gray-400 hover:text-emerald-600 disabled:opacity-20 disabled:cursor-default text-xs leading-none"
+                      className="text-muted hover:text-success-text disabled:opacity-20 disabled:cursor-default text-xs leading-none"
                       title={t.seeding_move_down}
                     >
-                      ▼
+                      <Icon name="chevronDown" />
                     </button>
                   </div>
                 </div>
@@ -163,10 +181,10 @@ export default function SeedingStep({
           <h3 className={`text-xs font-semibold uppercase tracking-wide ${theme.textMuted} mb-1`}>
             {t.seeding_section_unseeded} ({unseededList.length})
           </h3>
-          <p className={`text-[11px] ${theme.textMuted} mb-2`}>
+          <p className={`text-2xs ${theme.textMuted} mb-2`}>
             {t.seeding_unseeded_hint}
           </p>
-          <div className={`rounded-xl border ${theme.cardBorder} overflow-hidden opacity-75`}>
+          <div className={`rounded-md border ${theme.cardBorder} overflow-hidden opacity-75`}>
             {unseededList.map((pid, idx) => {
               const p = players.find((pl) => pl.id === pid);
               if (!p) return null;
@@ -174,7 +192,7 @@ export default function SeedingStep({
                 <div
                   key={p.id}
                   className={`flex items-center gap-3 px-4 py-2.5 text-sm select-none ${
-                    idx > 0 ? "border-t border-gray-50" : ""
+                    idx > 0 ? "border-t border-line" : ""
                   }`}
                 >
                   <input
@@ -188,9 +206,9 @@ export default function SeedingStep({
                     {playerDisplayName(p)}
                   </span>
                   <span
-                    className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                    className={`text-2xs font-medium px-2 py-0.5 rounded-full ${
                       p.gender === "m"
-                        ? "bg-blue-50 text-blue-500"
+                        ? "bg-info-subtle text-phase-text"
                         : "bg-pink-50 text-pink-500"
                     }`}
                   >

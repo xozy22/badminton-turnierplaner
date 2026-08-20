@@ -11,6 +11,7 @@
 // as part of the v2.7.5 directory split.
 
 import { useState } from "react";
+import type { ThemeColors } from "../../../lib/theme";
 import type { ConflictPlayer } from "../../../lib/courtConflicts";
 import { isSetComplete } from "../../../lib/scoring";
 import type { Match, GameSet } from "../../../lib/types";
@@ -33,6 +34,7 @@ export default function CompletedMatchesSection({
   onCourtChange,
   onAnnounce,
   onReset,
+  onOutcome,
   isActive,
   theme,
   hasOtherMatches,
@@ -56,8 +58,10 @@ export default function CompletedMatchesSection({
   onCourtChange: (matchId: number, court: number | null) => void;
   onAnnounce: (court: number, team1: string, team2: string) => void;
   onReset: (matchId: number) => void;
+  /** Opens the "this match was not played" dialog. */
+  onOutcome?: (matchId: number) => void;
   isActive: boolean;
-  theme: any;
+  theme: ThemeColors;
   hasOtherMatches: boolean;
   editingMatchIds: Set<number>;
   allMatches: Match[];
@@ -76,6 +80,18 @@ export default function CompletedMatchesSection({
   // completed ones are reference/history. Editing matches stay visible
   // either way (the user is mid-edit and would lose the input UI).
   const [isOpen, setIsOpen] = useState(false);
+
+  /** Null for a played match, so the score line stands as it did. */
+  const outcomeLabel = (m: Match) =>
+    m.outcome === "walkover"
+      ? t.outcome_badge_walkover
+      : m.outcome === "retired"
+        ? t.outcome_badge_retired
+        : m.outcome === "disqualified"
+          ? t.outcome_badge_disqualified
+          : m.outcome === "no_match"
+            ? t.outcome_badge_no_match
+            : null;
 
   const teamLabel = (m: Match) => {
     const t1 = m.team1_p2
@@ -118,6 +134,7 @@ export default function CompletedMatchesSection({
           onCourtChange={onCourtChange}
           onAnnounce={onAnnounce}
           onReset={onReset}
+          onOutcome={onOutcome}
           isActive={isActive}
           theme={theme}
           allMatches={allMatches}
@@ -187,16 +204,26 @@ export default function CompletedMatchesSection({
                 </span>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-3">
-                <span className={`font-mono font-bold text-sm ${theme.textPrimary}`}>
-                  {s1}:{s2}
-                </span>
-                <span className={`font-mono text-xs ${theme.textMuted}`}>
-                  ({sets.filter(s => s.team1_score > 0 || s.team2_score > 0).map(s => `${s.team1_score}:${s.team2_score}`).join(", ")})
-                </span>
+                {outcomeLabel(m) ? (
+                  // A match that was not played has no sets to show. "0:0 ()"
+                  // read as a played match that ended goalless.
+                  <span className="rounded-full bg-warning-subtle px-2 py-0.5 text-xs font-medium text-warning-text">
+                    {outcomeLabel(m)}
+                  </span>
+                ) : (
+                  <>
+                    <span className={`font-mono font-bold text-sm ${theme.textPrimary}`}>
+                      {s1}:{s2}
+                    </span>
+                    <span className={`font-mono text-xs ${theme.textMuted}`}>
+                      ({sets.filter(s => s.team1_score > 0 || s.team2_score > 0).map(s => `${s.team1_score}:${s.team2_score}`).join(", ")})
+                    </span>
+                  </>
+                )}
                 {isActive && (
                   <button
                     onClick={() => onReset(m.id)}
-                    className="text-xs text-amber-500 hover:text-amber-700 transition-colors"
+                    className="text-xs text-warning-text hover:text-warning-text transition-colors"
                   >
                     {t.tournament_view_edit_results}
                   </button>
@@ -207,7 +234,7 @@ export default function CompletedMatchesSection({
         };
 
         const groupHeader = (group: number, count: number) => (
-          <div className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide mb-1 mt-2 first:mt-0 text-violet-600`}>
+          <div className={`flex items-center gap-2 text-2xs font-bold uppercase tracking-wide mb-1 mt-2 first:mt-0 text-phase-text`}>
             <span>{t.group_progress_label.replace("{n}", String(group))}</span>
             <span className={`font-mono font-normal ${theme.textMuted}`}>
               {t.groups_matches_count.replace("{count}", String(count))}
@@ -221,7 +248,7 @@ export default function CompletedMatchesSection({
               {groups.map(({ group, matches: gm }) => (
                 <div key={group}>
                   {groupHeader(group, gm.length)}
-                  <div className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} overflow-hidden`}>
+                  <div className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} overflow-hidden`}>
                     {gm.map((m, i) => renderCompactRow(m, i, gm.length))}
                   </div>
                 </div>
@@ -230,7 +257,7 @@ export default function CompletedMatchesSection({
           );
         }
         return (
-          <div className={`${theme.cardBg} rounded-2xl border ${theme.cardBorder} overflow-hidden`}>
+          <div className={`${theme.cardBg} rounded-lg border ${theme.cardBorder} overflow-hidden`}>
             {nonEditing.map((m, i) => renderCompactRow(m, i, nonEditing.length))}
           </div>
         );

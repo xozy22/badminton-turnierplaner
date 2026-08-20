@@ -1,9 +1,13 @@
 import { useEffect, useState, useRef } from "react";
+import { formatLabel, modeLabel } from "../lib/i18n/labels";
+import { EmptyState } from "../components/ui/States";
+import { useConfirm } from "../components/ui/ConfirmDialog";
+import Icon from "../components/ui/Icon";
 import { Link, useNavigate } from "react-router-dom";
 import { getTournaments, deleteTournament, updateTournamentStatus, createTournament, createPlayer, getPlayers, addPlayerToTournament, updateTeamConfig, updateHallConfig, isTauri, getSportstaetten, createSportstaette, updateTournamentVenueId } from "../lib/db";
 import { hallConfigTotalCourts } from "../lib/types";
 import { getSessions } from "../lib/sessions";
-import type { Tournament, Gender, Session } from "../lib/types";
+import type { Tournament, Gender, Session, TournamentMode, TournamentFormat } from "../lib/types";
 import { getScoringModeId } from "../lib/scoring";
 import { useTheme } from "../lib/ThemeContext";
 import { useT } from "../lib/I18nContext";
@@ -13,6 +17,7 @@ import { useDocumentTitle } from "../lib/useDocumentTitle";
 export default function Tournaments() {
   const { theme } = useTheme();
   const { t } = useT();
+  const [confirmDialog, askConfirm] = useConfirm();
   const { showError, showSuccess } = useToast();
   useDocumentTitle(t.nav_tournaments);
   const navigate = useNavigate();
@@ -50,7 +55,6 @@ export default function Tournaments() {
       setCreating(false);
     }
   };
-  const [deleteTarget, setDeleteTarget] = useState<Tournament | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
 
   const applyTemplate = async (tpl: Record<string, unknown>) => {
@@ -142,8 +146,8 @@ export default function Tournaments() {
 
     const id = await createTournament(
       name,
-      mode as any,
-      format as any,
+      mode as TournamentMode,
+      format as TournamentFormat,
       setsToWin,
       pointsPerSet,
       courts,
@@ -178,8 +182,11 @@ export default function Tournaments() {
         birth_date: string | null;
         club: string | null;
       };
-      const tplPlayers: TplPlayer[] = (tpl.players as any[])
-        .map((tp: any): TplPlayer | null => {
+      // Template JSON is user-supplied: read it as unknown records and
+      // validate field by field rather than trusting a cast.
+      const rawPlayers = Array.isArray(tpl.players) ? (tpl.players as Record<string, unknown>[]) : [];
+      const tplPlayers: TplPlayer[] = rawPlayers
+        .map((tp): TplPlayer | null => {
           const gender: Gender = (tp.gender === "f" || tp.gender === "m") ? tp.gender : "m";
           if (typeof tp.first_name === "string" || typeof tp.last_name === "string") {
             const fn = String(tp.first_name || "").trim();
@@ -190,8 +197,8 @@ export default function Tournaments() {
               first_name: fn,
               last_name: ln,
               gender,
-              birth_date: tp.birth_date ?? null,
-              club: tp.club ?? null,
+              birth_date: typeof tp.birth_date === "string" ? tp.birth_date : null,
+              club: typeof tp.club === "string" ? tp.club : null,
             };
           }
           // v1 legacy: split full name on last space
@@ -319,7 +326,10 @@ export default function Tournaments() {
       await applyTemplate(tpl);
     } catch (err) {
       console.error("Import failed:", err);
-      alert(`${t.tournaments_import_error}\n\n${err instanceof Error ? err.message : String(err)}`);
+      // Errors go through the toast mechanism like everywhere else; a
+      // native alert() ignores the theme and blocks the window
+      // (REVIEW-BACKLOG.md F4).
+      showError(`${t.tournaments_import_error}\n\n${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -333,10 +343,22 @@ export default function Tournaments() {
     load();
   }, []);
 
-  const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return;
-    await deleteTournament(deleteTarget.id);
-    setDeleteTarget(null);
+  /**
+   * Deleting a tournament takes every round, match and result with it, so
+   * it asks for the word to be typed rather than for a click. The dialog
+   * could always do this; it was never asked to.
+   */
+  const handleDeleteConfirm = async (target: Tournament) => {
+    const ok = await askConfirm({
+      title: t.tournaments_delete_title,
+      message: t.tournaments_delete_message.replace("{name}", target.name),
+      icon: "trash",
+      tone: "danger",
+      confirmLabel: t.common_delete_permanently,
+      requireWord: t.tournaments_delete_confirm_word,
+    });
+    if (!ok) return;
+    await deleteTournament(target.id);
     load();
   };
 
@@ -364,16 +386,16 @@ export default function Tournaments() {
       case "completed":
         return `${theme.cardBg} ${theme.textMuted} border ${theme.cardBorder}`;
       case "archived":
-        return "bg-violet-100 text-violet-600";
+        return "bg-phase-subtle text-phase-text";
       default:
-        return "bg-amber-100 text-amber-700";
+        return "bg-warning-subtle text-warning-text";
     }
   };
 
   const renderTournamentCard = (tr: Tournament, isArchived: boolean) => (
     <div
       key={tr.id}
-      className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-5 flex justify-between items-center hover:shadow-md transition-all duration-200 ${
+      className={`${theme.cardBg} rounded-lg shadow-sm border ${theme.cardBorder} p-5 flex justify-between items-center hover:shadow-sm transition-all duration-200 ${
         isArchived ? "opacity-70 hover:opacity-100" : theme.cardHoverBorder
       }`}
     >
@@ -389,25 +411,25 @@ export default function Tournaments() {
           {tr.session_id != null && sessionsById.has(tr.session_id) && (() => {
             const s = sessionsById.get(tr.session_id)!;
             const styled = s.status === "active"
-              ? "bg-violet-100 text-violet-700 border-violet-200"
+              ? "bg-phase-subtle text-phase-text border-phase"
               : s.status === "ended"
-                ? "bg-gray-100 text-gray-600 border-gray-200"
-                : "bg-gray-50 text-gray-500 border-gray-200";
+                ? "bg-surface-sunken text-secondary border-line-strong"
+                : "bg-surface-sunken text-muted border-line-strong";
             const suffix = s.status === "ended" ? ` ${t.session_pill_ended_suffix}`
               : s.status === "archived" ? ` ${t.session_pill_archived_suffix}`
                 : "";
             return (
               <span
-                className={`text-[10px] font-bold uppercase tracking-wide border px-2 py-0.5 rounded-full ${styled}`}
+                className={`text-2xs font-bold uppercase tracking-wide border px-2 py-0.5 rounded-full ${styled}`}
                 title={s.name + suffix}
               >
-                🔗 {s.name}{suffix}
+                <Icon name="link" /> {s.name}{suffix}
               </span>
             );
           })()}
         </div>
         <div className={`text-sm ${theme.textSecondary} mt-0.5`}>
-          {{ singles: t.mode_singles, doubles: t.mode_doubles, mixed: t.mode_mixed }[tr.mode]} &middot; {{ round_robin: t.format_round_robin, elimination: t.format_elimination, random_doubles: t.format_random_doubles, group_ko: t.format_group_ko, swiss: t.format_swiss, double_elimination: t.format_double_elimination, monrad: t.format_monrad, king_of_court: t.format_king_of_court, waterfall: t.format_waterfall }[tr.format]} &middot;{" "}
+          {modeLabel(t, tr.mode)} &middot; {formatLabel(t, tr.format)} &middot;{" "}
           {t[`scoring_mode_${getScoringModeId(tr.points_per_set, tr.cap)}` as keyof typeof t] as string}
         </div>
       </Link>
@@ -420,27 +442,27 @@ export default function Tournaments() {
         {tr.status === "completed" && (
           <button
             onClick={() => handleArchive(tr.id)}
-            className="text-gray-400 hover:text-violet-600 text-sm transition-colors"
+            className="text-muted hover:text-phase-text text-sm transition-colors"
             title={t.tournaments_archive_button}
           >
-            📦 {t.tournaments_archive_button}
+            <Icon name="archive" /> {t.tournaments_archive_button}
           </button>
         )}
         {tr.status === "archived" && (
           <button
             onClick={() => handleUnarchive(tr.id)}
-            className="text-gray-400 hover:text-emerald-600 text-sm transition-colors"
+            className="text-muted hover:text-success-text text-sm transition-colors"
             title={t.tournaments_unarchive}
           >
-            ↩ {t.tournaments_unarchive}
+            <Icon name="undo" /> {t.tournaments_unarchive}
           </button>
         )}
         <button
-          onClick={() => setDeleteTarget(tr)}
-          className="text-gray-400 hover:text-rose-600 text-sm transition-colors"
+          onClick={() => void handleDeleteConfirm(tr)}
+          className="text-muted hover:text-danger-text text-sm transition-colors"
           title={t.tournaments_delete_title}
         >
-          🗑
+          <Icon name="trash" />
         </button>
       </div>
     </div>
@@ -464,13 +486,13 @@ export default function Tournaments() {
           {archivedTournaments.length > 0 && (
             <button
               onClick={() => setShowArchive(!showArchive)}
-              className={`border px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`border px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                 showArchive
-                  ? "bg-violet-50 border-violet-200 text-violet-700"
-                  : `${theme.cardBg} ${theme.cardBorder} ${theme.textSecondary} hover:border-violet-200`
+                  ? "bg-phase-subtle border-phase text-phase-text"
+                  : `${theme.cardBg} ${theme.cardBorder} ${theme.textSecondary} hover:border-phase`
               }`}
             >
-              📦 {t.tournaments_archive} ({archivedTournaments.length})
+              <Icon name="archive" /> {t.tournaments_archive} ({archivedTournaments.length})
             </button>
           )}
           <input
@@ -482,26 +504,27 @@ export default function Tournaments() {
           />
           <button
             onClick={handleImportTemplate}
-            className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium`}
+            className={`${theme.cardBg} border ${theme.cardBorder} ${theme.textSecondary} px-4 py-2.5 rounded-md ${theme.cardHoverBorder} hover:shadow-sm transition-all text-sm font-medium`}
           >
-            📋 {t.tournaments_import}
+            <Icon name="clipboard" /> {t.tournaments_import}
           </button>
           <button
             onClick={handleNewTournament}
             disabled={creating}
-            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-xl ${theme.primaryHoverBg} shadow-sm hover:shadow-md transition-all text-sm font-medium disabled:opacity-50`}
+            className={`${theme.primaryBg} text-white px-5 py-2.5 rounded-md ${theme.primaryHoverBg} shadow-sm hover:shadow-sm transition-all text-sm font-medium disabled:opacity-50`}
           >
-            🏆 {t.tournaments_new}
+            <Icon name="trophy" /> {t.tournaments_new}
           </button>
         </div>
       </div>
 
       {/* Active Tournaments */}
       {activeTournaments.length === 0 && !showArchive ? (
-        <div className={`${theme.cardBg} rounded-2xl shadow-sm border ${theme.cardBorder} p-12 text-center`}>
-          <div className="text-4xl mb-3">🏸</div>
-          <div className="text-gray-400">{t.tournaments_none_yet}</div>
-        </div>
+        <EmptyState
+          icon="trophy"
+          title={t.tournaments_none_yet}
+          hint={t.tournaments_empty_hint}
+        />
       ) : (
         <div className="space-y-3">
           {activeTournaments.map((tr) => renderTournamentCard(tr, false))}
@@ -512,7 +535,7 @@ export default function Tournaments() {
       {showArchive && archivedTournaments.length > 0 && (
         <div className="mt-8">
           <h2 className={`text-lg font-bold ${theme.textPrimary} mb-3 flex items-center gap-2`}>
-            📦 {t.tournaments_archive}
+            <Icon name="archive" /> {t.tournaments_archive}
           </h2>
           <div className="space-y-3">
             {archivedTournaments.map((tr) => renderTournamentCard(tr, true))}
@@ -521,34 +544,7 @@ export default function Tournaments() {
       )}
 
       {/* Delete Confirmation Modal */}
-      {deleteTarget && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className={`${theme.cardBg} rounded-2xl shadow-2xl w-full max-w-sm p-6 border ${theme.cardBorder} text-center`}>
-            <div className="text-4xl mb-3">⚠️</div>
-            <h3 className={`text-lg font-bold ${theme.textPrimary} mb-2`}>
-              {t.tournaments_delete_title}
-            </h3>
-            <p className={`text-sm ${theme.textSecondary} mb-5`}>
-              <span className={`font-semibold ${theme.textPrimary}`}>"{deleteTarget.name}"</span>{" "}
-              {t.tournaments_delete_message.replace(`"{name}"`, "").trim()}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteTarget(null)}
-                className={`flex-1 ${theme.cardBg} border ${theme.inputBorder} ${theme.textSecondary} px-4 py-2.5 rounded-xl hover:opacity-80 transition-all text-sm font-medium`}
-              >
-                {t.common_cancel}
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                className="flex-1 bg-rose-600 text-white px-4 py-2.5 rounded-xl hover:bg-rose-700 transition-all text-sm font-medium"
-              >
-                {t.common_delete_permanently}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {confirmDialog}
     </div>
   );
 }

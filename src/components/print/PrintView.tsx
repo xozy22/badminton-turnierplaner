@@ -1,5 +1,7 @@
 import { forwardRef } from "react";
-import { useT } from "../../lib/I18nContext";
+import { knockoutSizes } from "../../lib/formats/knockoutFormats";
+import Icon, { type IconName } from "../ui/Icon";
+import { useT, useLocale } from "../../lib/I18nContext";
 import type {
   Tournament,
   Player,
@@ -8,14 +10,25 @@ import type {
   GameSet,
   StandingEntry,
 } from "../../lib/types";
-import { MODE_LABELS, FORMAT_LABELS, playerDisplayName } from "../../lib/types";
-import { isSetComplete, getScoringDescription, calculateStandings, calculateTeamStandings } from "../../lib/scoring";
+import { playerDisplayName } from "../../lib/types";
+import { formatLabel, modeLabel } from "../../lib/i18n/labels";
+import { formatDate } from "../../lib/datetime";
+import { isSetComplete, getScoringDescription, calculateStandings, calculateTeamStandings , scoringOf} from "../../lib/scoring";
 import { calculateHighlights } from "../../lib/highlights";
 import type { PrintColors } from "../../lib/theme";
 import { PRINT_COLORS } from "../../lib/theme";
 import type { ThemeId } from "../../lib/theme";
 
-export type PrintMode = "schedule" | "round" | "standings" | "full" | "report";
+export type PrintMode =
+  | "schedule"
+  | "round"
+  | "standings"
+  | "full"
+  | "report"
+  /** Umpire cards for the matches to be played, eight to a sheet. */
+  | "scorecards"
+  /** The same card, empty, for filling in by hand. */
+  | "scorecards_blank";
 
 interface PrintViewProps {
   tournament: Tournament;
@@ -46,6 +59,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
   ) => {
     const c: PrintColors = PRINT_COLORS[themeId];
     const { t } = useT();
+    const locale = useLocale();
 
     const playerName = (id: number | null): string => {
       if (!id) return "-";
@@ -59,7 +73,9 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
       return p2 ? `${playerName(p1)} / ${playerName(p2)}` : playerName(p1);
     };
 
-    const now = new Date().toLocaleDateString("de-DE", {
+    const isScoreCards = mode === "scorecards" || mode === "scorecards_blank";
+
+    const now = new Date().toLocaleDateString(locale, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -72,15 +88,21 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>
-              🏸 {tournament.name}
+              <span aria-hidden="true">🏸</span> {tournament.name}
             </h1>
+            {tournament.play_date && (
+              <div style={{ fontSize: 12, color: "#333", marginTop: 3, fontWeight: 600 }}>
+                {formatDate(tournament.play_date, locale, { dateStyle: "full" })}
+                {tournament.start_time && <> &middot; {tournament.start_time} {t.print_oclock}</>}
+              </div>
+            )}
             <div style={{ fontSize: 11, color: "#666", marginTop: 4 }}>
-              {MODE_LABELS[tournament.mode]} &middot;{" "}
-              {FORMAT_LABELS[tournament.format]} &middot; Best of{" "}
+              {modeLabel(t, tournament.mode)} &middot;{" "}
+              {formatLabel(t, tournament.format)} &middot; Best of{" "}
               {tournament.sets_to_win * 2 - 1} &middot;{" "}
-              {getScoringDescription(tournament.points_per_set, tournament.cap)}
+              {getScoringDescription(tournament.points_per_set, tournament.cap, { ext: t.scoring_description_ext, hard: t.scoring_description_hard })}
               {tournament.format === "group_ko" && tournament.ko_points_per_set != null && (
-                <> &middot; KO: {getScoringDescription(tournament.ko_points_per_set, tournament.ko_cap)}</>
+                <> &middot; KO: {getScoringDescription(tournament.ko_points_per_set, tournament.ko_cap, { ext: t.scoring_description_ext, hard: t.scoring_description_hard })}</>
               )}
             </div>
           </div>
@@ -93,6 +115,161 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
         </div>
       </div>
     );
+
+    /**
+     * One umpire card: who plays whom, on which court, with empty boxes
+     * for the sets.
+     *
+     * It goes out to the court and comes back filled in, which is the
+     * whole point -- so everything that has to be written by hand is a
+     * box, and everything already known is printed (FEATURE-BACKLOG.md
+     * D3).
+     */
+    const renderScoreCard = (m: Match | null, roundLabel: string, key: number) => {
+      const maxSets = tournament.sets_to_win * 2 - 1;
+      const boxRow = (label: string) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 3 }}>
+          <span
+            style={{
+              fontSize: 8,
+              width: 62,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              fontWeight: 600,
+            }}
+          >
+            {label}
+          </span>
+          {Array.from({ length: maxSets }, (_, i) => (
+            <span
+              key={i}
+              style={{
+                width: 22,
+                height: 18,
+                border: "1px solid #999",
+                borderRadius: 2,
+                display: "inline-block",
+              }}
+            />
+          ))}
+        </div>
+      );
+
+      return (
+        <div
+          key={key}
+          style={{
+            border: `1px solid ${c.accent}`,
+            borderRadius: 3,
+            padding: 8,
+            height: 118,
+            boxSizing: "border-box",
+            breakInside: "avoid",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 7,
+                color: "#666",
+                borderBottom: "1px solid #ddd",
+                paddingBottom: 2,
+              }}
+            >
+              <span
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: 150,
+                }}
+              >
+                {tournament.name}
+              </span>
+              <span>{roundLabel}</span>
+            </div>
+
+            <div style={{ display: "flex", gap: 6, marginTop: 4, fontSize: 7, color: "#666" }}>
+              <span>
+                {t.common_field}:{" "}
+                <b style={{ color: "#111", fontSize: 9 }}>
+                  {m?.court ?? "____"}
+                </b>
+              </span>
+              <span>
+                {t.print_card_time}: <b style={{ color: "#111" }}>______</b>
+              </span>
+            </div>
+
+            {boxRow(m ? teamLabel(m, 1) : "____________")}
+            {boxRow(m && m.team2_p1 !== null ? teamLabel(m, 2) : "____________")}
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 7, color: "#666" }}>
+            <span>
+              {t.print_card_winner}: ______________
+            </span>
+            <span>{t.print_card_signature}: __________</span>
+          </div>
+        </div>
+      );
+    };
+
+    /**
+     * The matches the cards are printed for: the selected round when there
+     * is one, otherwise everything still to be played. A card for a match
+     * that is already decided would go straight into the bin.
+     */
+    const cardMatches = (): { match: Match; roundLabel: string }[] => {
+      const out: { match: Match; roundLabel: string }[] = [];
+      const wanted = activeRoundId
+        ? rounds.filter((r) => r.id === activeRoundId)
+        : rounds;
+      for (const r of wanted) {
+        const label = `${t.common_round} ${r.round_number}`;
+        for (const m of matchesByRound.get(r.id) ?? []) {
+          if (m.status === "completed") continue;
+          // A bye has nobody to hand a card to.
+          if (m.team2_p1 === null) continue;
+          out.push({ match: m, roundLabel: label });
+        }
+      }
+      return out;
+    };
+
+    const renderScoreCards = () => {
+      const blank = mode === "scorecards_blank";
+      const entries = blank ? [] : cardMatches();
+      // Blank sheets come as a full page; a partly filled page is padded
+      // out so the grid does not collapse to one short column.
+      const total = blank ? 8 : Math.max(entries.length, 1);
+      const padded = Math.ceil(total / 2) * 2;
+
+      return (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 8,
+          }}
+        >
+          {Array.from({ length: padded }, (_, i) => {
+            const entry = entries[i];
+            return renderScoreCard(
+              entry?.match ?? null,
+              entry?.roundLabel ?? (blank ? "" : t.print_card_blank_label),
+              i,
+            );
+          })}
+        </div>
+      );
+    };
 
     const renderMatchRow = (m: Match, idx: number) => {
       const sets = setsByMatch.get(m.id) || [];
@@ -202,19 +379,19 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
           >
             <thead>
               <tr style={{ backgroundColor: c.accentLight, borderBottom: "2px solid #d1d5db" }}>
-                <th style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>#</th>
+                <th scope="col" style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>#</th>
                 {tournament.courts > 1 && (
-                  <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 50 }}>{t.common_field}</th>
+                  <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 50 }}>{t.common_field}</th>
                 )}
-                <th style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>{t.print_team1}</th>
-                <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, width: 30 }}></th>
-                <th style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>{t.print_team2}</th>
+                <th scope="col" style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>{t.print_team1}</th>
+                <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, width: 30 }}></th>
+                <th scope="col" style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>{t.print_team2}</th>
                 {Array.from({ length: maxSets }, (_, i) => (
-                  <th key={i} style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 60 }}>
+                  <th scope="col" key={i} style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 60 }}>
                     {t.print_set_n.replace("{n}", String(i + 1))}
                   </th>
                 ))}
-                <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 50 }}>
+                <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 50 }}>
                   {t.print_sets_label}
                 </th>
               </tr>
@@ -242,17 +419,17 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
         >
           <thead>
             <tr style={{ backgroundColor: c.accentLight, borderBottom: "2px solid #d1d5db" }}>
-              <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 40 }}>{t.print_rank}</th>
-              <th style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>{t.standings_player}</th>
-              <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 50 }}>{t.standings_wins}</th>
-              <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 60 }}>{t.print_defeats}</th>
-              <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 70 }}>{t.print_sets_label}</th>
-              <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 80 }}>{t.common_points}</th>
+              <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 40 }}>{t.print_rank}</th>
+              <th scope="col" style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600 }}>{t.standings_player}</th>
+              <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 50 }}>{t.standings_wins}</th>
+              <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 60 }}>{t.print_defeats}</th>
+              <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 70 }}>{t.print_sets_label}</th>
+              <th scope="col" style={{ padding: "6px 8px", textAlign: "center", fontSize: 10, fontWeight: 600, width: 80 }}>{t.common_points}</th>
             </tr>
           </thead>
           <tbody>
             {standings.map((s, i) => {
-              const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`;
+              const medal = `${i + 1}`;
               return (
                 <tr
                   key={s.player.id}
@@ -290,7 +467,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
     const renderGroupStandings = () => {
       if (!isGroupKo || groupRounds.length === 0) return null;
       const numGroups = tournament.num_groups || 2;
-      const qualifyCount = tournament.qualify_per_group || 2;
+      const qualifyCount = knockoutSizes(tournament).perGroup;
 
       return (
         <div style={{ marginBottom: 20 }}>
@@ -309,13 +486,15 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
             const pIds = new Set<number>();
             for (const m of gMatches) {
               pIds.add(m.team1_p1); if (m.team1_p2) pIds.add(m.team1_p2);
-              pIds.add(m.team2_p1); if (m.team2_p2) pIds.add(m.team2_p2);
+              if (m.team2_p1) pIds.add(m.team2_p1); if (m.team2_p2) pIds.add(m.team2_p2);
             }
             const gPlayers = players.filter((p) => pIds.has(p.id));
             const isDoubles = tournament.mode !== "singles";
 
             if (isDoubles) {
-              const teamStandings = calculateTeamStandings(gPlayers, gMatches, gSets);
+              const teamStandings = calculateTeamStandings(gPlayers, gMatches, gSets, {
+                scoring: scoringOf(tournament),
+              });
               return (
                 <div key={groupNum} style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
@@ -324,11 +503,11 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
                   <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #d1d5db", fontSize: 11, marginBottom: 4 }}>
                     <thead>
                       <tr style={{ backgroundColor: c.accentLight, borderBottom: "2px solid #d1d5db" }}>
-                        <th style={{ padding: "4px 8px", textAlign: "left", fontSize: 10, width: 30 }}>#</th>
-                        <th style={{ padding: "4px 8px", textAlign: "left", fontSize: 10 }}>{t.groups_team}</th>
-                        <th style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_wins_abbr}</th>
-                        <th style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_losses_abbr}</th>
-                        <th style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 60 }}>{t.common_points}</th>
+                        <th scope="col" style={{ padding: "4px 8px", textAlign: "left", fontSize: 10, width: 30 }}>#</th>
+                        <th scope="col" style={{ padding: "4px 8px", textAlign: "left", fontSize: 10 }}>{t.groups_team}</th>
+                        <th scope="col" style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_wins_abbr}</th>
+                        <th scope="col" style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_losses_abbr}</th>
+                        <th scope="col" style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 60 }}>{t.common_points}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -350,7 +529,9 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
               );
             }
 
-            const gStandings = calculateStandings(gPlayers, gMatches, gSets);
+            const gStandings = calculateStandings(gPlayers, gMatches, gSets, {
+              scoring: scoringOf(tournament),
+            });
             return (
               <div key={groupNum} style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
@@ -359,11 +540,11 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
                 <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #d1d5db", fontSize: 11, marginBottom: 4 }}>
                   <thead>
                     <tr style={{ backgroundColor: c.accentLight, borderBottom: "2px solid #d1d5db" }}>
-                      <th style={{ padding: "4px 8px", textAlign: "left", fontSize: 10, width: 30 }}>#</th>
-                      <th style={{ padding: "4px 8px", textAlign: "left", fontSize: 10 }}>{t.groups_player}</th>
-                      <th style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_wins_abbr}</th>
-                      <th style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_losses_abbr}</th>
-                      <th style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 60 }}>{t.common_points}</th>
+                      <th scope="col" style={{ padding: "4px 8px", textAlign: "left", fontSize: 10, width: 30 }}>#</th>
+                      <th scope="col" style={{ padding: "4px 8px", textAlign: "left", fontSize: 10 }}>{t.groups_player}</th>
+                      <th scope="col" style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_wins_abbr}</th>
+                      <th scope="col" style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 40 }}>{t.common_losses_abbr}</th>
+                      <th scope="col" style={{ padding: "4px 8px", textAlign: "center", fontSize: 10, width: 60 }}>{t.common_points}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -404,46 +585,46 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
         tournament.cap
       );
 
-      const highlightItems: { icon: string; label: string; value: string }[] = [];
+      const highlightItems: { icon: IconName; label: string; value: string }[] = [];
 
       if (highlights.mostWins) {
         highlightItems.push({
-          icon: "🏆",
+          icon: "trophy",
           label: t.print_most_wins,
           value: `${playerDisplayName(highlights.mostWins.player)} (${highlights.mostWins.wins} ${t.standings_wins})`,
         });
       }
       if (highlights.topScorer) {
         highlightItems.push({
-          icon: "🎯",
+          icon: "target",
           label: t.print_most_points,
           value: `${playerDisplayName(highlights.topScorer.player)} (${highlights.topScorer.totalPoints} ${t.common_points})`,
         });
       }
       if (highlights.closestMatch) {
         highlightItems.push({
-          icon: "🔥",
+          icon: "flame",
           label: t.print_closest_match,
           value: highlights.closestMatch.description,
         });
       }
       if (highlights.biggestWin) {
         highlightItems.push({
-          icon: "💪",
+          icon: "flame",
           label: t.print_biggest_win,
           value: highlights.biggestWin.description,
         });
       }
       if (highlights.highestScoringMatch) {
         highlightItems.push({
-          icon: "📈",
+          icon: "trendingUp",
           label: t.print_highest_scoring,
           value: highlights.highestScoringMatch.description,
         });
       }
       if (highlights.mostSetsMatch && tournament.sets_to_win > 1) {
         highlightItems.push({
-          icon: "⏱️",
+          icon: "clock",
           label: t.print_longest_match,
           value: highlights.mostSetsMatch.description,
         });
@@ -470,7 +651,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
                 }}
               >
                 <div style={{ fontSize: 10, color: "#666", marginBottom: 2 }}>
-                  {item.icon} {item.label}
+                  <Icon name={item.icon} /> {item.label}
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "#111" }}>
                   {item.value}
@@ -532,7 +713,11 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
           backgroundColor: "white",
         }}
       >
-        {renderHeader()}
+        {/* The cards fill the sheet on their own -- a tournament header
+            above them would cost one row of eight. */}
+        {!isScoreCards && renderHeader()}
+
+        {isScoreCards && renderScoreCards()}
 
         {/* Report mode: Highlights + Group Standings + Standings + Participants + All Rounds */}
         {mode === "report" && (
@@ -602,6 +787,7 @@ const PrintView = forwardRef<HTMLDivElement, PrintViewProps>(
         {/* Footer */}
         <div
           style={{
+            display: isScoreCards ? "none" : "block",
             marginTop: 30,
             paddingTop: 10,
             borderTop: "1px solid #e5e7eb",
