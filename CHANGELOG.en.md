@@ -19,6 +19,129 @@ the application shows when its language is set to English.
 
 ## [Unreleased]
 
+_Noch nichts._
+
+---
+
+## [3.0.0] — 2026-08-21 · Security, the draw, and managing entries
+
+Two passes: `REVIEW-BACKLOG.md`, 75 items across six phases, and the
+comparison against the German associations' BTP (`FEATURE-BACKLOG.md`, 10 of
+20 items).
+
+> **A major version because the database schema breaks.** Nine migrations run
+> on first start, and afterwards the file can no longer be opened by an older
+> build of BOSS. Take a copy before the first run against real tournament
+> data -- the application makes one itself, but it has not yet earned the
+> trust that requires.
+
+### Security and privacy
+
+- **Birth dates were being published.** The standings carried the whole
+  player record to the public club page -- birth date and gender included --
+  while another part of the interface promised the opposite. Both filter
+  paths now go through one place.
+- **Anonymisation levels** for live publishing: full name, initials
+  ("Max M."), optionally without the club. Switching it on now says what is
+  about to become public.
+- **The shared secret** can no longer travel over `http://` -- it rides in a
+  header on every request. It is masked in the WordPress admin.
+- **Limits on the WordPress endpoint:** a size cap, a brake against guessing
+  the secret, and paging for the tournament list.
+
+### Data safety
+
+- **Automatic backups** before restoring, before wiping everything, and
+  before every database migration. The last five are kept, in `backups/`
+  beside the database.
+- **Backups from newer builds** are refused rather than restored.
+- **Deleting a tournament** now asks for the word to be typed. One click used
+  to take every round, match and result with it.
+
+### Tournament handling
+
+Four items from the BTP comparison.
+
+- **Play date and start time** on the tournament. It only recorded when the
+  tournament was *created* -- so a club championship set up in July and
+  played in September read as July, including on the printed sheet. Both are
+  optional; a tournament put together on the spot needs no separate date.
+  *(A1)*
+- **Closing a match that was not played:** no-show, retired, disqualified,
+  and "no match" for when neither side turned up and nobody wins. Such a
+  match used to block the tournament from finishing for good, and the only
+  way out was to retire a whole player -- which awards all their remaining
+  matches at once. *(D1)*
+- **Club-mates are kept apart in round one** as far as the draw allows, in
+  the bracket and in the group split. Seeded positions take precedence, and
+  where separation is impossible it is not forced. The club was recorded per
+  player all along and went unused. *(C2)*
+- **Seeding groups instead of fixed ranks.** Positions 3/4, 5/8 and 9/16 are
+  groups -- who gets which position inside one is drawn afresh every time, as
+  the regulations intend. *(C1)*
+
+
+### Entries, the draw and printing
+
+Six more points from the BTP comparison.
+
+- **The draw is shown before it counts.** Apply, draw again, or discard --
+  nothing is saved until Apply. Follow-up rounds too: Swiss and random
+  doubles draw afresh every round. "Draw again" only appears where a second
+  attempt could produce something else. *(C4)*
+- **Umpire cards**, eight to a sheet, with the pairing, the court and empty
+  boxes for the sets -- or entirely blank to fill in by hand. *(D3)*
+- **Waiting list.** Whoever does not fit joins the queue; when somebody drops
+  out, the first in line moves up. The order is no longer kept in somebody's
+  head. *(E1)*
+- **Withdrawals are kept.** They used to be deleted, which removed them from
+  the accounts as well. "Withdraw" keeps the entry, "remove" still deletes --
+  a wrong entry is not a cancellation. *(E2)*
+- **Entry fee can fall due on signing up** rather than on turning up. It
+  changes who appears in the accounts: withdrawals then still owe it. *(E3)*
+- **Charges beyond the entry fee** -- late entry, shuttles, hall
+  contribution, per player or for the whole tournament. The fee export lists
+  them and now names the entry status too. *(E4)*
+
+### Planning
+
+- **"How long will this take?"** The player selection now says how many
+  matches the chosen format produces and how long they will run, across as
+  many courts as the hall has. It counts with **your own** match times: BOSS
+  has always measured how long a match really takes. While too few have been
+  measured it shows a rough guess and says so. Formats with no end of their
+  own -- King of the Court, random doubles -- get no number, just a note that
+  they run for as long as you like.
+
+### Updates
+
+- **The release notes say something now.** The update dialog used to read
+  "Release v2.9.0" -- literally the string the workflow wrote into the
+  release, which the updater then copied. It comes from the changelog.
+- **Version history in Settings**, one disclosure per version. It ships with
+  the application and reads without a network connection, which in a sports
+  hall is the difference between readable and empty.
+- **One request instead of three.** The startup banner, the Settings page and
+  the install each asked the server separately; the answer could change in
+  between, so a different version could be installed than the one shown.
+- **"Later" stays said.** The banner came back at every start. A dismissal
+  now survives a restart -- but only for that one version, so it cannot hide
+  the releases that follow.
+- **At most one check a day** on startup, rather than one per start.
+
+### Interface
+
+- **Full keyboard operation** in every dialog: focus trap, Escape, focus
+  returned to whatever opened it.
+- **Six colour schemes**, two of them in club colours, all checked for
+  contrast (WCAG AA, 4.5:1 for body text).
+- **Icons instead of emoji** throughout -- screen readers were announcing
+  them with names nobody chose.
+- **Loading and empty states** on every page, without the layout jumping. The
+  tournament view used to say "loading" for ever on a deleted tournament id.
+- **English is now actually English** -- format names, errors from the core,
+  and dates, times and currency all follow the setting.
+
 ### Fixed
 
 - **The management tab could be scrolled past the end of the page.** A strip
@@ -75,50 +198,11 @@ the application shows when its language is set to English.
   stay editable so they can be cleared -- and the standings stop counting
   them from now on.
 
-### Planning
+### Under the hood
 
-- **"How long will this take?"** The player selection now says how many
-  matches the chosen format produces and how long they will run, across as
-  many courts as the hall has. It counts with **your own** match times: BOSS
-  has always measured how long a match really takes. While too few have been
-  measured it shows a rough guess and says so. Formats with no end of their
-  own -- King of the Court, random doubles -- get no number, just a note that
-  they run for as long as you like.
-
-### Entries, the draw and printing
-
-Six more points from the BTP comparison.
-
-- **The draw is shown before it counts.** Apply, draw again, or discard --
-  nothing is saved until Apply. Follow-up rounds too: Swiss and random
-  doubles draw afresh every round. "Draw again" only appears where a second
-  attempt could produce something else. *(C4)*
-- **Umpire cards**, eight to a sheet, with the pairing, the court and empty
-  boxes for the sets -- or entirely blank to fill in by hand. *(D3)*
-- **Waiting list.** Whoever does not fit joins the queue; when somebody drops
-  out, the first in line moves up. The order is no longer kept in somebody's
-  head. *(E1)*
-- **Withdrawals are kept.** They used to be deleted, which removed them from
-  the accounts as well. "Withdraw" keeps the entry, "remove" still deletes --
-  a wrong entry is not a cancellation. *(E2)*
-- **Entry fee can fall due on signing up** rather than on turning up. It
-  changes who appears in the accounts: withdrawals then still owe it. *(E3)*
-- **Charges beyond the entry fee** -- late entry, shuttles, hall
-  contribution, per player or for the whole tournament. The fee export lists
-  them and now names the entry status too. *(E4)*
-
-### Updates
-
-- **The release notes say something now.** The update dialog used to read
-  "Release v2.9.0" -- literally the string the workflow wrote into the
-  release, which the updater then copied. It comes from the changelog.
-- **Version history in Settings**, one disclosure per version. It ships with
-  the application and reads without a network connection, which in a sports
-  hall is the difference between readable and empty.
-- **One request instead of three.** The startup banner, the Settings page and
-  the install each asked the server separately; the answer could change in
-  between, so a different version could be installed than the one shown.
-- **"Later" stays said.** The banner came back at every start. A dismissal
-  now survives a restart -- but only for that one version, so it cannot hide
-  the releases that follow.
-- **At most one check a day** on startup, rather than one per start.
+- Startup bundle 2394 KB to 264 KB, install size 9.1 MB to 3.9 MB.
+- 824 tests, with every database test running against real SQLite **and** the
+  browser fallback.
+- `TournamentView` went from 3052 lines to 589, `Settings` from 1513 to 153.
+- Nine formats behind one engine interface, instead of the same if/else chain
+  repeated in five places.

@@ -1,0 +1,27 @@
+# Line endings: LF everywhere, including in the working tree.
+#
+# Without this, a Windows checkout writes CRLF, and two things that read
+# source line by line quietly broke on it while staying green in CI:
+#
+#   - scripts/check-emoji.mjs stripped comments with a regex ending in
+#     `$`, which JavaScript will not match before a carriage return -- so
+#     every emoji merely written *about* in a comment was reported.
+#   - Vitest's shebang handling expects `#!...\n`. With `\r\n` the line
+#     survived into the parser, and importing a check script from a test
+#     failed the whole suite with "Invalid or unexpected token".
+#
+# CI runs on Linux and never saw either.
+* text=auto eol=lf
+
+# Binaries Git must not touch.
+*.png binary
+*.webp binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary

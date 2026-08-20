@@ -21,8 +21,135 @@ Alle nennenswerten Änderungen an BOSS, neueste zuerst. Das Format folgt
 
 ## [Unreleased]
 
-Ein Durchgang durch `REVIEW-BACKLOG.md`, 75 Punkte in sechs Phasen. Die
-Kurzfassung dessen, was sich für Nutzer ändert:
+_Noch nichts._
+
+---
+
+## [3.0.0] — 2026-08-21 · Sicherheit, Auslosung und Meldeverwaltung
+
+Zwei Durchgänge: `REVIEW-BACKLOG.md` mit 75 Punkten in sechs Phasen, und der
+Abgleich mit dem BTP der Landesverbände (`FEATURE-BACKLOG.md`, 10 von 20
+Punkten).
+
+> **Hauptversion, weil das Datenbankschema bricht.** Neun Migrationen laufen
+> beim ersten Start automatisch. Danach lässt sich die Datei mit einer älteren
+> Fassung von BOSS nicht mehr öffnen. Vor dem ersten Start mit echten
+> Turnierdaten empfiehlt sich eine Kopie — die Anwendung legt zwar selbst eine
+> an, aber beim ersten Mal ist das Vertrauen noch nicht verdient.
+
+Die Kurzfassung dessen, was sich für Nutzer ändert:
+
+### Sicherheit und Datenschutz
+
+- **Geburtsdaten wurden veröffentlicht.** Die Tabellenstände trugen das
+  vollständige Spieler-Objekt an die öffentliche Vereinsseite — Geburtsdatum
+  und Geschlecht inbegriffen —, obwohl an anderer Stelle ausdrücklich das
+  Gegenteil zugesichert war. Behoben; beide Filterpfade laufen jetzt durch
+  eine Stelle. *(Siehe den Hinweis bei v2.7.0.)*
+- **Anonymisierungsstufe** für die Live-Veröffentlichung: voller Name, oder
+  abgekürzt („Max M."), wahlweise ohne Verein. Beim Einschalten erscheint ein
+  Hinweis, was gleich öffentlich wird.
+- **Das gemeinsame Geheimnis** kann nicht mehr über `http://` gehen — es reist
+  in einem Kopfzeilenfeld jeder Übertragung mit. Im WordPress-Adminbereich ist
+  es maskiert.
+- **Grenzen für den WordPress-Endpunkt**: Größenlimit, eine Bremse gegen das
+  Durchprobieren des Geheimnisses, Seitenweise-Abruf der Turnierliste.
+
+### Datensicherheit
+
+- **Automatische Sicherheitskopien** vor dem Wiederherstellen, dem Löschen
+  aller Daten und jeder Datenbank-Aktualisierung. Die letzten fünf bleiben
+  erhalten, im Ordner `backups/` neben der Datenbank.
+- **Backups aus neueren Programmversionen** werden abgelehnt statt eingespielt.
+- **Ein Turnier zu löschen** verlangt jetzt, das Wort zu tippen — vorher genügte
+  ein Klick für alle Runden, Spiele und Ergebnisse.
+
+### Turnierbetrieb
+
+Vier Punkte aus dem Vergleich mit dem BTP (`FEATURE-BACKLOG.md`).
+
+- **Spieltag und Startzeit** am Turnier. Bisher stand dort nur, wann das
+  Turnier *angelegt* wurde — für eine im Juli geplante Vereinsmeisterschaft im
+  September also der Juli, auch auf dem Ausdruck. Beide Angaben sind optional;
+  ein spontan aufgesetztes Turnier braucht kein eigenes Datum. *(A1)*
+- **Ein Spiel ohne Ergebnis ablegen.** „Nicht angetreten", „Aufgegeben",
+  „Disqualifiziert" und „Kein Spiel", letzteres für den Fall, dass beide
+  Seiten fehlen und niemand gewinnt. Vorher blockierte ein solches Spiel den
+  Turnierabschluss dauerhaft, und der einzige Ausweg war, einen ganzen Spieler
+  aus der Meldeliste zu nehmen — was alle seine übrigen Spiele mit vergibt.
+  *(D1)*
+- **Vereinskameraden werden in Runde eins getrennt**, soweit die Auslosung es
+  zulässt: im K.-o.-Baum und bei der Gruppenaufteilung. Setzplätze haben
+  Vorrang, und wo eine Trennung nicht möglich ist, wird sie nicht erzwungen.
+  Der Verein war längst je Spieler erfasst und lag ungenutzt. *(C2)*
+- **Setzgruppen statt fester Ränge.** Die Setzplätze 3/4, 5/8 und 9/16 sind
+  Gruppen — wer darin welche Position bekommt, wird bei jeder Auslosung neu
+  gelost, wie es die Turnierordnung vorsieht. *(C1)*
+
+### Meldungen, Auslosung und Ausdruck
+
+Sechs weitere Punkte aus dem BTP-Vergleich.
+
+- **Die Auslosung wird gezeigt, bevor sie gilt.** Übernehmen, neu auslosen
+  oder verwerfen — bis zum Übernehmen ist nichts gespeichert. Gilt auch für
+  Folgerunden; beim Schweizer System und bei zufälligen Doppeln wird jede
+  Runde neu gelost. „Neu auslosen" erscheint nur, wo ein zweiter Versuch
+  überhaupt etwas anderes ergeben kann. *(C4)*
+- **Schiedsrichterzettel**, acht je Blatt, mit Paarung, Feld und leeren
+  Kästchen für die Sätze — auch ganz leer zum Selbstausfüllen. *(D3)*
+- **Warteliste.** Wer nicht mehr hineinpasst, reiht sich ein; sagt jemand ab,
+  rückt der Erste nach. Die Reihenfolge steht nicht mehr in irgendeinem Kopf.
+  *(E1)*
+- **Abmeldungen bleiben erhalten.** Bisher wurden sie gelöscht und damit auch
+  aus der Abrechnung. „Abmelden" behält den Eintrag, „entfernen" löscht
+  weiterhin — eine Fehleingabe ist keine Absage. *(E2)*
+- **Startgeld wahlweise bei der Meldung fällig** statt beim Antreten. Ändert,
+  wer in der Abrechnung auftaucht: Abgemeldete zahlen dann trotzdem. *(E3)*
+- **Weitere Posten** neben dem Startgeld — Nachmeldung, Bälle, Hallenbeitrag,
+  je Spieler oder für das ganze Turnier. Der Startgeld-Export führt sie mit
+  auf und nennt jetzt auch den Meldestatus. *(E4)*
+
+### Planung
+
+- **„Wie lange dauert das?"** Bei der Spielerauswahl steht jetzt, wie viele
+  Spiele das gewählte Format ergibt und wie lange sie dauern werden — auf so
+  vielen Feldern, wie die Halle hat. Gerechnet wird mit den **eigenen**
+  Spielzeiten: BOSS misst seit jeher, wie lange ein Spiel wirklich dauert.
+  Solange zu wenige gemessen sind, steht eine grobe Schätzung da, und die
+  Anzeige sagt, dass es eine ist. Formate ohne festes Ende — King of the
+  Court, zufällige Doppel — bekommen keine Zahl, sondern den Hinweis, dass sie
+  laufen, solange man mag.
+
+### Aktualisierung
+
+- **Die Release-Notes sagen jetzt etwas.** Bisher stand im Aktualisierungs­
+  dialog wörtlich „Release v2.9.0" — der Text, den der Workflow in die
+  Veröffentlichung schrieb und den der Updater von dort übernahm. Er kommt
+  jetzt aus diesem Changelog.
+- **Versionshistorie in den Einstellungen**, jede Version zum Aufklappen. Sie
+  ist Teil des Programms und liest sich ohne Netz — in einer Halle mit
+  schlechtem WLAN ist das der Unterschied zwischen „lesbar" und „leer".
+- **Eine Abfrage statt drei.** Startleiste, Einstellungen und die
+  Installation fragten den Server getrennt; dazwischen konnte sich die
+  Antwort ändern, sodass eine andere Fassung installiert wurde als die
+  angezeigte.
+- **„Später" bleibt gesagt.** Die Leiste kam bei jedem Start wieder. Die
+  Ablehnung gilt jetzt dauerhaft — aber nur für diese eine Version, damit
+  ein Wegklicken nicht alle folgenden verdeckt.
+- **Höchstens eine Abfrage pro Tag** beim Start statt einer bei jedem.
+
+### Bedienung
+
+- **Vollständige Tastaturbedienung** in allen Dialogen: Fokusfalle, Escape,
+  Rücksprung auf das auslösende Element.
+- **Sechs Farbschemata**, darunter zwei in Vereinsfarben, alle auf Kontrast
+  geprüft (WCAG AA, Fließtext 4,5:1).
+- **Symbole statt Emojis** in der gesamten Oberfläche — Emojis wurden von
+  Screenreadern mit Namen vorgelesen, die niemand gewählt hatte.
+- **Lade- und Leerzustände** auf jeder Seite, ohne Layoutsprung. Die
+  Turnieransicht zeigte für eine gelöschte Turnier-ID endlos „Wird geladen".
+- **Englisch ist jetzt wirklich englisch** — Formatnamen, Fehlermeldungen aus
+  dem Programmkern, Datums-, Zeit- und Währungsangaben folgen der Einstellung.
 
 ### Behoben
 
@@ -85,122 +212,10 @@ Kurzfassung dessen, was sich für Nutzer ändert:
   bleiben bearbeitbar, damit man sie leeren kann — die Tabelle zählt sie ab
   sofort nicht mehr mit.
 
-### Planung
-
-- **„Wie lange dauert das?"** Bei der Spielerauswahl steht jetzt, wie viele
-  Spiele das gewählte Format ergibt und wie lange sie dauern werden — auf so
-  vielen Feldern, wie die Halle hat. Gerechnet wird mit den **eigenen**
-  Spielzeiten: BOSS misst seit jeher, wie lange ein Spiel wirklich dauert.
-  Solange zu wenige gemessen sind, steht eine grobe Schätzung da, und die
-  Anzeige sagt, dass es eine ist. Formate ohne festes Ende — King of the
-  Court, zufällige Doppel — bekommen keine Zahl, sondern den Hinweis, dass sie
-  laufen, solange man mag.
-
-### Meldungen, Auslosung und Ausdruck
-
-Sechs weitere Punkte aus dem BTP-Vergleich.
-
-- **Die Auslosung wird gezeigt, bevor sie gilt.** Übernehmen, neu auslosen
-  oder verwerfen — bis zum Übernehmen ist nichts gespeichert. Gilt auch für
-  Folgerunden; beim Schweizer System und bei zufälligen Doppeln wird jede
-  Runde neu gelost. „Neu auslosen" erscheint nur, wo ein zweiter Versuch
-  überhaupt etwas anderes ergeben kann. *(C4)*
-- **Schiedsrichterzettel**, acht je Blatt, mit Paarung, Feld und leeren
-  Kästchen für die Sätze — auch ganz leer zum Selbstausfüllen. *(D3)*
-- **Warteliste.** Wer nicht mehr hineinpasst, reiht sich ein; sagt jemand ab,
-  rückt der Erste nach. Die Reihenfolge steht nicht mehr in irgendeinem Kopf.
-  *(E1)*
-- **Abmeldungen bleiben erhalten.** Bisher wurden sie gelöscht und damit auch
-  aus der Abrechnung. „Abmelden" behält den Eintrag, „entfernen" löscht
-  weiterhin — eine Fehleingabe ist keine Absage. *(E2)*
-- **Startgeld wahlweise bei der Meldung fällig** statt beim Antreten. Ändert,
-  wer in der Abrechnung auftaucht: Abgemeldete zahlen dann trotzdem. *(E3)*
-- **Weitere Posten** neben dem Startgeld — Nachmeldung, Bälle, Hallenbeitrag,
-  je Spieler oder für das ganze Turnier. Der Startgeld-Export führt sie mit
-  auf und nennt jetzt auch den Meldestatus. *(E4)*
-
-### Aktualisierung
-
-- **Die Release-Notes sagen jetzt etwas.** Bisher stand im Aktualisierungs­
-  dialog wörtlich „Release v2.9.0" — der Text, den der Workflow in die
-  Veröffentlichung schrieb und den der Updater von dort übernahm. Er kommt
-  jetzt aus diesem Changelog.
-- **Versionshistorie in den Einstellungen**, jede Version zum Aufklappen. Sie
-  ist Teil des Programms und liest sich ohne Netz — in einer Halle mit
-  schlechtem WLAN ist das der Unterschied zwischen „lesbar" und „leer".
-- **Eine Abfrage statt drei.** Startleiste, Einstellungen und die
-  Installation fragten den Server getrennt; dazwischen konnte sich die
-  Antwort ändern, sodass eine andere Fassung installiert wurde als die
-  angezeigte.
-- **„Später" bleibt gesagt.** Die Leiste kam bei jedem Start wieder. Die
-  Ablehnung gilt jetzt dauerhaft — aber nur für diese eine Version, damit
-  ein Wegklicken nicht alle folgenden verdeckt.
-- **Höchstens eine Abfrage pro Tag** beim Start statt einer bei jedem.
-
-### Turnierbetrieb
-
-Vier Punkte aus dem Vergleich mit dem BTP (`FEATURE-BACKLOG.md`).
-
-- **Spieltag und Startzeit** am Turnier. Bisher stand dort nur, wann das
-  Turnier *angelegt* wurde — für eine im Juli geplante Vereinsmeisterschaft im
-  September also der Juli, auch auf dem Ausdruck. Beide Angaben sind optional;
-  ein spontan aufgesetztes Turnier braucht kein eigenes Datum. *(A1)*
-- **Ein Spiel ohne Ergebnis ablegen.** „Nicht angetreten", „Aufgegeben",
-  „Disqualifiziert" und „Kein Spiel", letzteres für den Fall, dass beide
-  Seiten fehlen und niemand gewinnt. Vorher blockierte ein solches Spiel den
-  Turnierabschluss dauerhaft, und der einzige Ausweg war, einen ganzen Spieler
-  aus der Meldeliste zu nehmen — was alle seine übrigen Spiele mit vergibt.
-  *(D1)*
-- **Vereinskameraden werden in Runde eins getrennt**, soweit die Auslosung es
-  zulässt: im K.-o.-Baum und bei der Gruppenaufteilung. Setzplätze haben
-  Vorrang, und wo eine Trennung nicht möglich ist, wird sie nicht erzwungen.
-  Der Verein war längst je Spieler erfasst und lag ungenutzt. *(C2)*
-- **Setzgruppen statt fester Ränge.** Die Setzplätze 3/4, 5/8 und 9/16 sind
-  Gruppen — wer darin welche Position bekommt, wird bei jeder Auslosung neu
-  gelost, wie es die Turnierordnung vorsieht. *(C1)*
-
-### Sicherheit und Datenschutz
-
-- **Geburtsdaten wurden veröffentlicht.** Die Tabellenstände trugen das
-  vollständige Spieler-Objekt an die öffentliche Vereinsseite — Geburtsdatum
-  und Geschlecht inbegriffen —, obwohl an anderer Stelle ausdrücklich das
-  Gegenteil zugesichert war. Behoben; beide Filterpfade laufen jetzt durch
-  eine Stelle. *(Siehe den Hinweis bei v2.7.0.)*
-- **Anonymisierungsstufe** für die Live-Veröffentlichung: voller Name, oder
-  abgekürzt („Max M."), wahlweise ohne Verein. Beim Einschalten erscheint ein
-  Hinweis, was gleich öffentlich wird.
-- **Das gemeinsame Geheimnis** kann nicht mehr über `http://` gehen — es reist
-  in einem Kopfzeilenfeld jeder Übertragung mit. Im WordPress-Adminbereich ist
-  es maskiert.
-- **Grenzen für den WordPress-Endpunkt**: Größenlimit, eine Bremse gegen das
-  Durchprobieren des Geheimnisses, Seitenweise-Abruf der Turnierliste.
-
-### Datensicherheit
-
-- **Automatische Sicherheitskopien** vor dem Wiederherstellen, dem Löschen
-  aller Daten und jeder Datenbank-Aktualisierung. Die letzten fünf bleiben
-  erhalten, im Ordner `backups/` neben der Datenbank.
-- **Backups aus neueren Programmversionen** werden abgelehnt statt eingespielt.
-- **Ein Turnier zu löschen** verlangt jetzt, das Wort zu tippen — vorher genügte
-  ein Klick für alle Runden, Spiele und Ergebnisse.
-
-### Bedienung
-
-- **Vollständige Tastaturbedienung** in allen Dialogen: Fokusfalle, Escape,
-  Rücksprung auf das auslösende Element.
-- **Sechs Farbschemata**, darunter zwei in Vereinsfarben, alle auf Kontrast
-  geprüft (WCAG AA, Fließtext 4,5:1).
-- **Symbole statt Emojis** in der gesamten Oberfläche — Emojis wurden von
-  Screenreadern mit Namen vorgelesen, die niemand gewählt hatte.
-- **Lade- und Leerzustände** auf jeder Seite, ohne Layoutsprung. Die
-  Turnieransicht zeigte für eine gelöschte Turnier-ID endlos „Wird geladen".
-- **Englisch ist jetzt wirklich englisch** — Formatnamen, Fehlermeldungen aus
-  dem Programmkern, Datums-, Zeit- und Währungsangaben folgen der Einstellung.
-
 ### Unter der Haube
 
 - Startpaket von 2394 KB auf 264 KB, Installationsgröße von 9,1 MB auf 3,9 MB.
-- 480 Tests, davon jeder Datenbanktest gegen echtes SQLite **und** den
+- 824 Tests, davon jeder Datenbanktest gegen echtes SQLite **und** den
   Browser-Ersatz.
 - Ein Walkover-Kennzeichen überlebte das Zurücksetzen eines Ergebnisses und
   verfälschte die Tabelle. Turniereinstellungen überlebten ihr Turnier, weil

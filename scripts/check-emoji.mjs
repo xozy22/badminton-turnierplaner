@@ -73,7 +73,13 @@ const findings = [];
 for (const file of walk(SRC)) {
   const rel = relative(".", file).split(ESC).join("/");
   if (ALLOWED.has(rel)) continue;
-  const lines = readFileSync(file, "utf8").split("\n");
+  // `\r?\n`, not `\n`: on Windows the lines would keep their carriage
+  // return, and JavaScript's `.` does not match one -- so the
+  // comment-stripping regex below never reached the end of a line and
+  // stripped nothing. Every emoji merely written *about* in a comment was
+  // then reported. It passed on Linux, where there is no \r, which is why
+  // CI never caught it.
+  const lines = readFileSync(file, "utf8").split(/\r?\n/);
   lines.forEach((line, i) => {
     // A comment never reaches the interface. Prose about an emoji is not
     // the same as shipping one, and rewriting comments to satisfy a

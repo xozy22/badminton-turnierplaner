@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "BOSS",
-  "version": "2.9.0",
+  "version": "3.0.0",
   "identifier": "com.badminton.turnierplaner",
   "build": {
     "frontendDist": "../dist",
